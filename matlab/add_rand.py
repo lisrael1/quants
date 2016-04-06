@@ -1,4 +1,3 @@
-#hi
 from random import randint as rand
 from numpy import sign
 import numpy as np

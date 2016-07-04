@@ -12,7 +12,7 @@ sigma=1.0
 mu=0
 moduloOn=1             #doing modulo
 mseInsteadOfSigma=0 #seems like it's the same mse but it's faster to use dither sigma so set this to 0
-samples=2e6        #TODO 2e5 is very smooth (but it will take 15 minutes), 2e4 is smooth, 2e3 has a lot of edges. 2e2 is practical for instance view. you can use 4e3
+samples=2e2        #TODO 2e5 is very smooth (but it will take 15 minutes), 2e4 is smooth, 2e3 has a lot of edges. 2e2 is practical for instance view. you can use 4e3
 one_input_only=1
 
 
@@ -252,7 +252,7 @@ getErrorVec=vectorize(getError, otypes=[list])
 
 
 #basic option
-if (0):
+if (1):
     errors=getErrorAllBins()
     plotErrors(errors,'r',"with modulo")
     print "simulation time: ",time() - start_time,"sec"
@@ -300,7 +300,7 @@ if (False):
     show()
 
 #for plotting the div between alpha of mse or dither sigma
-if (1):
+if (0):
     mseInsteadOfSigma=1
     errors=getErrorAllBins()
     by_mse=errors

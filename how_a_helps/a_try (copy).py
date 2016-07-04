@@ -1,0 +1,141 @@
+draft!!!!
+#TODO:
+#i have a few open questions here:
+#when each row at A is going to zero it mean that A is not inversable, and if it's not zero, the output of data*A can be up to the data range so it will not be near zero
+#if we do q_data*A*A.I it's like q_data and we didn nothing here
+
+from numpy import matrix
+from numpy.random import normal,uniform,randint
+import numpy as np
+import pylab
+
+
+#modolu around 0. we will right shift (+mod) it so it will be between 0 and 2*modulo, do modolu and left shift it by -mod
+def modOp(num,mod):
+    return np.sign(num)*(abs(num)%mod)
+    return (num+mod)%(2*mod)-mod
+#this function just return the quantizer bins borders
+#if we have left and right border and we want to put quantizer with #options
+def quantizer(left,right,options):
+    delta=1.0*(right-left)/options
+    return np.r_[left+delta/2:right:delta]
+#this function quantize a number by a giver quantizer with bins
+def quantizise(mumber,quants):
+    return min(quants, key=lambda x:abs(x-mumber))
+
+#TODO chagne this to without 1 and remove the other function 
+def random_a1(number_of_inputs):
+	min_val=-10
+	max_val=11
+	ind=0
+	while (True):
+		#a=matrix([randint(min_val,max_val,number_of_inputs) for i in range(number_of_inputs)])
+		a=matrix(randint(min_val,max_val,number_of_inputs**2)).reshape(number_of_inputs,number_of_inputs)
+		#i want each row to be close to 0 but not 0 so it will be invertable
+		a[:,-1]=matrix([-1*sum(i.A1) for i in a[:,range(number_of_inputs-1)]]+randint(-1,1,number_of_inputs)).T
+		ind+=1
+		if(ind>1000):
+			print "number of trys to find inversable matrix = "+str(ind)
+			print "cannot find inversable a matrix. exit"
+			exit()
+		#if (np.linalg.matrix_rank(a)==number_of_inputs):
+		if (np.linalg.det(a)>1e-2):
+			if (ind>20):
+				print "WARNING:"
+				print "number of trys to find inversable matrix = "+str(ind)
+			if (np.linalg.det(a*a.I - np.eye(inputs))>0.1):
+				print "there is some error because a*a.I is not I"
+			return a.T
+def random_a(number_of_inputs):
+	min_val=-10
+	max_val=11
+	ind=0
+	while (True):
+		#a=matrix([randint(min_val,max_val,number_of_inputs) for i in range(number_of_inputs)])
+		a=matrix(randint(min_val,max_val,number_of_inputs**2)).reshape(number_of_inputs,number_of_inputs)
+		#i want each row to be close to 0 but not 0 so it will be invertable
+		ind+=1
+		if(ind>1000):
+			print "number of trys to find inversable matrix = "+str(ind)
+			print "cannot find inversable a matrix. exit"
+			exit()
+		#if (np.linalg.matrix_rank(a)==number_of_inputs):
+		if (np.linalg.det(a)>1e-2):
+			if (ind>20):
+				print "WARNING:"
+				print "number of trys to find inversable matrix = "+str(ind)
+			a[:,-1]=matrix([-1*sum(i.A1) for i in a[:,range(number_of_inputs-1)]]).T
+			return a.T
+
+
+
+def random_data(inputs,samples,input_max_value,conditional_var):
+	data=matrix([normal(uniform(-input_max_value,input_max_value),conditional_var,inputs) for i in range(samples)])
+	return data
+
+
+def run_on_all_matrix(mat,func,*additional_args):
+	return matrix([func(i,*additional_args) for i in mat.A1]).reshape(mat.shape)
+#def print_steps(*args):
+#	if (print_all_steps):
+#		print("{}".format(*args))
+
+
+inputs=3
+modulo_size=10
+print_all_steps=1
+original_data=random_data(inputs,samples=10,input_max_value=50,conditional_var=0.1)
+print "original_data:\n",original_data
+data=original_data
+data=run_on_all_matrix(data,modOp,modulo_size)
+print "data after modulo:\n",data
+#TODO change 4000 to about 10
+quants=quantizer(-modulo_size,modulo_size,4000)
+print "quants:\n",quants
+data=run_on_all_matrix(data,quantizise,quants)
+print "data after quantizer:\n",data
+
+a=random_a(inputs)
+
+print "A:\n",a
+#print "a.I:\n",a.I
+print "data*a:\n",data*a
+print "original_data*a:\n",original_data*a
+print " data*a-original_data*a:\n",data*a-original_data*a
+print "sum of abs:\n",sum(abs(i) for i in (data*a-original_data*a).A1)
+#print "data*a*a.I:\n",data*a*a.I
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit()
+size=4
+def dota(around):
+	x=matrix([ones(size)*around]+normal(0,0.01,size)).T
+	a=matrix([-1,1,-1,1]).T #or a=matrix([-3,1,1,1]).T or any array that sums to 0. if you do a=matrix([-1,1,-1,1]).T*0.000001 it will be much smaller error
+	return [around,(a.T*x).A1[0]]
+d=[dota(i) for i in range(100)]
+d=zip(*d)
+print d
+pylab.plot(d[0],d[1])
+pylab.show()
+
+

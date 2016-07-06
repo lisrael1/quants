@@ -12,7 +12,9 @@ sigma=1.0
 mu=0
 moduloOn=1             #doing modulo
 mseInsteadOfSigma=0 #seems like it's the same mse but it's faster to use dither sigma so set this to 0
-samples=2e2        #TODO 2e5 is very smooth (but it will take 15 minutes), 2e4 is smooth, 2e3 has a lot of edges. 2e2 is practical for instance view. you can use 4e3
+samples=2e2        
+	#TODO 2e5 is very smooth (but it will take 15 minutes), 2e4 is smooth, 2e3 has a lot of edges. 2e2 is practical for instance view. you can use 4e3
+	#for calc alpha ratio: 2e2:3 sec, 2e3:15,2e4:200,2e5:1400,2e6:13338
 one_input_only=1
 
 

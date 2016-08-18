@@ -1,4 +1,12 @@
 #!/usr/bin/python
+
+#next TODO:
+#quantizer is not quantizing to the right size, meaning from -0.1 to 0.1 it gives -0.5,0.0.5 for only 1 quantizer, 
+#mmm, it's because the quantizer is at 0 and it also cut the data to the min/max so it throw it to -+0.5
+#but also i dont see any changes at the mse when adding quantizer, need to check also...
+#also try to add colors to functions, operands (=+-/*) and brackets, it will be more readable...
+
+
 """
 system goes like this:
 basic system:
@@ -52,7 +60,7 @@ opens:
 """
 from numpy import matrix as m
 from numpy import *
-set_printoptions(precision=4, threshold=None, edgeitems=None, linewidth=100, suppress=1, nanstr=None, infstr=None, formatter=None)
+set_printoptions(precision=6, threshold=None, edgeitems=None, linewidth=100, suppress=1, nanstr=None, infstr=None, formatter=None)
 
 
 
@@ -79,7 +87,7 @@ def add_dither(data,dither_size):
 #this function quantize a number by a given quantizer with bins
 def quantizise(mumbers,quant_size,number_of_quants):
 	#rounding to the quantizer
-	q=rint(m/quant_size)*quant_size
+	q=rint(mumbers/quant_size)*quant_size
 	#taking max and min values to be at the last bins
 	max_val=quant_size*number_of_quants
 	q=mat([max_val if i>max_val else -max_val if i<-max_val else i for i in q.A1]).reshape(q.shape)
@@ -87,77 +95,85 @@ def quantizise(mumbers,quant_size,number_of_quants):
 
 
 class data:
-	incriptor_output=[]
-	number_of_bins=0
-	alpha=0
-	dither_on=True
-	modulo_on=True
+	#incriptor_output=[]
+	#number_of_bins=0
+	#alpha=0
+	#dither_on=True
+	#modulo_on=True
 
-	number_of_inputs=0
-	number_of_samples=0
-	covar=0
-	single_data_var=0
-	dither_size=0
-	mod_size=0
+	#number_of_inputs=0
+	#number_of_samples=0
+	#covar=0
+	#single_data_var=0
+	#dither_size=0
+	#mod_size=0
 
-	original_data=[]
-	after_dither=[]
-	dither=0
-	x_after_modulo=[]
-	x_y_delta=[]
-	recovered_x=[]
-	error=[]
-	mse=0
-	normal_mse=0
-	all_data_var=0	
-	def __init__(self,number_of_inputs,number_of_samples,single_data_var,covar,dither_size,mod_size):
-		self.number_of_inputs,self.number_of_samples,self.single_data_var,self.covar,self.dither_size,self.mod_size=number_of_inputs,number_of_samples,single_data_var,covar,dither_size,mod_size
+	#original_data=[]
+	#after_dither=[]
+	#dither=0
+	#x_after_modulo=[]
+	#x_y_delta=[]
+	#recovered_x=[]
+	#error=[]
+	#mse_per_input_sample=0
+	#normal_mse=0
+	#all_data_var=0	
+	#when you create data, it will run it and calculate the dither, the data after modulo and after all decoders..
+	def __init__(self,number_of_inputs,number_of_samples,single_data_var,covar,dither_size,mod_size,num_quants):
+		self.number_of_inputs,self.number_of_samples,self.single_data_var,self.covar,self.dither_size,self.mod_size,self.num_quants=number_of_inputs,number_of_samples,single_data_var,covar,dither_size,mod_size,num_quants
+		self.quant_size=self.mod_size/(self.num_quants+1)
+		self.run_sim()
 	def finish_calculations(self):
 		self.error=self.original_data-self.recovered_x
 		#for mse we will flaten the error matrix so we can do power 2 just by dot product
-		self.mse=sum(self.error.A1.T*self.error.A1)
-		self.normal_mse=(self.mse/var(self.original_data))/((self.number_of_inputs*self.number_of_samples)**2)#not working...
-		self.normal_mse=(self.mse)/((self.number_of_inputs*self.number_of_samples))#not working...
+		self.mse_per_input_sample=sum(self.error.A1.T*self.error.A1)/(self.number_of_inputs*self.number_of_samples)
 		self.all_data_var=var(self.original_data) #should be (2*single_data_var)^2/12
+		#what should impact on the mse is the number of inputs, samples modulo size and covar but not on the single data variance
+		self.normal_mse=(self.mse_per_input_sample/self.covar)/(self.number_of_inputs*self.number_of_samples)#not working...
 		
 	def prnt(self):
 		print "original_data\n",self.original_data
 		print "x_after_modulo\n",self.x_after_modulo
+		print "x_after_quantizer\n",self.x_after_quantizer
 		print "recovered_x\n",self.recovered_x
 		print "error\n",self.error
 		print "y x original delta:\n",self.original_data-self.original_data[:,0]
-		print "mse\n",m(self.mse)
+		print "mse\n",m(self.mse_per_input_sample)
 		print "normalize mse:\n",m(self.normal_mse)
 		print "-------------------------------------------"
 	def __str__(self):
 		self.prnt()
 		return ""
+	def run_sim(self):
+		self.original_data=generate_data(self.covar,self.single_data_var,self.number_of_samples,self.number_of_inputs)
+		self.after_dither,self.dither=add_dither(self.original_data,self.dither_size)
+		self.x_after_modulo=mod(self.after_dither,self.mod_size)
+		self.x_after_quantizer=quantizise(self.x_after_modulo,self.quant_size,self.num_quants)
+		self.x_y_delta=mod(self.x_after_quantizer-self.original_data[:,0],self.mod_size)-self.dither
+		self.recovered_x=self.x_y_delta+self.original_data[:,0]
+		self.finish_calculations()
+		return self
 
 
-#you can run and print outputs like this:
-#print m([[i.all_data_var,i.mse] for i in [run_sim(data()) for i in range(200)]])
-#or 
-#d=[run_sim() for i in range(2)]
-#[i.prnt() for i in d]
-#print m([i.mse for i in d])
-def run_sim(d):
-	d.original_data=generate_data(d.covar,d.single_data_var,d.number_of_samples,d.number_of_inputs)
-	d.after_dither,d.dither=add_dither(d.original_data,d.dither_size)
-	d.x_after_modulo=mod(d.after_dither,d.mod_size)
-	d.x_y_delta=mod(d.x_after_modulo-d.original_data[:,0],d.mod_size)
-	d.recovered_x=d.x_y_delta+d.original_data[:,0]
-	d.finish_calculations()
-	return d
+#d=[data(number_of_inputs=300,
+#		number_of_samples=400,
+#		single_data_var=10,
+#		covar=0.1,
+#		dither_size=0.1,
+#		mod_size=0.1,
+#		num_quants=2) for i in range(20)]
 
-
-d=[run_sim(data(number_of_inputs=3,
-				number_of_samples=4,
-				single_data_var=10,
-				covar=0.1,
-				dither_size=0,
-				mod_size=.1
-				)) for i in range(2)]
-da=m([[i.all_data_var,i.mse] for i in d])
-m([i.prnt() for i in d])
+#da=m([[i.mse_per_input_sample] for i in d])
+#m([i.prnt() for i in d])
+#print mean(da[:,1])
 #print da
+#print sum(da)
+
+d=[data(number_of_inputs=3,
+		number_of_samples=4,
+		single_data_var=10,
+		covar=0.1,
+		dither_size=i,
+		mod_size=0.1,
+		num_quants=1).prnt() for i in [0.001,0.01,0.1,1,10]]
 

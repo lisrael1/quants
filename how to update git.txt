@@ -1,5 +1,4 @@
 cd to the head folder of git
-git init (not sure you need this, but it will not do negative things...)
 git status
 git add *
 git status
@@ -7,3 +6,6 @@ git commit -m "multi inputs in matrix shape"
 git status
 git push
 
+#see repository commits:
+git fetch 
+git log origin/master --oneline

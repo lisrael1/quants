@@ -1,13 +1,16 @@
 #!/usr/bin/python
 
 #next TODO:
+#try to draw mse vs bin sizes here to see that this code is as the last one
 #quantizer is not quantizing to the right size, meaning from -0.1 to 0.1 it gives -0.5,0.0.5 for only 1 quantizer, 
 #mmm, it's because the quantizer is at 0 and it also cut the data to the min/max so it throw it to -+0.5
-#but also i dont see any changes at the mse when adding quantizer, need to check also...
-#also try to add colors to functions, operands (=+-/*) and brackets, it will be more readable...
+
 
 
 """
+gvim shortcuts:
+zf create folding
+za toggle folding state
 system goes like this:
 basic system:
 	encoder:
@@ -60,11 +63,12 @@ opens:
 """
 from numpy import matrix as m
 from numpy import *
+from pylab import plot,show,grid
 set_printoptions(precision=6, threshold=None, edgeitems=None, linewidth=100, suppress=1, nanstr=None, infstr=None, formatter=None)
 
 
 
-#if the modulo_size here for example is 1.5 so we will 
+#if the modulo_size here for example is 1.5, we will 
 #not change values between -1.5 and 1.5, but 1.6 will become -1.4
 def mod(num,modulo_size):
     return m((m(num)+modulo_size)%(2*modulo_size)-modulo_size)
@@ -72,7 +76,8 @@ def mod(num,modulo_size):
 
 #each row is at specific time, each column is an input
 def generate_data(covar,max_val,inputs,samples):
-	data=m([random.normal(i,covar,inputs) for i in random.uniform(-max_val,max_val,samples)])
+	#fist input will be the uniform dist and the others will be the normal around it:
+	data=m([hstack((i,random.normal(i,sqrt(covar),inputs-1))) for i in random.uniform(-max_val,max_val,samples)])
 	return data
 def add_dither(data,dither_size):
 	rows,columns=data.shape
@@ -80,8 +85,7 @@ def add_dither(data,dither_size):
 		dither=m(random.uniform(0,dither_size,rows*columns).reshape((rows,columns)))
 	else:
 		dither=zeros(rows*columns).reshape((rows,columns))
-	data+=dither
-	return data,dither
+	return data+dither,dither
 
 
 #this function quantize a number by a given quantizer with bins
@@ -118,10 +122,18 @@ class data:
 	#mse_per_input_sample=0
 	#normal_mse=0
 	#all_data_var=0	
+
 	#when you create data, it will run it and calculate the dither, the data after modulo and after all decoders..
-	def __init__(self,number_of_inputs,number_of_samples,single_data_var,covar,dither_size,mod_size,num_quants):
-		self.number_of_inputs,self.number_of_samples,self.single_data_var,self.covar,self.dither_size,self.mod_size,self.num_quants=number_of_inputs,number_of_samples,single_data_var,covar,dither_size,mod_size,num_quants
-		self.quant_size=self.mod_size/(self.num_quants+1)
+	def __init__(self,number_of_inputs,number_of_samples,single_data_var,covar,mod_size,num_quants):
+		self.number_of_inputs=number_of_inputs
+		self.number_of_samples=number_of_samples
+		self.single_data_var=single_data_var
+		self.covar=covar
+		self.mod_size=mod_size
+		self.num_quants=num_quants
+
+		self.quant_size=1.0*self.mod_size/(self.num_quants+1)
+		self.dither_size=self.quant_size
 		self.run_sim()
 	def finish_calculations(self):
 		self.error=self.original_data-self.recovered_x
@@ -132,34 +144,43 @@ class data:
 		self.normal_mse=(self.mse_per_input_sample/self.covar)/(self.number_of_inputs*self.number_of_samples)#not working...
 		
 	def prnt(self):
+		print "===variables==="
+		print "number of inputs\n",self.number_of_inputs
+		print "number of samples\n",self.number_of_samples
+		print "modulo size\n",self.mod_size
+		print "number of quants\n",self.num_quants
+		print "covar\n",self.covar
+		print "dither size\n",self.dither_size
+
+		print "===data==="
 		print "original_data\n",self.original_data
+		print "y x_original delta (y is the first input):\n",self.original_data-self.original_data[:,0]
+		print "after_dither\n",self.after_dither
 		print "x_after_modulo\n",self.x_after_modulo
 		print "x_after_quantizer\n",self.x_after_quantizer
 		print "recovered_x\n",self.recovered_x
 		print "error\n",self.error
-		print "y x original delta:\n",self.original_data-self.original_data[:,0]
 		print "mse\n",m(self.mse_per_input_sample)
 		print "normalize mse:\n",m(self.normal_mse)
 		print "-------------------------------------------"
+		return self
 	def __str__(self):
 		self.prnt()
 		return ""
 	def run_sim(self):
-		self.original_data=generate_data(self.covar,self.single_data_var,self.number_of_samples,self.number_of_inputs)
+		self.original_data=generate_data(self.covar,self.single_data_var,self.number_of_inputs,self.number_of_samples)
 		self.after_dither,self.dither=add_dither(self.original_data,self.dither_size)
 		self.x_after_modulo=mod(self.after_dither,self.mod_size)
 		self.x_after_quantizer=quantizise(self.x_after_modulo,self.quant_size,self.num_quants)
 		self.x_y_delta=mod(self.x_after_quantizer-self.original_data[:,0],self.mod_size)-self.dither
 		self.recovered_x=self.x_y_delta+self.original_data[:,0]
 		self.finish_calculations()
-		return self
 
 
 #d=[data(number_of_inputs=300,
 #		number_of_samples=400,
 #		single_data_var=10,
 #		covar=0.1,
-#		dither_size=0.1,
 #		mod_size=0.1,
 #		num_quants=2) for i in range(20)]
 
@@ -169,11 +190,21 @@ class data:
 #print da
 #print sum(da)
 
-d=[data(number_of_inputs=3,
-		number_of_samples=4,
+d=[data(
+#from joblib import Parallel, delayed
+#import multiprocessing
+#num_cores = multiprocessing.cpu_count()
+#
+#d=Parallel(n_jobs=num_cores)(delayed(data)(
+		number_of_inputs=3,
+		number_of_samples=40,
 		single_data_var=10,
-		covar=0.1,
-		dither_size=i,
-		mod_size=0.1,
-		num_quants=1).prnt() for i in [0.001,0.01,0.1,1,10]]
-
+		covar=0.01,
+		mod_size=i,
+		num_quants=j
+		) for i in arange(0.0001,0.8,.01) for j in range(2,5)
+#		)
+		]
+print [[i.mod_size,i.mse_per_input_sample,i.num_quants] for i in d]
+#plot([i.mod_size for i in d],[i.mse_per_input_sample for i in d])
+#show()

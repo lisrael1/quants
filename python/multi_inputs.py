@@ -2,6 +2,7 @@
 
 #next TODO:
 #try to draw mse vs bin sizes here to see that this code is as the last one
+#try to do SNR minus quantization SNR
 #quantizer is not quantizing to the right size, meaning from -0.1 to 0.1 it gives -0.5,0.0.5 for only 1 quantizer, 
 #mmm, it's because the quantizer is at 0 and it also cut the data to the min/max so it throw it to -+0.5
 
@@ -64,6 +65,7 @@ opens:
 from numpy import matrix as m
 from numpy import *
 from pylab import plot,show,grid
+from multiprocessing import Pool
 set_printoptions(precision=6, threshold=None, edgeitems=None, linewidth=100, suppress=1, nanstr=None, infstr=None, formatter=None)
 
 
@@ -99,30 +101,6 @@ def quantizise(mumbers,quant_size,number_of_quants):
 
 
 class data:
-	#incriptor_output=[]
-	#number_of_bins=0
-	#alpha=0
-	#dither_on=True
-	#modulo_on=True
-
-	#number_of_inputs=0
-	#number_of_samples=0
-	#covar=0
-	#single_data_var=0
-	#dither_size=0
-	#mod_size=0
-
-	#original_data=[]
-	#after_dither=[]
-	#dither=0
-	#x_after_modulo=[]
-	#x_y_delta=[]
-	#recovered_x=[]
-	#error=[]
-	#mse_per_input_sample=0
-	#normal_mse=0
-	#all_data_var=0	
-
 	#when you create data, it will run it and calculate the dither, the data after modulo and after all decoders..
 	def __init__(self,number_of_inputs,number_of_samples,single_data_var,covar,mod_size,num_quants):
 		self.number_of_inputs=number_of_inputs
@@ -134,7 +112,6 @@ class data:
 
 		self.quant_size=1.0*self.mod_size/(self.num_quants+1)
 		self.dither_size=self.quant_size
-		self.run_sim()
 	def finish_calculations(self):
 		self.error=self.original_data-self.recovered_x
 		#for mse we will flaten the error matrix so we can do power 2 just by dot product
@@ -143,7 +120,11 @@ class data:
 		#what should impact on the mse is the number of inputs, samples modulo size and covar but not on the single data variance
 		self.normal_mse=(self.mse_per_input_sample/self.covar)/(self.number_of_inputs*self.number_of_samples)#not working...
 		
-	def prnt(self):
+	def print_all(self):
+		self.print_inputs()
+		self.print_flow()
+		return self
+	def print_inputs(self):
 		print "===variables==="
 		print "number of inputs\n",self.number_of_inputs
 		print "number of samples\n",self.number_of_samples
@@ -151,7 +132,8 @@ class data:
 		print "number of quants\n",self.num_quants
 		print "covar\n",self.covar
 		print "dither size\n",self.dither_size
-
+		return self
+	def print_flow(self):
 		print "===data==="
 		print "original_data\n",self.original_data
 		print "y x_original delta (y is the first input):\n",self.original_data-self.original_data[:,0]
@@ -164,8 +146,9 @@ class data:
 		print "normalize mse:\n",m(self.normal_mse)
 		print "-------------------------------------------"
 		return self
+
 	def __str__(self):
-		self.prnt()
+		self.print_all()
 		return ""
 	def run_sim(self):
 		self.original_data=generate_data(self.covar,self.single_data_var,self.number_of_inputs,self.number_of_samples)
@@ -177,34 +160,38 @@ class data:
 		self.finish_calculations()
 
 
-#d=[data(number_of_inputs=300,
-#		number_of_samples=400,
-#		single_data_var=10,
-#		covar=0.1,
-#		mod_size=0.1,
-#		num_quants=2) for i in range(20)]
-
-#da=m([[i.mse_per_input_sample] for i in d])
-#m([i.prnt() for i in d])
-#print mean(da[:,1])
-#print da
-#print sum(da)
-
-d=[data(
 #from joblib import Parallel, delayed
 #import multiprocessing
 #num_cores = multiprocessing.cpu_count()
 #
 #d=Parallel(n_jobs=num_cores)(delayed(data)(
-		number_of_inputs=3,
-		number_of_samples=40,
-		single_data_var=10,
-		covar=0.01,
-		mod_size=i,
-		num_quants=j
-		) for i in arange(0.0001,0.8,.01) for j in range(2,5)
-#		)
-		]
-print [[i.mod_size,i.mse_per_input_sample,i.num_quants] for i in d]
-#plot([i.mod_size for i in d],[i.mse_per_input_sample for i in d])
-#show()
+
+d=[data(
+	number_of_inputs=30,
+	number_of_samples=400,
+	single_data_var=10,
+	covar=0.01,
+	mod_size=i,
+	num_quants=j
+	) for i in arange(0.0001,0.8,.01) for j in range(2,20)]
+
+def n(a):
+	a.run_sim()
+	return a
+p=Pool()
+print "starting simulation"
+d=p.map(n,d)
+print "ending simulation"
+
+
+#parsing output:
+o=[[i.mod_size,i.mse_per_input_sample,i.num_quants] for i in d]
+#now we will take only one line per number of bins:
+o=sorted(o,key=lambda e:e[1], reverse=True)
+o=sorted(o,key=lambda e:e[2], reverse=True)
+o={i[2]:[i[0],i[1],i[2]] for i in o}.values()
+o=m(o)
+
+print o
+plot(o[:,2],o[:,0])
+show()

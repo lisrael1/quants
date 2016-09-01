@@ -64,7 +64,8 @@ opens:
 """
 from numpy import matrix as m
 from numpy import *
-from pylab import plot,show,grid
+from pylab import plot,show,grid,xlabel,ylabel,title,close,savefig
+from time import sleep
 from multiprocessing import Pool
 set_printoptions(precision=6, threshold=None, edgeitems=None, linewidth=100, suppress=1, nanstr=None, infstr=None, formatter=None)
 
@@ -160,38 +161,50 @@ class data:
 		self.finish_calculations()
 
 
-#from joblib import Parallel, delayed
-#import multiprocessing
-#num_cores = multiprocessing.cpu_count()
-#
-#d=Parallel(n_jobs=num_cores)(delayed(data)(
-
+#preparing the data:
 d=[data(
-	number_of_inputs=30,
-	number_of_samples=400,
+	number_of_inputs=300,
+	number_of_samples=4000,
 	single_data_var=10,
-	covar=0.01,
+	covar=1,
 	mod_size=i,
 	num_quants=j
-	) for i in arange(0.0001,0.8,.01) for j in range(2,20)]
+	) for i in arange(0.1,16,.05) for j in range(1,40)]
 
+#a function for running parallel:
 def n(a):
 	a.run_sim()
 	return a
-p=Pool()
-print "starting simulation"
-d=p.map(n,d)
-print "ending simulation"
 
+d=Pool().imap_unordered(n,d)
 
 #parsing output:
-o=[[i.mod_size,i.mse_per_input_sample,i.num_quants] for i in d]
-#now we will take only one line per number of bins:
-o=sorted(o,key=lambda e:e[1], reverse=True)
-o=sorted(o,key=lambda e:e[2], reverse=True)
-o={i[2]:[i[0],i[1],i[2]] for i in o}.values()
-o=m(o)
 
-print o
-plot(o[:,2],o[:,0])
-show()
+#running on each number of quants:
+if (1):
+	o=m([[i.mod_size,i.mse_per_input_sample,i.num_quants] for i in d])
+	for j in set(o[:,2].A1):
+		j=int(j)
+		print j
+		specific=m([i for i in o.tolist() if i[2]==j])
+		plot(specific[:,0],specific[:,1])
+		xlabel("mod size")
+		ylabel("mse")
+		title("number of quants ="+str(j))
+		grid()
+		savefig("mse per modulo/mse vs mod size at "+str(j)+" bins.jpg")
+		close()
+		
+
+
+if (1):#running on best mse for each:
+	o=[[i.mod_size,i.mse_per_input_sample,i.num_quants] for i in d]
+	#now we will take only one line per number of bins:
+	o=sorted(o,key=lambda e:e[1], reverse=True)
+	o={i[2]:[i[0],i[1],i[2]] for i in o}.values()
+	o=m(o)
+
+	print o
+	plot(o[:,2],o[:,1])
+	grid()
+	show()

@@ -3,8 +3,7 @@
 #next TODO:
 #try to draw mse vs bin sizes here to see that this code is as the last one
 #try to do SNR minus quantization SNR
-#quantizer is not quantizing to the right size, meaning from -0.1 to 0.1 it gives -0.5,0.0.5 for only 1 quantizer, 
-#mmm, it's because the quantizer is at 0 and it also cut the data to the min/max so it throw it to -+0.5
+#do loop that's looping on simulation parameters
 
 
 
@@ -62,9 +61,11 @@ opens:
 	but what about var and alpha?
 	
 """
+from time import time
+start_time = time()
 from numpy import matrix as m
 from numpy import *
-from pylab import plot,show,grid,xlabel,ylabel,title,close,savefig
+from pylab import plot,show,grid,xlabel,ylabel,title,close,savefig,ion,draw,figure
 from time import sleep
 from multiprocessing import Pool
 set_printoptions(precision=6, threshold=None, edgeitems=None, linewidth=100, suppress=1, nanstr=None, infstr=None, formatter=None)
@@ -103,24 +104,30 @@ def quantizise(mumbers,quant_size,number_of_quants):
 
 class data:
 	#when you create data, it will run it and calculate the dither, the data after modulo and after all decoders..
-	def __init__(self,number_of_inputs,number_of_samples,single_data_var,covar,mod_size,num_quants):
+	def __init__(self,number_of_inputs,number_of_samples,data_max_val,covar,mod_size,num_quants,dither_on):
 		self.number_of_inputs=number_of_inputs
 		self.number_of_samples=number_of_samples
-		self.single_data_var=single_data_var
+		self.data_max_val=data_max_val
 		self.covar=covar
 		self.mod_size=mod_size
 		self.num_quants=num_quants
+		self.dither_on=dither_on
 
 		self.quant_size=1.0*self.mod_size/(self.num_quants+1)
-		self.dither_size=self.quant_size
+		self.dither_size=0
+		if (self.dither_on):
+			self.dither_size=self.quant_size
 	def finish_calculations(self):
-		self.error=self.original_data-self.recovered_x
+		#we need to remove the first column because we get its original values
+		self.error=self.original_data[1:]-self.recovered_x[1:]
 		#for mse we will flaten the error matrix so we can do power 2 just by dot product
-		self.mse_per_input_sample=sum(self.error.A1.T*self.error.A1)/(self.number_of_inputs*self.number_of_samples)
-		self.all_data_var=var(self.original_data) #should be (2*single_data_var)^2/12
+		self.mse_per_input_sample=sum(self.error.A1.T*self.error.A1)/((self.number_of_inputs-1)*self.number_of_samples)
+		self.all_data_var=var(self.original_data[1:]) #should be (2*data_max_val)^2/12
 		#what should impact on the mse is the number of inputs, samples modulo size and covar but not on the single data variance
-		self.normal_mse=(self.mse_per_input_sample/self.covar)/(self.number_of_inputs*self.number_of_samples)#not working...
-		
+		self.normal_mse=(self.mse_per_input_sample/self.covar)/((self.number_of_inputs-1)*self.number_of_samples)#not working...
+		self.snr=(4*self.data_max_val*self.data_max_val)/self.mse_per_input_sample
+		self.capacity=log2(self.snr+1)
+			
 	def print_all(self):
 		self.print_inputs()
 		self.print_flow()
@@ -152,7 +159,7 @@ class data:
 		self.print_all()
 		return ""
 	def run_sim(self):
-		self.original_data=generate_data(self.covar,self.single_data_var,self.number_of_inputs,self.number_of_samples)
+		self.original_data=generate_data(self.covar,self.data_max_val,self.number_of_inputs,self.number_of_samples)
 		self.after_dither,self.dither=add_dither(self.original_data,self.dither_size)
 		self.x_after_modulo=mod(self.after_dither,self.mod_size)
 		self.x_after_quantizer=quantizise(self.x_after_modulo,self.quant_size,self.num_quants)
@@ -163,25 +170,27 @@ class data:
 
 #preparing the data:
 d=[data(
-	number_of_inputs=300,
-	number_of_samples=4000,
-	single_data_var=10,
+	number_of_inputs=30,#input*samples: 300*40 will take 27 sec, 300*400 4 minutes, and 300*4000 will take 40 minutes, 300*4e4 will get memory error
+	number_of_samples=40,
+	data_max_val=10,
 	covar=1,
 	mod_size=i,
-	num_quants=j
+	num_quants=j,
+	dither_on=0
 	) for i in arange(0.1,16,.05) for j in range(1,40)]
+
 
 #a function for running parallel:
 def n(a):
 	a.run_sim()
 	return a
 
-d=Pool().imap_unordered(n,d)
 
 #parsing output:
 
 #running on each number of quants:
-if (1):
+if (0):
+	d=Pool().imap_unordered(n,d)
 	o=m([[i.mod_size,i.mse_per_input_sample,i.num_quants] for i in d])
 	for j in set(o[:,2].A1):
 		j=int(j)
@@ -197,14 +206,45 @@ if (1):
 		
 
 
-if (1):#running on best mse for each:
-	o=[[i.mod_size,i.mse_per_input_sample,i.num_quants] for i in d]
+#running on best mse for each:
+if (1):
+	d=Pool().imap_unordered(n,d)
+	o=[[i.mse_per_input_sample,i.num_quants] for i in d]
+	#o=[[i.capacity,i.num_quants] for i in d]
 	#now we will take only one line per number of bins:
-	o=sorted(o,key=lambda e:e[1], reverse=True)
-	o={i[2]:[i[0],i[1],i[2]] for i in o}.values()
+	o=sorted(o,key=lambda e:e[0], reverse=True)
+	o={i[1]:[i[0],i[1]] for i in o}.values()
 	o=m(o)
 
 	print o
-	plot(o[:,2],o[:,1])
+	plot(o[:,1],o[:,0])
 	grid()
+	print "simulation time: ",time() - start_time,"sec"
 	show()
+
+#this will loop on options 
+if (0):
+	for k in [10,20,30]:
+		d=[data(
+			number_of_inputs=30,#input*samples: 300*40 will take 27 sec, 300*400 4 minutes, and 300*4000 will take 40 minutes, 300*4e4 will get memory error
+			number_of_samples=40,
+			data_max_val=k,
+			covar=1,
+			mod_size=i,
+			num_quants=j,
+			dither_on=0
+			) for i in arange(0.1,16,.05) for j in range(1,40)]
+		d=Pool().imap_unordered(n,d)
+		#d=map(n,d)
+		#o=[[i.mod_size,i.capacity,i.num_quants] for i in d]
+		o=[[i.mod_size,i.snr,i.num_quants] for i in d]
+		#o=[[i.mod_size,i.mse_per_input_sample,i.num_quants] for i in d]
+		#now we will take only one line per number of bins:
+		o=sorted(o,key=lambda e:e[1], reverse=True)
+		o={i[2]:[i[0],i[1],i[2]] for i in o}.values()
+		o=m(o)
+		plot(o[:,2],o[:,1])
+	grid()
+	print "simulation time: ",time() - start_time,"sec"
+	show()
+print "simulation time: ",time() - start_time,"sec"

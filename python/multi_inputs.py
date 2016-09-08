@@ -68,6 +68,7 @@ from numpy import *
 from pylab import plot,show,grid,xlabel,ylabel,title,close,savefig,ion,draw,figure
 from time import sleep
 from multiprocessing import Pool
+from operator import methodcaller
 set_printoptions(precision=6, threshold=None, edgeitems=None, linewidth=100, suppress=1, nanstr=None, infstr=None, formatter=None)
 
 
@@ -112,22 +113,10 @@ class data:
 		self.mod_size=mod_size
 		self.num_quants=num_quants
 		self.dither_on=dither_on
-
-		self.quant_size=1.0*self.mod_size/(self.num_quants+1)
-		self.dither_size=0
-		if (self.dither_on):
-			self.dither_size=self.quant_size
-	def finish_calculations(self):
-		#we need to remove the first column because we get its original values
-		self.error=self.original_data[1:]-self.recovered_x[1:]
-		#for mse we will flaten the error matrix so we can do power 2 just by dot product
-		self.mse_per_input_sample=sum(self.error.A1.T*self.error.A1)/((self.number_of_inputs-1)*self.number_of_samples)
-		self.all_data_var=var(self.original_data[1:]) #should be (2*data_max_val)^2/12
-		#what should impact on the mse is the number of inputs, samples modulo size and covar but not on the single data variance
-		self.normal_mse=(self.mse_per_input_sample/self.covar)/((self.number_of_inputs-1)*self.number_of_samples)#not working...
-		self.snr=(4*self.data_max_val*self.data_max_val)/self.mse_per_input_sample
-		self.capacity=log2(self.snr+1)
-			
+		self.init_calculations()
+	def __str__(self):
+		self.print_all()
+		return ""
 	def print_all(self):
 		self.print_inputs()
 		self.print_flow()
@@ -151,27 +140,44 @@ class data:
 		print "recovered_x\n",self.recovered_x
 		print "error\n",self.error
 		print "mse\n",m(self.mse_per_input_sample)
-		print "normalize mse:\n",m(self.normal_mse)
+		#i think i can remove this... 	print "normalize mse:\n",m(self.normal_mse)
 		print "-------------------------------------------"
 		return self
-
-	def __str__(self):
-		self.print_all()
-		return ""
+	def init_calculations(self):
+		self.quant_size=1.0*self.mod_size/(self.num_quants+1)
+		self.dither_size=0
+		if (self.dither_on):
+			self.dither_size=self.quant_size
+	def finish_calculations(self):
+		#we need to remove the first column because we get its original values
+		self.error=self.original_x-self.recovered_x
+		#for mse we will flaten the error matrix so we can do power 2 just by dot product
+		self.mse_per_input_sample=sum(self.error.A1.T*self.error.A1)/((self.number_of_inputs-1)*self.number_of_samples)
+		#i think i can remove this... self.all_data_var=var(self.original_x) #should be (2*data_max_val)^2/12
+		#what should impact on the mse is the number of inputs, samples modulo size and covar but not on the single data variance
+		#i think i can remove this... 	self.normal_mse=(self.mse_per_input_sample/self.covar)/((self.number_of_inputs-1)*self.number_of_samples)#not working...
+		self.snr=(4*self.data_max_val*self.data_max_val)/self.mse_per_input_sample
+		self.capacity=log2(self.snr+1)
+	#this function is for only 2 inputs
 	def run_sim(self):
+		#TODO some how i ruind this part and 
 		self.original_data=generate_data(self.covar,self.data_max_val,self.number_of_inputs,self.number_of_samples)
-		self.after_dither,self.dither=add_dither(self.original_data,self.dither_size)
+		self.original_x=self.original_data[:,1:]
+		self.original_y=self.original_data[:,0]
+		self.after_dither,self.dither=add_dither(self.original_x,self.dither_size)
 		self.x_after_modulo=mod(self.after_dither,self.mod_size)
-		self.x_after_quantizer=quantizise(self.x_after_modulo,self.quant_size,self.num_quants)
-		self.x_y_delta=mod(self.x_after_quantizer-self.original_data[:,0],self.mod_size)-self.dither
-		self.recovered_x=self.x_y_delta+self.original_data[:,0]
+		self.x_after_quantizer=quantizise(self.x_after_modulo,self.quant_size,self.num_quants)-self.dither
+		#TODO alpha
+		#aqctually we pick here x-y but it should be multiply in A
+		self.x_y_delta=mod(self.x_after_quantizer-self.original_y,self.mod_size)
+		self.recovered_x=self.x_y_delta+self.original_y
 		self.finish_calculations()
 
 
 #preparing the data:
 d=[data(
-	number_of_inputs=30,#input*samples: 300*40 will take 27 sec, 300*400 4 minutes, and 300*4000 will take 40 minutes, 300*4e4 will get memory error
-	number_of_samples=40,
+	number_of_inputs=4,#input*samples: 300*40 will take 27 sec, 300*400 4 minutes, and 300*4000 will take 40 minutes, 300*4e4 will get memory error
+	number_of_samples=400,
 	data_max_val=10,
 	covar=1,
 	mod_size=i,
@@ -209,6 +215,7 @@ if (0):
 #running on best mse for each:
 if (1):
 	d=Pool().imap_unordered(n,d)
+	#d=map(n,d)
 	o=[[i.mse_per_input_sample,i.num_quants] for i in d]
 	#o=[[i.capacity,i.num_quants] for i in d]
 	#now we will take only one line per number of bins:
@@ -218,6 +225,9 @@ if (1):
 
 	print o
 	plot(o[:,1],o[:,0])
+	xlabel("bins")
+	ylabel("mse")
+	title("best mse per bins ")
 	grid()
 	print "simulation time: ",time() - start_time,"sec"
 	show()
@@ -226,7 +236,7 @@ if (1):
 if (0):
 	for k in [10,20,30]:
 		d=[data(
-			number_of_inputs=30,#input*samples: 300*40 will take 27 sec, 300*400 4 minutes, and 300*4000 will take 40 minutes, 300*4e4 will get memory error
+			number_of_inputs=2,#input*samples: 300*40 will take 27 sec, 300*400 4 minutes, and 300*4000 will take 40 minutes, 300*4e4 will get memory error
 			number_of_samples=40,
 			data_max_val=k,
 			covar=1,

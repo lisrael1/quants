@@ -1,9 +1,7 @@
 #!/usr/bin/python
 
 #next TODO:
-#try to draw mse vs bin sizes here to see that this code is as the last one
 #try to do SNR minus quantization SNR
-#add different modulo and quantization also on y
 
 
 
@@ -149,22 +147,19 @@ class data:
 		if (self.dither_on):
 			self.dither_size=self.quant_size
 	def finish_calculations(self):
-		#we need to remove the first column because we get its original values
-		self.error=self.original_x-self.recovered_x
+		#TODO we need to remove the first column because we get its original values
+		self.error=self.original_data-self.recovered_x
 		#for mse we will flaten the error matrix so we can do power 2 just by dot product
 		self.mse_per_input_sample=sum(self.error.A1.T*self.error.A1)/((self.number_of_inputs-1)*self.number_of_samples)
-		#i think i can remove this... self.all_data_var=var(self.original_x) #should be (2*data_max_val)^2/12
 		#what should impact on the mse is the number of inputs, samples modulo size and covar but not on the single data variance
-		#i think i can remove this... 	self.normal_mse=(self.mse_per_input_sample/self.covar)/((self.number_of_inputs-1)*self.number_of_samples)#not working...
 		self.snr=(4*self.data_max_val*self.data_max_val)/self.mse_per_input_sample
 		self.capacity=log2(self.snr+1)
 	#this function is for only 2 inputs
 	def run_sim(self):
 		#TODO some how i ruind this part and 
 		self.original_data=generate_data(self.covar,self.data_max_val,self.number_of_inputs,self.number_of_samples)
-		self.original_x=self.original_data[:,1:]
 		self.original_y=self.original_data[:,0]
-		self.after_dither,self.dither=add_dither(self.original_x,self.dither_size)
+		self.after_dither,self.dither=add_dither(self.original_data,self.dither_size)
 		self.x_after_modulo=mod(self.after_dither,self.mod_size)
 		self.x_after_quantizer=quantizise(self.x_after_modulo,self.quant_size,self.num_quants)-self.dither
 		#TODO alpha
@@ -177,8 +172,8 @@ class data:
 
 #preparing the data:
 d=[data(
-	number_of_inputs=2,#input*samples: 300*40 will take 27 sec, 300*400 4 minutes, and 300*4000 will take 40 minutes, 300*4e4 will get memory error
-	number_of_samples=400,
+	number_of_inputs=4,#input*samples: 300*40 will take 27 sec, 300*400 4 minutes, and 300*4000 will take 40 minutes, 300*4e4 will get memory error
+	number_of_samples=40,
 	data_max_val=10,
 	covar=1,
 	mod_size=i,

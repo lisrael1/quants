@@ -27,9 +27,9 @@ d=Pool().imap_unordered(n,d)
 #[i.print_all() for i in d]
 #exit()
 o1=[[i.mod_size,i.mse_per_input_sample,i.num_quants,i.modulo_on,i.dither_on] for i in d]
-for k in [1,0]:
+for m_o in [1,0]:
 	for d_o in [1,0]:
-		o=m([i for i in o1 if i[3]==k and i[4]==w])
+		o=m([i for i in o1 if i[3]==m_o and i[4]==d_o])
 		o=o[:,:3].tolist()
 		o=lowest_y_per_x(o,2,1)
 		if (0):#if you want to get the ratio between 2 options

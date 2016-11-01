@@ -1,5 +1,5 @@
 #!/usr/bin/python
-from functions import *
+from functions_proccess_data import *
 
 """
 i can run this by rewriting the generate data to 

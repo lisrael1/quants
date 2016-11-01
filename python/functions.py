@@ -3,6 +3,9 @@ from time import time
 start_time = time()
 from numpy import matrix as m
 from numpy import *
+from scipy.integrate import quad
+from scipy.stats import norm
+from scipy.optimize import brent,minimize,fmin
 from pylab import plot,show,grid,xlabel,ylabel,title,legend,close,savefig,ion,draw,figure,annotate
 from time import sleep
 from multiprocessing import Pool
@@ -40,6 +43,57 @@ def add_dither(data,dither_size):
 		dither=zeros(rows*columns).reshape((rows,columns))
 	return data+dither,dither
 
+'''
+for now, the quantizer is around 0
+example code:
+	q=quantizer(0.1,4)
+	q=quantizer(0.1,4,10)
+	q=quantizer(all_quants=[-0.15,-0.05,0.05,0.15])
+	print q
+'''
+class quantizer():
+	def __init__(self,bin_size=None,quants_number=None,offset=None,max_val=None,min_val=None,all_quants=None):
+		if bin_size!=None and quants_number!=None and offset!=None and max_val!=None and min_val!=None and all_quants!=None:
+			self.bin_size=bin_size
+			self.quants_number=quants_number
+			self.offset=offset
+			self.max_val=max_val
+			self.min_val=min_val
+			self.all_quants=all_quants
+		elif bin_size!=None and quants_number!=None and max_val==None and min_val==None:
+			self.offset=0
+			if offset!=None:
+				self.offset=offset
+			self.bin_size=bin_size
+			self.quants_number=quants_number
+			self.min_val=-self.bin_size*(self.quants_number-1)/2.0+self.offset
+			self.all_quants=[i*self.bin_size+self.min_val for i in range(quants_number)]
+			self.max_val=self.all_quants[-1]
+		elif all_quants!=None:
+			self.all_quants=all_quants
+			self.bin_size=all_quants[1]-all_quants[0]
+			self.quants_number=len(all_quants)
+			self.max_val=self.all_quants[-1]
+			self.min_val=self.all_quants[1]
+			self.offset=(self.max_val+self.min_val)/2.0
+	def __str__(self):
+		print "bin_size:",self.bin_size
+		print "quants_number:",self.quants_number
+		print "offset:",self.offset
+		print "max_val:",self.max_val
+		print "min_val:",self.min_val
+		print "all_quants:",self.all_quants
+		return ""
+		
+def plot_pdf_quants(quantizer,mu,sigma):
+	x=arange(quantizer.min_val-2*quantizer.bin_size,quantizer.max_val+2*quantizer.bin_size,sigma/1000.0)
+	plot(x,norm.pdf(x,mu,sigma),label="pdf")
+	plot(quantizer.all_quants,zeros(quantizer.quants_number),"D",label="quantizer")
+	legend(loc="best")
+	error=analytical_error(quantizer.bin_size,quantizer.quants_number,mu,sigma)
+	title("#bins="+str(quantizer.quants_number)+", bin size="+str(quantizer.bin_size)+"\nmu="+str(mu)+", sigma="+str(sigma)+", error="+str(error))
+	grid()
+	show()
 
 """
 this function quantize a number by a given quantizer with bins
@@ -54,152 +108,71 @@ def quantizise(numbers,quant_size,number_of_quants):
 	q=mat([max_val if i>max_val else -max_val if i<-max_val else i for i in q.A1]).reshape(q.shape)
 	return q
 
+#def analytical_error(quant_size,number_of_quants,mu,sigma):
+#	#def normal_pdf(x,mu,sigma):
+#	#	return exp(-(x-mu)**2/(2*(sigma**2)))/sqrt(2*pi*(sigma**2))
+#	def quantizise_single(x,quant_size,number_of_quants):
+#		#taking max and min values to be at the last bins
+#		max_val=quant_size*number_of_quants/2.0
+#		#rounding to the quantizer
+#		q=rint((x+max_val)/(1.0*quant_size))*quant_size-max_val
+#		if q>max_val:
+#			q=max_val 
+#		if q<-max_val:
+#			q=-max_val
+#		return q
+#	def mse_pdf(x,mu,sigma,quant_size,number_of_quants):
+#		#return normal_pdf(x,mu,sigma)*(mod(x,quant_size*number_of_quants/2)-quantizise_single(x,quant_size,number_of_quants))**2
+#		return norm(mu,sigma).pdf(x)*(mod(x,quant_size*number_of_quants/2.0)-quantizise_single(x,quant_size,number_of_quants))**2
+#	return quad(mse_pdf,-7*sigma,7*sigma,args=(mu,sigma,quant_size,number_of_quants))[0]
+	
+'''
+get quants, mu and sigma and return the analytic error for those values
+note that mu should be around 0 because of the mod in the mse_pdf
+print analytical_error(2.5,5,0,1)
+'''
+def analytical_error(quant_size,number_of_quants,mu,sigma):
+	q=quantizer(quant_size,number_of_quants)
+	print q.bin_size
+	#def normal_pdf(x,mu,sigma):
+	#	return exp(-(x-mu)**2/(2*(sigma**2)))/sqrt(2*pi*(sigma**2))
+	def quantizise_single(x,quantizer):
+		#taking max and min values to be at the last bins
+		#rounding to the quantizer
+		q=rint((x+quantizer.max_val)/(1.0*quantizer.bin_size))*quantizer.bin_size-quantizer.max_val
+		if q>quantizer.max_val:
+			q=quantizer.max_val 
+		if q<quantizer.min_val:
+			q=quantizer.min_val
+		return q
+	def mse_pdf(x,mu,sigma,quantizer):
+		mod_on=1
+		if mod_on:
+			return norm(mu,sigma).pdf(x)*(mod(x,quantizer.max_val)-quantizise_single(x,quantizer))**2
+		else:
+			return norm(mu,sigma).pdf(x)*((x)-quantizise_single(x,quantizer))**2
+	return quad(mse_pdf,-4*sigma,4*sigma,args=(mu,sigma,q))[0]
+
+'''
+look for best quantizer by number of quants and normal dist args
+example:
+	s=100
+	q=find_best_quantizer(10,0,s)
+	print q
+	plot_pdf_quants(q,0,s)
+'''
+def find_best_quantizer(number_of_quants,mu,sigma):
+	bin_size=fmin(analytical_error,sigma,xtol=sigma/(10*float(number_of_quants)),ftol=sigma*100,args=(number_of_quants,mu,sigma)).tolist()[0]
+	#bin_size=fmin(analytical_error,sigma,args=(number_of_quants,mu,sigma)).tolist()[0]
+	return quantizer(bin_size=bin_size,quants_number=number_of_quants)
+	#print brent(analytical_error,args=(1000,0,1))
+	#print minimize(analytical_error,(1,0.1),method='TNC',args=(1000,0,1))
+	
+
 #data_matrix should be 2D list, not np matrix...
 def lowest_y_per_x(data_matrix,x_column,y_column):
 	data_matrix=sorted(data_matrix,key=lambda e:e[y_column], reverse=True)
 	data_matrix={i[x_column]:i for i in data_matrix}.values()
 	return m(data_matrix)
-
-
-class data_multi_inputs():
-	#when you create data, it will run it and calculate the dither, the data after modulo and after all decoders..
-	def __init__(self,number_of_samples,var,covar,mod_size,num_quants,number_of_inputs=2,y_mod_size=-1,num_quants_for_y=-1,dither_on=1,modulo_on=1):
-		self.number_of_inputs=number_of_inputs
-		self.number_of_samples=number_of_samples
-		self.var=var
-		self.covar=covar
-		self.mod_size=mod_size
-		self.y_mod_size=y_mod_size
-		self.num_quants_for_y=num_quants_for_y
-		self.num_quants=num_quants
-		self.dither_on=dither_on
-		self.modulo_on=modulo_on
-		self.init_calculations()
-	def __str__(self):
-		self.print_all()
-		return ""
-	def print_all(self):
-		self.print_inputs()
-		self.print_flow()
-		return self
-	def print_inputs(self):
-		print "===variables==="
-		print "number of inputs\n",self.number_of_inputs
-		print "number of samples\n",self.number_of_samples
-		print "modulo size\n",self.mod_size
-		print "number of quants\n",self.num_quants
-		print "covar\n",self.covar
-		print "dither size\n",self.dither_size
-		return self
-	def print_flow(self):
-		print "===data==="
-		print "original_data\n",self.original_data
-		print "y x_original delta (y is the first input):\n",self.original_data-self.original_data[:,0]
-		print "after_dither\n",self.after_dither
-		print "x_after_modulo\n",self.x_after_modulo
-		print "x_after_quantizer\n",self.x_after_quantizer
-		print "original_y\n",self.original_y
-		print "x_y_delta\n",self.x_y_delta
-		print "recovered_x\n",self.recovered_x
-		print "error\n",self.error
-		print "mse\n",m(self.mse_per_input_sample)
-		#i think i can remove this... 	print "normalize mse:\n",m(self.normal_mse)
-		print "-------------------------------------------"
-		return self
-	def init_calculations(self):
-		self.quant_size=1.0*self.mod_size/(self.num_quants+1)
-		self.y_quant_size=1.0*self.y_mod_size/self.num_quants_for_y
-		self.dither_size=0
-		if (self.dither_on):
-			self.dither_size=self.quant_size
-	def finish_calculations(self):
-		self.error=self.original_data-self.recovered_x
-		#for mse we will flaten the error matrix so we can do power 2 just by dot product
-		self.mse_per_input_sample=1.0*sum(self.error.A1.T*self.error.A1)/(self.number_of_inputs*self.number_of_samples)
-		#what should impact on the mse is the number of inputs, samples modulo size and covar but not on the single data variance
-		self.snr=1.0*self.var/self.mse_per_input_sample
-		self.capacity=log2(self.snr+1)
-	#this function is for only 2 inputs
-	def run_sim(self):
-		self.original_data=generate_data(self.covar,self.var,self.number_of_inputs,self.number_of_samples)
-		#TODO here we do x-y, where y is the first column but in fact we need matrix with permutation on all matrix, not just the first column and not just x-y, it can also be 2x+1y etc.
-		self.original_y=self.original_data[:,0]
-		if (self.number_of_inputs==1):
-			self.original_y=m(zeros(self.original_data.shape[0])).T
-		self.after_dither,self.dither=add_dither(self.original_data,self.dither_size)
-		self.x_after_modulo=mod(self.after_dither,self.mod_size)
-		if (self.number_of_inputs==1 and self.modulo_on==False):
-			self.x_after_modulo=self.after_dither
-		self.x_after_quantizer=quantizise(self.x_after_modulo,self.quant_size,self.num_quants)-self.dither
-		#TODO alpha
-		#TODO modulo and quantizer also on y, but not the same modulo and quantizer of x
-		#aqctually we pick here x-y but it should be multiply in A
-		self.x_y_delta=mod(self.x_after_quantizer-self.original_y,self.mod_size)
-		if (self.number_of_inputs==1 and self.modulo_on==False):
-			self.x_y_delta=self.x_after_quantizer
-		self.recovered_x=self.x_y_delta+self.original_y
-		self.finish_calculations()
-#class data_1_input(data_multi_inputs):
-
-class data_2_inputs(data_multi_inputs):
-	def print_inputs(self):
-		print "===variables==="
-		print "number of inputs\n",self.number_of_inputs
-		print "number of samples\n",self.number_of_samples
-		print "x modulo size\n",self.mod_size
-		print "y modulo size\n",self.y_mod_size
-		print "number of x quants\n",self.num_quants
-		print "number of y quants\n",self.num_quants_for_y
-		print "covar\n",self.covar
-		print "dither size\n",self.dither_size
-		return self
-	def print_flow(self):
-		print "===data==="
-		print "original_data\n",self.original_data
-		print "y x_original delta (y is the first input):\n",self.original_data-self.original_data[:,0]
-		print "x_after_dither\n",self.x_after_dither
-		print "x_after_modulo\n",self.x_after_modulo
-		print "y_after_modulo\n",self.y_after_modulo
-		print "x_after_quantizer\n",self.x_after_quantizer
-		print "y_after_quantizer\n",self.y_after_quantizer
-		print "modulo on x_y_delta after quantizers\n",self.x_y_delta
-		print "recovered_x\n",self.recovered_x
-		print "error\n",self.error
-		print "mse\n",m(self.mse_per_input_sample)
-		#i think i can remove this... 	print "normalize mse:\n",m(self.normal_mse)
-		print "-------------------------------------------"
-		return self
-	def finish_calculations(self):
-		#we calcualte the error only on x, not on y...
-		self.error=self.original_x-self.recovered_x
-		#for mse we will flaten the error matrix so we can do power 2 just by dot product
-		self.mse_per_input_sample=1.0*sum(self.error.A1.T*self.error.A1)/self.number_of_samples
-		#i think i can remove this... self.all_data_var=var(self.original_x) #should be (2*var)^2/12
-		#what should impact on the mse is the number of inputs, samples modulo size and covar but not on the single data variance
-		#i think i can remove this... 	self.normal_mse=(self.mse_per_input_sample/self.covar)/((self.number_of_inputs-1)*self.number_of_samples)#not working...
-		self.snr=(4.0*self.var*self.var)/self.mse_per_input_sample
-		self.capacity=log2(self.snr+1)
-	#this function is for only 2 inputs
-	def run_sim(self):
-		self.original_data=generate_data(self.covar,self.var,self.number_of_inputs,self.number_of_samples)
-		self.original_x=self.original_data[:,1] #[:,1:]
-		self.original_y=self.original_data[:,0]
-		self.x_after_dither,self.dither=add_dither(self.original_x,self.dither_size)
-		self.x_after_modulo=mod(self.x_after_dither,self.mod_size)
-		self.x_after_quantizer=quantizise(self.x_after_modulo,self.quant_size,self.num_quants)-self.dither
-		self.y_after_dither=self.original_y+self.dither
-		self.y_after_modulo=mod(self.y_after_dither,self.y_mod_size)
-		self.y_after_quantizer=quantizise(self.y_after_modulo,self.y_quant_size,self.num_quants_for_y)-self.dither
-		#TODO alpha
-		#TODO modulo and quantizer also on y, but not the same modulo and quantizer of x
-		#aqctually we pick here x-y but it should be multiply in A
-		self.x_y_delta=mod(self.x_after_quantizer-self.y_after_quantizer,self.mod_size)
-		self.recovered_x=self.x_y_delta+self.y_after_quantizer
-		self.finish_calculations()
-	
-#a function for running parallel:
-def n(a):
-	a.run_sim()
-	return a
 
 

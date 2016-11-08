@@ -1,5 +1,49 @@
-#!/usr/bin/python
 from functions import *
+
+
+"""
+if the modulo_size here for example is 3, we will 
+not change values between -1.5 and 1.5, but 1.6 will become -1.4
+"""
+def mod(num,modulo_size):
+	return m((m(num)+modulo_size/2.0)%(modulo_size)-modulo_size/2.0)
+
+"""
+each row is at specific time, each column is an input
+at var=0 you will get normal dist around 0 at all inputs
+"""
+def generate_data(covar,var,inputs,samples):
+	if (inputs<1 or int(inputs)!=inputs):
+		print "inputs has to be positive integer"
+		exit()
+	if (inputs==1):
+		return m(random.normal(0,covar,samples)).T
+	#first input will be the uniform dist and the others will be the normal around it:
+	data=m([hstack((i,random.normal(i,sqrt(covar),inputs-1))) for i in random.normal(0,sqrt(var),samples)])
+	return data
+
+def add_dither(data,dither_size):
+	rows,columns=data.shape
+	if dither_size:
+		dither=m(random.uniform(0,dither_size,rows*columns).reshape((rows,columns)))
+	else:
+		dither=zeros(rows*columns).reshape((rows,columns))
+	return data+dither,dither
+
+	
+
+#data_matrix should be 2D list, not np matrix...
+def lowest_y_per_x(data_matrix,x_column,y_column):
+	data_matrix=sorted(data_matrix,key=lambda e:e[y_column], reverse=True)
+	data_matrix={i[x_column]:i for i in data_matrix}.values()
+	return m(data_matrix)
+
+
+
+
+
+
+
 
 
 class data_multi_inputs():

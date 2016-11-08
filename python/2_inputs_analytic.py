@@ -1,5 +1,8 @@
 #!/usr/bin/python
-from functions_proccess_data import *
+import sys
+sys.path.append('./functions')
+from functions import *
+
 #next TODO:
 '''first TODO - update this file to run with analytic finding on the quantizer instead of trying a lot of quantizers'''
 #try to do SNR minus quantization SNR
@@ -17,6 +20,20 @@ zf create folding
 za toggle folding state
 	
 """
+
+
+plot([analytical_error(i/10.0,5,0,1) for i in range(1,100)])
+show()
+exit()
+number_of_quants=5
+mu=0
+sigma=1.0
+print find_best_quantizer(number_of_quants,sigma)
+
+
+
+
+
 
 #this one is just a short simulation to check if the flow ok:
 if (0):

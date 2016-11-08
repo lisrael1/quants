@@ -52,46 +52,70 @@ example code:
 	print q
 '''
 class quantizer():
-	def __init__(self,bin_size=None,quants_number=None,offset=None,max_val=None,min_val=None,all_quants=None):
-		if bin_size!=None and quants_number!=None and offset!=None and max_val!=None and min_val!=None and all_quants!=None:
+	def __init__(self,bin_size=None,number_of_quants=None,max_val=None,all_quants=None):
+		if bin_size!=None and number_of_quants!=None and max_val!=None and all_quants!=None:
 			self.bin_size=bin_size
-			self.quants_number=quants_number
-			self.offset=offset
+			self.number_of_quants=number_of_quants
 			self.max_val=max_val
-			self.min_val=min_val
 			self.all_quants=all_quants
-		elif bin_size!=None and quants_number!=None and max_val==None and min_val==None:
-			self.offset=0
-			if offset!=None:
-				self.offset=offset
+		elif bin_size!=None and number_of_quants!=None and max_val==None:
 			self.bin_size=bin_size
-			self.quants_number=quants_number
-			self.min_val=-self.bin_size*(self.quants_number-1)/2.0+self.offset
-			self.all_quants=[i*self.bin_size+self.min_val for i in range(quants_number)]
-			self.max_val=self.all_quants[-1]
+			self.number_of_quants=number_of_quants
+			self.max_val=self.bin_size*(self.number_of_quants-1)/2.0
+			self.all_quants=[i*self.bin_size-self.max_val for i in range(number_of_quants)]
 		elif all_quants!=None:
 			self.all_quants=all_quants
 			self.bin_size=all_quants[1]-all_quants[0]
-			self.quants_number=len(all_quants)
+			self.number_of_quants=len(all_quants)
 			self.max_val=self.all_quants[-1]
-			self.min_val=self.all_quants[1]
-			self.offset=(self.max_val+self.min_val)/2.0
 	def __str__(self):
 		print "bin_size:",self.bin_size
-		print "quants_number:",self.quants_number
-		print "offset:",self.offset
+		print "number_of_quants:",self.number_of_quants
 		print "max_val:",self.max_val
-		print "min_val:",self.min_val
 		print "all_quants:",self.all_quants
 		return ""
+'''quantizer with offset (no need):'''
+###class quantizer():
+###	def __init__(self,bin_size=None,number_of_quants=None,offset=None,max_val=None,min_val=None,all_quants=None):
+###		if bin_size!=None and number_of_quants!=None and offset!=None and max_val!=None and min_val!=None and all_quants!=None:
+###			self.bin_size=bin_size
+###			self.number_of_quants=number_of_quants
+###			self.offset=offset
+###			self.max_val=max_val
+###			self.min_val=min_val
+###			self.all_quants=all_quants
+###		elif bin_size!=None and number_of_quants!=None and max_val==None and min_val==None:
+###			self.offset=0
+###			if offset!=None:
+###				self.offset=offset
+###			self.bin_size=bin_size
+###			self.number_of_quants=number_of_quants
+###			self.min_val=-self.bin_size*(self.number_of_quants-1)/2.0+self.offset
+###			self.all_quants=[i*self.bin_size+self.min_val for i in range(number_of_quants)]
+###			self.max_val=self.all_quants[-1]
+###		elif all_quants!=None:
+###			self.all_quants=all_quants
+###			self.bin_size=all_quants[1]-all_quants[0]
+###			self.number_of_quants=len(all_quants)
+###			self.max_val=self.all_quants[-1]
+###			self.min_val=self.all_quants[1]
+###			self.offset=(self.max_val+self.min_val)/2.0
+###	def __str__(self):
+###		print "bin_size:",self.bin_size
+###		print "number_of_quants:",self.number_of_quants
+###		print "offset:",self.offset
+###		print "max_val:",self.max_val
+###		print "min_val:",self.min_val
+###		print "all_quants:",self.all_quants
+###		return ""
 		
 def plot_pdf_quants(quantizer,mu,sigma):
 	x=arange(quantizer.min_val-2*quantizer.bin_size,quantizer.max_val+2*quantizer.bin_size,sigma/1000.0)
 	plot(x,norm.pdf(x,mu,sigma),label="pdf")
-	plot(quantizer.all_quants,zeros(quantizer.quants_number),"D",label="quantizer")
+	plot(quantizer.all_quants,zeros(quantizer.number_of_quants),"D",label="quantizer")
 	legend(loc="best")
-	error=analytical_error(quantizer.bin_size,quantizer.quants_number,mu,sigma)
-	title("#bins="+str(quantizer.quants_number)+", bin size="+str(quantizer.bin_size)+"\nmu="+str(mu)+", sigma="+str(sigma)+", error="+str(error))
+	error=analytical_error(quantizer.bin_size,quantizer.number_of_quants,mu,sigma)
+	title("#bins="+str(quantizer.number_of_quants)+", bin size="+str(quantizer.bin_size)+"\nmu="+str(mu)+", sigma="+str(sigma)+", error="+str(error))
 	grid()
 	show()
 
@@ -142,8 +166,10 @@ def analytical_error(quant_size,number_of_quants,mu,sigma):
 		q=rint((x+quantizer.max_val)/(1.0*quantizer.bin_size))*quantizer.bin_size-quantizer.max_val
 		if q>quantizer.max_val:
 			q=quantizer.max_val 
-		if q<quantizer.min_val:
-			q=quantizer.min_val
+		if q<-quantizer.max_val:
+			q=-quantizer.max_val 
+		#if q<quantizer.min_val:
+		#	q=quantizer.min_val
 		return q
 	def mse_pdf(x,mu,sigma,quantizer):
 		mod_on=1
@@ -164,7 +190,7 @@ example:
 def find_best_quantizer(number_of_quants,mu,sigma):
 	bin_size=fmin(analytical_error,sigma,xtol=sigma/(10*float(number_of_quants)),ftol=sigma*100,args=(number_of_quants,mu,sigma)).tolist()[0]
 	#bin_size=fmin(analytical_error,sigma,args=(number_of_quants,mu,sigma)).tolist()[0]
-	return quantizer(bin_size=bin_size,quants_number=number_of_quants)
+	return quantizer(bin_size=bin_size,number_of_quants=number_of_quants)
 	#print brent(analytical_error,args=(1000,0,1))
 	#print minimize(analytical_error,(1,0.1),method='TNC',args=(1000,0,1))
 	

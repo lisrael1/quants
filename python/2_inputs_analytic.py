@@ -1,6 +1,7 @@
 #!/usr/bin/python
 from functions_proccess_data import *
 #next TODO:
+'''first TODO - update this file to run with analytic finding on the quantizer instead of trying a lot of quantizers'''
 #try to do SNR minus quantization SNR
 #add different modulo and quantization also on y
 #add simple and short flow for code sanity check
@@ -86,7 +87,7 @@ if (0):
 	show()
 
 #this will loop on options 
-if (1):
+if (0):
 	for k in [10,41,50]:
 		d=[data_2_inputs(
 			number_of_samples=40,

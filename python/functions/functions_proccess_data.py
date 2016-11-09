@@ -1,11 +1,8 @@
-from functions import *
-
-
 """
 if the modulo_size here for example is 3, we will 
 not change values between -1.5 and 1.5, but 1.6 will become -1.4
 """
-def mod(num,modulo_size):
+def mod_op(num,modulo_size):
 	return m((m(num)+modulo_size/2.0)%(modulo_size)-modulo_size/2.0)
 
 """
@@ -112,14 +109,14 @@ class data_multi_inputs():
 		if (self.number_of_inputs==1):
 			self.original_y=m(zeros(self.original_data.shape[0])).T
 		self.after_dither,self.dither=add_dither(self.original_data,self.dither_size)
-		self.x_after_modulo=mod(self.after_dither,self.mod_size)
+		self.x_after_modulo=mod_op(self.after_dither,self.mod_size)
 		if (self.number_of_inputs==1 and self.modulo_on==False):
 			self.x_after_modulo=self.after_dither
 		self.x_after_quantizer=quantizise(self.x_after_modulo,self.quant_size,self.num_quants)-self.dither
 		#TODO alpha
 		#TODO modulo and quantizer also on y, but not the same modulo and quantizer of x
 		#aqctually we pick here x-y but it should be multiply in A
-		self.x_y_delta=mod(self.x_after_quantizer-self.original_y,self.mod_size)
+		self.x_y_delta=mod_op(self.x_after_quantizer-self.original_y,self.mod_size)
 		if (self.number_of_inputs==1 and self.modulo_on==False):
 			self.x_y_delta=self.x_after_quantizer
 		self.recovered_x=self.x_y_delta+self.original_y
@@ -170,15 +167,15 @@ class data_2_inputs(data_multi_inputs):
 		self.original_x=self.original_data[:,1] #[:,1:]
 		self.original_y=self.original_data[:,0]
 		self.x_after_dither,self.dither=add_dither(self.original_x,self.dither_size)
-		self.x_after_modulo=mod(self.x_after_dither,self.mod_size)
+		self.x_after_modulo=mod_op(self.x_after_dither,self.mod_size)
 		self.x_after_quantizer=quantizise(self.x_after_modulo,self.quant_size,self.num_quants)-self.dither
 		self.y_after_dither=self.original_y+self.dither
-		self.y_after_modulo=mod(self.y_after_dither,self.y_mod_size)
+		self.y_after_modulo=mod_op(self.y_after_dither,self.y_mod_size)
 		self.y_after_quantizer=quantizise(self.y_after_modulo,self.y_quant_size,self.num_quants_for_y)-self.dither
 		#TODO alpha
 		#TODO modulo and quantizer also on y, but not the same modulo and quantizer of x
 		#aqctually we pick here x-y but it should be multiply in A
-		self.x_y_delta=mod(self.x_after_quantizer-self.y_after_quantizer,self.mod_size)
+		self.x_y_delta=mod_op(self.x_after_quantizer-self.y_after_quantizer,self.mod_size)
 		self.recovered_x=self.x_y_delta+self.y_after_quantizer
 		self.finish_calculations()
 	

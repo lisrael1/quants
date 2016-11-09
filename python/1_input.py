@@ -1,7 +1,5 @@
 #!/usr/bin/python
-import sys
-sys.path.append('./functions')
-from functions import *
+execfile("functions/functions.py")
 
 """
 i can run this by rewriting the generate data to 

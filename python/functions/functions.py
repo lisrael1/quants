@@ -1,3 +1,3 @@
-from functions_imports import *
-from functions_quantizer import *
-from functions_proccess_data import *
+execfile("functions/functions_imports.py")
+execfile("functions/functions_quantizer.py")
+execfile("functions/functions_proccess_data.py")

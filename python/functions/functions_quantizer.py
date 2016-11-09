@@ -1,5 +1,3 @@
-from functions import *
-
 '''
 for now, the quantizer is around 0
 example code:
@@ -12,12 +10,13 @@ class quantizer():
 	def __init__(self,bin_size=None,number_of_quants=None,max_val=None,all_quants=None,mu=None,sigma=None):
 		self.mu=mu
 		self.sigma=sigma
-		if bin_size!=None and number_of_quants!=None and max_val!=None and all_quants!=None:
-			self.bin_size=bin_size
-			self.number_of_quants=number_of_quants
-			self.max_val=max_val
-			self.all_quants=all_quants
-		elif bin_size!=None and number_of_quants!=None and max_val==None:
+		#if bin_size!=None and number_of_quants!=None and max_val!=None and all_quants!=None:
+		#	self.bin_size=bin_size
+		#	self.number_of_quants=number_of_quants
+		#	self.max_val=max_val
+		#	self.all_quants=all_quants
+		#elif
+		if bin_size!=None and number_of_quants!=None and max_val==None:
 			self.bin_size=bin_size
 			self.number_of_quants=number_of_quants
 			self.max_val=self.bin_size*(self.number_of_quants-1)/2.0
@@ -27,10 +26,12 @@ class quantizer():
 			self.bin_size=all_quants[1]-all_quants[0]
 			self.number_of_quants=len(all_quants)
 			self.max_val=self.all_quants[-1]
+		self.modulo_edge_to_edge=self.max_val*2+self.bin_size
 	def __str__(self):
 		print "bin_size:",self.bin_size
 		print "number_of_quants:",self.number_of_quants
 		print "max_val:",self.max_val
+		print "modulo_edge_to_edge:",self.modulo_edge_to_edge
 		print "all_quants:",self.all_quants
 		return ""
 
@@ -69,8 +70,8 @@ class quantizer():
 ###		print "all_quants:",self.all_quants
 ###		return ""
 		
-def plot_pdf_quants(quantizer,mu,sigma):
-	x=arange(quantizer.min_val-2*quantizer.bin_size,quantizer.max_val+2*quantizer.bin_size,sigma/1000.0)
+def plot_pdf_quants(quantizer,sigma,mu=0):
+	x=arange(-quantizer.max_val-2*quantizer.bin_size,quantizer.max_val+2*quantizer.bin_size,sigma/1000.0)
 	plot(x,norm.pdf(x,mu,sigma),label="pdf")
 	plot(quantizer.all_quants,zeros(quantizer.number_of_quants),"D",label="quantizer")
 	legend(loc="best")
@@ -94,33 +95,38 @@ def quantizise(numbers,quant_size,number_of_quants):
 
 '''
 get quants, mu and sigma and return the analytic error for those values
-note that mu should be around 0 because of the mod in the mse_pdf
-print analytical_error(2.5,5,0,1)
+note that mu should be around 0 because of the mod in the mse_for_single_dot
+examples:
+	print analytical_error(2.5,5,0,1)
+	plot([analytical_error(i/10.0,5,0,1) for i in range(1,100)])
+	show()
 '''
 def analytical_error(bin_size,number_of_quants,mu,sigma):
 	q=quantizer(bin_size=bin_size,number_of_quants=number_of_quants)
-	#def normal_pdf(x,mu,sigma):
-	#	return exp(-(x-mu)**2/(2*(sigma**2)))/sqrt(2*pi*(sigma**2))
 	def quantizise_single(x,quantizer):
 		#taking max and min values to be at the last bins
-		#rounding to the quantizer
+		#rounding to the quantizer:
 		q=rint((x+quantizer.max_val)/(1.0*quantizer.bin_size))*quantizer.bin_size-quantizer.max_val
+		#cutting the edges to the mas quantizer value:
 		if q>quantizer.max_val:
 			q=quantizer.max_val 
 		if q<-quantizer.max_val:
 			q=-quantizer.max_val 
-		#if q<quantizer.min_val:
-		#	q=quantizer.min_val
 		return q
-	def mse_pdf(x,mu,sigma,quantizer):
-		mod_on=1
-		if mod_on:
-			return norm(mu,sigma).pdf(x)*(mod(x,quantizer.max_val)-quantizise_single(x,quantizer))**2
+	def mse_for_single_dot(x,mu,sigma,quantizer):
+		simple_one=0
+		if simple_one:
+			return norm(mu,sigma).pdf(x)*((x-quantizise_single(x,quantizer))**2)
 		else:
-			return norm(mu,sigma).pdf(x)*((x)-quantizise_single(x,quantizer))**2
-	error=quad(mse_pdf,-4*sigma,4*sigma,args=(mu,sigma,q))[0]
-	print q.bin_size,error #TODO remove this debug line
+			#TODO: add dither?
+			#dither=random.uniform(0,quantizer.bin_size)
+			return norm(mu,sigma).pdf(x)*((x-quantizise_single(mod_op(x,quantizer.modulo_edge_to_edge),quantizer))**2)
+	error=quad(mse_for_single_dot,-10*sigma,10*sigma,args=(mu,sigma,q))[0]
+	see_itterations=0
+	if see_itterations:
+		print q.bin_size,error
 	return error
+#print analytical_error(0.4,5,0,1)
 #def analytical_error(quant_size,number_of_quants,mu,sigma):
 #	#def normal_pdf(x,mu,sigma):
 #	#	return exp(-(x-mu)**2/(2*(sigma**2)))/sqrt(2*pi*(sigma**2))
@@ -134,23 +140,25 @@ def analytical_error(bin_size,number_of_quants,mu,sigma):
 #		if q<-max_val:
 #			q=-max_val
 #		return q
-#	def mse_pdf(x,mu,sigma,quant_size,number_of_quants):
-#		#return normal_pdf(x,mu,sigma)*(mod(x,quant_size*number_of_quants/2)-quantizise_single(x,quant_size,number_of_quants))**2
-#		return norm(mu,sigma).pdf(x)*(mod(x,quant_size*number_of_quants/2.0)-quantizise_single(x,quant_size,number_of_quants))**2
-#	return quad(mse_pdf,-7*sigma,7*sigma,args=(mu,sigma,quant_size,number_of_quants))[0]
+#	def mse_for_single_dot(x,mu,sigma,quant_size,number_of_quants):
+#		#return normal_pdf(x,mu,sigma)*(mod_op(x,quant_size*number_of_quants/2)-quantizise_single(x,quant_size,number_of_quants))**2
+#		return norm(mu,sigma).pdf(x)*(mod_op(x,quant_size*number_of_quants/2.0)-quantizise_single(x,quant_size,number_of_quants))**2
+#	return quad(mse_for_single_dot,-7*sigma,7*sigma,args=(mu,sigma,quant_size,number_of_quants))[0]
 
 '''
 look for best quantizer by number of quants and normal dist args
 example:
-	s=100
-	q=find_best_quantizer(10,0,s)
+	number_of_quants=5
+	sigma=1.0
+	q=find_best_quantizer(number_of_quants,sigma)
 	print q
-	plot_pdf_quants(q,0,s)
+	plot_pdf_quants(q,sigma)
 '''
 def find_best_quantizer(number_of_quants,sigma,mu=0):
-	#bin_size=fmin(analytical_error,sigma,xtol=sigma/(10*float(number_of_quants)),ftol=sigma*100,args=(number_of_quants,mu,sigma)).tolist()[0]
-	bin_size=fmin(analytical_error,10*sigma,args=(number_of_quants,mu,sigma)).tolist()[0]
-	#bin_size=fmin(analytical_error,sigma,args=(number_of_quants,mu,sigma)).tolist()[0]
+	#we will start looking from sigma 
+	start_looking_from=4*sigma/number_of_quants
+	stop_looking_at_bin_size_error=sigma/(100.0*number_of_quants)
+	bin_size=fmin(analytical_error,start_looking_from,xtol=stop_looking_at_bin_size_error,ftol=sigma*100,args=(number_of_quants,mu,sigma)).tolist()[0]
 	return quantizer(bin_size=bin_size,number_of_quants=number_of_quants,mu=mu,sigma=sigma)
 	#print brent(analytical_error,args=(1000,0,1))
 	#print minimize(analytical_error,(1,0.1),method='TNC',args=(1000,0,1))

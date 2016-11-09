@@ -55,36 +55,21 @@ else:
 print "simulation time1: ",time() - start_time,"sec"
 
 
-
+qy=quantizer(number_of_quants=3,modulo_edge_to_edge=24)
+qx=[quantizer(number_of_quants=j,modulo_edge_to_edge=i) for i in arange(0.1,10,.05) for j in range(1,20)]
 d=[data_2_inputs(
-	#input*samples: 300*40 will take 27 sec, 300*400 4 minutes, and 300*4000 will take 40 minutes, 300*4e4 will get memory error
-	number_of_samples=400,
-	var=10,
+	number_of_samples=4e2,#dont put above 4e5
 	covar=1,
-	mod_size=i,
-	num_quants=j,
-	y_mod_size=24,
-	num_quants_for_y=3,
+	x_quantizer=i,
+	y_quantizer=qy,
 	dither_on=0
-	) for i in arange(0.1,16,.05) for j in range(1,40)]
-#d=[data_2_inputs(
-#	#input*samples: 300*40 will take 27 sec, 300*400 4 minutes, and 300*4000 will take 40 minutes, 300*4e4 will get memory error
-#	number_of_samples=4,
-#	var=10,
-#	covar=1.0,
-#	mod_size=i.modulo_edge_to_edge,
-#	num_quants=i.number_of_quants,
-#	y_mod_size=24,
-#	num_quants_for_y=3,
-#	dither_on=0
-#	) for i in q]
-#	#) for i in arange(0.1,16,.05) for j in range(1,40)]
+	) for i in qx]
 print "simulation time2: ",time() - start_time,"sec"
 
 #running on each number of quants:
 if (0):
 	d=Pool().imap_unordered(n,d)
-	o=m([[i.mod_size,i.mse_per_input_sample,i.num_quants] for i in d])
+	o=m([[i.mod_size,i.mse_per_input_sample,i.x_quantizer.number_of_quants] for i in d])
 	for j in set(o[:,2].A1):
 		j=int(j)
 		print j," done"
@@ -106,8 +91,8 @@ if (1):
 	else:
 		d=map(n,d)
 	print "simulation time3: ",time() - start_time,"sec"
-	o=[[i.mse_per_input_sample,i.num_quants] for i in d]
-	#o=[[i.capacity,i.num_quants] for i in d]
+	o=[[i.mse_per_input_sample,i.x_quantizer.number_of_quants] for i in d]
+	#o=[[i.capacity,i.x_quantizer.number_of_quants] for i in d]
 	#now we will take only one line per number of bins:
 	print "simulation time4: ",time() - start_time,"sec"
 	o=lowest_y_per_x(o,1,0)
@@ -141,9 +126,9 @@ if (0):
 			d=Pool().imap_unordered(n,d)
 		else:
 			d=map(n,d)
-		#o=[[i.mod_size,i.capacity,i.num_quants] for i in d]
-		#o=[[i.mod_size,i.snr,i.num_quants] for i in d]
-		o=[[i.mod_size,i.mse_per_input_sample,i.num_quants] for i in d]
+		#o=[[i.mod_size,i.capacity,i.x_quantizer.number_of_quants] for i in d]
+		#o=[[i.mod_size,i.snr,i.x_quantizer.number_of_quants] for i in d]
+		o=[[i.mod_size,i.mse_per_input_sample,i.x_quantizer.number_of_quants] for i in d]
 		print m(o)
 		#now we will take only one line per number of bins:
 		o=lowest_y_per_x(o,2,1)

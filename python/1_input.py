@@ -11,24 +11,27 @@ then we have to sort by x,y, commonly x is number of bins
 """
 
 a=[]
+q=[quantizer(number_of_quants=j,modulo_edge_to_edge=i) for i in arange(0.1,10,.05) for j in range(1,20)]
 d=[data_multi_inputs(
 	number_of_inputs=1,
 	number_of_samples=4e1,#dont put above 4e5
-	var=0,
+	#var=0,
 	covar=1,
-	mod_size=i,
-	num_quants=j,
+	x_quantizer=i,
+	#mod_size=i,
+	#num_quants=j,
 	dither_on=d_o,
 	modulo_on=m_o
+	) for i in q for m_o in [1,0] for d_o in [1,0]]
 	#) for i in [5] for j in [4]]
-	) for i in arange(0.1,10,.05) for j in range(1,20) for m_o in [1,0] for d_o in [1,0]]
+	#) for i in arange(0.1,10,.05) for j in range(1,20) for m_o in [1,0] for d_o in [1,0]]
 if 0:
 	d=Pool().imap_unordered(n,d)
 else:
 	d=map(n,d)
 #[i.print_all() for i in d]
 #exit()
-o1=[[i.mod_size,i.mse_per_input_sample,i.num_quants,i.modulo_on,i.dither_on] for i in d]
+o1=[[i.x_quantizer.modulo_edge_to_edge,i.mse_per_input_sample,i.x_quantizer.number_of_quants,i.modulo_on,i.dither_on] for i in d]
 for m_o in [1,0]:
 	for d_o in [1,0]:
 		o=m([i for i in o1 if i[3]==m_o and i[4]==d_o])

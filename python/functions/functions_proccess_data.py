@@ -45,15 +45,12 @@ def lowest_y_per_x(data_matrix,x_column,y_column):
 
 class data_multi_inputs():
 	#when you create data, it will run it and calculate the dither, the data after modulo and after all decoders..
-	def __init__(self,number_of_samples,var,covar,mod_size,num_quants,number_of_inputs=2,y_mod_size=-1,num_quants_for_y=-1,dither_on=1,modulo_on=1):
+	def __init__(self,number_of_samples,covar,x_quantizer,y_quantizer=None,number_of_inputs=2,dither_on=1,modulo_on=1):
+		self.x_quantizer=x_quantizer
+		self.y_quantizer=y_quantizer
 		self.number_of_inputs=number_of_inputs
 		self.number_of_samples=number_of_samples
-		self.var=var
 		self.covar=covar
-		self.mod_size=mod_size
-		self.y_mod_size=y_mod_size
-		self.num_quants_for_y=num_quants_for_y
-		self.num_quants=num_quants
 		self.dither_on=dither_on
 		self.modulo_on=modulo_on
 		self.init_calculations()
@@ -68,8 +65,8 @@ class data_multi_inputs():
 		print "===variables==="
 		print "number of inputs\n",self.number_of_inputs
 		print "number of samples\n",self.number_of_samples
-		print "modulo size\n",self.mod_size
-		print "number of quants\n",self.num_quants
+		print "modulo size\n",self.x_quantizer.modulo_edge_to_edge
+		print "number of quants\n",self.x_quantizer.number_of_quants
 		print "covar\n",self.covar
 		print "dither size\n",self.dither_size
 		return self
@@ -89,34 +86,32 @@ class data_multi_inputs():
 		print "-------------------------------------------"
 		return self
 	def init_calculations(self):
-		self.quant_size=1.0*self.mod_size/(self.num_quants+1)
-		self.y_quant_size=1.0*self.y_mod_size/self.num_quants_for_y
 		self.dither_size=0
 		if (self.dither_on):
-			self.dither_size=self.quant_size
+			self.dither_size=self.x_quantizer.bin_size
 	def finish_calculations(self):
 		self.error=self.original_data-self.recovered_x
 		#for mse we will flaten the error matrix so we can do power 2 just by dot product
 		self.mse_per_input_sample=1.0*sum(self.error.A1.T*self.error.A1)/(self.number_of_inputs*self.number_of_samples)
 		#what should impact on the mse is the number of inputs, samples modulo size and covar but not on the single data variance
-		self.snr=1.0*self.var/self.mse_per_input_sample
+		self.snr=1.0*self.x_quantizer.var/self.mse_per_input_sample
 		self.capacity=log2(self.snr+1)
 	#this function is for only 2 inputs
 	def run_sim(self):
-		self.original_data=generate_data(self.covar,self.var,self.number_of_inputs,self.number_of_samples)
+		self.original_data=generate_data(self.covar,self.x_quantizer.var,self.number_of_inputs,self.number_of_samples)
 		#TODO here we do x-y, where y is the first column but in fact we need matrix with permutation on all matrix, not just the first column and not just x-y, it can also be 2x+1y etc.
 		self.original_y=self.original_data[:,0]
 		if (self.number_of_inputs==1):
 			self.original_y=m(zeros(self.original_data.shape[0])).T
 		self.after_dither,self.dither=add_dither(self.original_data,self.dither_size)
-		self.x_after_modulo=mod_op(self.after_dither,self.mod_size)
+		self.x_after_modulo=mod_op(self.after_dither,self.x_quantizer.modulo_edge_to_edge)
 		if (self.number_of_inputs==1 and self.modulo_on==False):
 			self.x_after_modulo=self.after_dither
-		self.x_after_quantizer=quantizise(self.x_after_modulo,self.quant_size,self.num_quants)-self.dither
+		self.x_after_quantizer=self.x_quantizer.quantizise(self.x_after_modulo)-self.dither
 		#TODO alpha
 		#TODO modulo and quantizer also on y, but not the same modulo and quantizer of x
 		#aqctually we pick here x-y but it should be multiply in A
-		self.x_y_delta=mod_op(self.x_after_quantizer-self.original_y,self.mod_size)
+		self.x_y_delta=mod_op(self.x_after_quantizer-self.original_y,self.x_quantizer.modulo_edge_to_edge)
 		if (self.number_of_inputs==1 and self.modulo_on==False):
 			self.x_y_delta=self.x_after_quantizer
 		self.recovered_x=self.x_y_delta+self.original_y
@@ -128,10 +123,10 @@ class data_2_inputs(data_multi_inputs):
 		print "===variables==="
 		print "number of inputs\n",self.number_of_inputs
 		print "number of samples\n",self.number_of_samples
-		print "x modulo size\n",self.mod_size
-		print "y modulo size\n",self.y_mod_size
-		print "number of x quants\n",self.num_quants
-		print "number of y quants\n",self.num_quants_for_y
+		print "x modulo size\n",self.x_quantizer.modulo_edge_to_edge
+		print "y modulo size\n",self.y_quantizer.modulo_edge_to_edge
+		print "number of x quants\n",self.x_quantizer.number_of_quants
+		print "number of y quants\n",self.y_quantizer.number_of_quants
 		print "covar\n",self.covar
 		print "dither size\n",self.dither_size
 		return self
@@ -159,23 +154,23 @@ class data_2_inputs(data_multi_inputs):
 		#i think i can remove this... self.all_data_var=var(self.original_x) #should be (2*var)^2/12
 		#what should impact on the mse is the number of inputs, samples modulo size and covar but not on the single data variance
 		#i think i can remove this... 	self.normal_mse=(self.mse_per_input_sample/self.covar)/((self.number_of_inputs-1)*self.number_of_samples)#not working...
-		self.snr=(4.0*self.var*self.var)/self.mse_per_input_sample
+		self.snr=(4.0*self.x_quantizer.var*self.x_quantizer.var)/self.mse_per_input_sample
 		self.capacity=log2(self.snr+1)
 	#this function is for only 2 inputs
 	def run_sim(self):
-		self.original_data=generate_data(self.covar,self.var,self.number_of_inputs,self.number_of_samples)
+		self.original_data=generate_data(self.covar,self.x_quantizer.var,self.number_of_inputs,self.number_of_samples)
 		self.original_x=self.original_data[:,1] #[:,1:]
 		self.original_y=self.original_data[:,0]
 		self.x_after_dither,self.dither=add_dither(self.original_x,self.dither_size)
-		self.x_after_modulo=mod_op(self.x_after_dither,self.mod_size)
-		self.x_after_quantizer=quantizise(self.x_after_modulo,self.quant_size,self.num_quants)-self.dither
+		self.x_after_modulo=mod_op(self.x_after_dither,self.x_quantizer.modulo_edge_to_edge)
+		self.x_after_quantizer=self.x_quantizer.quantizise(self.x_after_modulo)-self.dither
 		self.y_after_dither=self.original_y+self.dither
-		self.y_after_modulo=mod_op(self.y_after_dither,self.y_mod_size)
-		self.y_after_quantizer=quantizise(self.y_after_modulo,self.y_quant_size,self.num_quants_for_y)-self.dither
+		self.y_after_modulo=mod_op(self.y_after_dither,self.y_quantizer.modulo_edge_to_edge)
+		self.y_after_quantizer=self.y_quantizer.quantizise(self.y_after_modulo)-self.dither
 		#TODO alpha
 		#TODO modulo and quantizer also on y, but not the same modulo and quantizer of x
 		#aqctually we pick here x-y but it should be multiply in A
-		self.x_y_delta=mod_op(self.x_after_quantizer-self.y_after_quantizer,self.mod_size)
+		self.x_y_delta=mod_op(self.x_after_quantizer-self.y_after_quantizer,self.x_quantizer.modulo_edge_to_edge)
 		self.recovered_x=self.x_y_delta+self.y_after_quantizer
 		self.finish_calculations()
 	

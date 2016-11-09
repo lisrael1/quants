@@ -11,6 +11,7 @@ class quantizer():
 		self.mu=mu
 		self.sigma=float(sigma)
 		self.var=self.sigma**2
+		self.expected_mse=-1
 		if bin_size!=None and number_of_quants!=None and max_val==None:
 			self.bin_size=float(bin_size)
 			self.number_of_quants=number_of_quants
@@ -43,9 +44,10 @@ class quantizer():
 	def plot_pdf_quants(self):
 		x=arange(-self.max_val-2*self.bin_size,self.max_val+2*self.bin_size,self.sigma/1000.0)
 		plot(x,norm.pdf(x,self.mu,self.sigma),label="pdf")
-		plot(self.all_quants,zeros(self.number_of_quants),"D",label="self")
+		plot(self.all_quants,zeros(self.number_of_quants),"D",label="quants")
 		legend(loc="best")
-		error=analytical_error(self.bin_size,self.number_of_quants,self.mu,self.sigma)
+		#error=analytical_error(self.bin_size,self.number_of_quants,self.mu,self.sigma)
+		error=analytical_error(quantizer_i=self)
 		title("#bins="+str(self.number_of_quants)+", bin size="+str(self.bin_size)+"\nself.mu="+str(self.mu)+", self.sigma="+str(self.sigma)+", error="+str(error))
 		grid()
 		show()
@@ -67,27 +69,35 @@ examples:
 	plot([analytical_error(i/10.0,5,0,1) for i in range(1,100)])
 	show()
 '''
-def analytical_error(bin_size,number_of_quants,mu,sigma):
-	q=quantizer(bin_size=bin_size,number_of_quants=number_of_quants)
-	def quantizise_single(x,quantizer):
+#def analytical_error(bin_size=None,number_of_quants=None,mu=None,sigma=None,quantizer_i=None):
+#	if bin_size!=None:
+#		q=quantizer(bin_size=bin_size,number_of_quants=number_of_quants)
+#	else:
+#		q=quantizer_i
+def analytical_error(bin_size=None,quantizer_i=None):
+	if bin_size!=None:
+		q=quantizer(bin_size=bin_size,number_of_quants=quantizer_i.number_of_quants)
+	else:
+		q=quantizer_i
+	def quantizise_single(x,quantizer_i):
 		#taking max and min values to be at the last bins
-		#rounding to the quantizer:
-		q=rint((x+quantizer.max_val)/(1.0*quantizer.bin_size))*quantizer.bin_size-quantizer.max_val
-		#cutting the edges to the mas quantizer value:
-		if q>quantizer.max_val:
-			q=quantizer.max_val 
-		if q<-quantizer.max_val:
-			q=-quantizer.max_val 
+		#rounding to the quantizer_i:
+		q=rint((x+quantizer_i.max_val)/(1.0*quantizer_i.bin_size))*quantizer_i.bin_size-quantizer_i.max_val
+		#cutting the edges to the mas quantizer_i value:
+		if q>quantizer_i.max_val:
+			q=quantizer_i.max_val 
+		if q<-quantizer_i.max_val:
+			q=-quantizer_i.max_val 
 		return q
-	def mse_for_single_dot(x,mu,sigma,quantizer):
+	def mse_for_single_dot(x,quantizer_i):
 		simple_one=0
 		if simple_one:
-			return norm(mu,sigma).pdf(x)*((x-quantizise_single(x,quantizer))**2)
+			return norm(quantizer_i.mu,quantizer_i.sigma).pdf(x)*((x-quantizise_single(x,quantizer_i))**2)
 		else:
 			#TODO: add dither?
-			#dither=random.uniform(0,quantizer.bin_size)
-			return norm(mu,sigma).pdf(x)*((x-quantizise_single(mod_op(x,quantizer.modulo_edge_to_edge),quantizer))**2)
-	error=quad(mse_for_single_dot,-10*sigma,10*sigma,args=(mu,sigma,q))[0]
+			#dither=random.uniform(0,quantizer_i.bin_size)
+			return norm(quantizer_i.mu,quantizer_i.sigma).pdf(x)*((x-quantizise_single(mod_op(x,quantizer_i.modulo_edge_to_edge),quantizer_i))**2)
+	error=quad(mse_for_single_dot,-10*q.sigma,10*q.sigma,args=(q))[0]
 	see_itterations=0
 	if see_itterations:
 		print q.bin_size,error
@@ -106,7 +116,9 @@ def find_best_quantizer(number_of_quants,sigma,mu=0):
 	#we will start looking from sigma 
 	start_looking_from=4*sigma/number_of_quants
 	stop_looking_at_bin_size_error=sigma/(100.0*number_of_quants)
-	bin_size=fmin(analytical_error,start_looking_from,xtol=stop_looking_at_bin_size_error,ftol=sigma*100,args=(number_of_quants,mu,sigma),disp=False).tolist()[0]
+	#bin_size=fmin(analytical_error,start_looking_from,xtol=stop_looking_at_bin_size_error,ftol=sigma*100,args=(number_of_quants,mu,sigma),disp=False).tolist()[0]
+	q=quantizer(bin_size=1,number_of_quants=number_of_quants,sigma=sigma,mu=mu)
+	bin_size=fmin(analytical_error,start_looking_from,xtol=stop_looking_at_bin_size_error,ftol=sigma*100,args=(q,),disp=False).tolist()[0]
 	return quantizer(bin_size=bin_size,number_of_quants=number_of_quants,mu=mu,sigma=sigma)
 	#print brent(analytical_error,args=(1000,0,1))
 	#print minimize(analytical_error,(1,0.1),method='TNC',args=(1000,0,1))

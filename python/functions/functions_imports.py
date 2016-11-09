@@ -10,3 +10,5 @@ from time import sleep
 from multiprocessing import Pool
 from operator import methodcaller
 set_printoptions(precision=6, threshold=None, edgeitems=None, linewidth=100, suppress=1, nanstr=None, infstr=None, formatter=None)
+import warnings
+warnings.filterwarnings("ignore")

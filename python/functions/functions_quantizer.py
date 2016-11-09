@@ -27,7 +27,17 @@ class quantizer():
 			self.number_of_quants=len(all_quants)
 			self.max_val=self.all_quants[-1]
 		self.modulo_edge_to_edge=self.max_val*2+self.bin_size
+	def plot_pdf_quants():
+		x=arange(-self.max_val-2*self.bin_size,self.max_val+2*self.bin_size,self.sigma/1000.0)
+		plot(x,norm.pdf(x,self.mu,self.sigma),label="pdf")
+		plot(self.all_quants,zeros(self.number_of_quants),"D",label="self")
+		legend(loc="best")
+		error=analytical_error(self.bin_size,self.number_of_quants,self.mu,self.sigma)
+		title("#bins="+str(self.number_of_quants)+", bin size="+str(self.bin_size)+"\nself.mu="+str(self.mu)+", self.sigma="+str(self.sigma)+", error="+str(error))
+		grid()
+		show()
 	def __str__(self):
+		print "-----"
 		print "bin_size:",self.bin_size
 		print "number_of_quants:",self.number_of_quants
 		print "max_val:",self.max_val
@@ -70,15 +80,6 @@ class quantizer():
 ###		print "all_quants:",self.all_quants
 ###		return ""
 		
-def plot_pdf_quants(quantizer,sigma,mu=0):
-	x=arange(-quantizer.max_val-2*quantizer.bin_size,quantizer.max_val+2*quantizer.bin_size,sigma/1000.0)
-	plot(x,norm.pdf(x,mu,sigma),label="pdf")
-	plot(quantizer.all_quants,zeros(quantizer.number_of_quants),"D",label="quantizer")
-	legend(loc="best")
-	error=analytical_error(quantizer.bin_size,quantizer.number_of_quants,mu,sigma)
-	title("#bins="+str(quantizer.number_of_quants)+", bin size="+str(quantizer.bin_size)+"\nmu="+str(mu)+", sigma="+str(sigma)+", error="+str(error))
-	grid()
-	show()
 
 """
 this function quantize a number by a given quantizer with bins
@@ -152,13 +153,13 @@ example:
 	sigma=1.0
 	q=find_best_quantizer(number_of_quants,sigma)
 	print q
-	plot_pdf_quants(q,sigma)
+	q.plot_pdf_quants()
 '''
 def find_best_quantizer(number_of_quants,sigma,mu=0):
 	#we will start looking from sigma 
 	start_looking_from=4*sigma/number_of_quants
 	stop_looking_at_bin_size_error=sigma/(100.0*number_of_quants)
-	bin_size=fmin(analytical_error,start_looking_from,xtol=stop_looking_at_bin_size_error,ftol=sigma*100,args=(number_of_quants,mu,sigma)).tolist()[0]
+	bin_size=fmin(analytical_error,start_looking_from,xtol=stop_looking_at_bin_size_error,ftol=sigma*100,args=(number_of_quants,mu,sigma),disp=False).tolist()[0]
 	return quantizer(bin_size=bin_size,number_of_quants=number_of_quants,mu=mu,sigma=sigma)
 	#print brent(analytical_error,args=(1000,0,1))
 	#print minimize(analytical_error,(1,0.1),method='TNC',args=(1000,0,1))

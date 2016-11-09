@@ -19,14 +19,6 @@ za toggle folding state
 	
 """
 
-number_of_quants=5
-sigma=1.0
-q=find_best_quantizer(number_of_quants,sigma)
-print q
-plot_pdf_quants(q,sigma)
-
-
-
 
 
 
@@ -50,6 +42,20 @@ if (0):
 
 
 #preparing the data:
+#first find the best modulo size - best quantizer:
+sigma=1.0
+max_bin_number=20
+if 0:
+	q=[find_best_quantizer(number_of_quants,sigma) for number_of_quants in range(1,max_bin_number)]
+else:
+	def find_best_quantizer_parallel(number_of_quants):
+		return find_best_quantizer(number_of_quants,sigma)
+	q=Pool().imap_unordered(find_best_quantizer_parallel,range(1,max_bin_number))
+	#[str(i) for i in q]
+print "simulation time1: ",time() - start_time,"sec"
+
+
+
 d=[data_2_inputs(
 	#input*samples: 300*40 will take 27 sec, 300*400 4 minutes, and 300*4000 will take 40 minutes, 300*4e4 will get memory error
 	number_of_samples=400,
@@ -61,6 +67,19 @@ d=[data_2_inputs(
 	num_quants_for_y=3,
 	dither_on=0
 	) for i in arange(0.1,16,.05) for j in range(1,40)]
+#d=[data_2_inputs(
+#	#input*samples: 300*40 will take 27 sec, 300*400 4 minutes, and 300*4000 will take 40 minutes, 300*4e4 will get memory error
+#	number_of_samples=4,
+#	var=10,
+#	covar=1.0,
+#	mod_size=i.modulo_edge_to_edge,
+#	num_quants=i.number_of_quants,
+#	y_mod_size=24,
+#	num_quants_for_y=3,
+#	dither_on=0
+#	) for i in q]
+#	#) for i in arange(0.1,16,.05) for j in range(1,40)]
+print "simulation time2: ",time() - start_time,"sec"
 
 #running on each number of quants:
 if (0):
@@ -68,7 +87,7 @@ if (0):
 	o=m([[i.mod_size,i.mse_per_input_sample,i.num_quants] for i in d])
 	for j in set(o[:,2].A1):
 		j=int(j)
-		print j
+		print j," done"
 		specific=m([i for i in o.tolist() if i[2]==j])
 		plot(specific[:,0],specific[:,1])
 		xlabel("mod size")
@@ -81,13 +100,18 @@ if (0):
 
 
 #running on best mse for each:
-if (0):
-	d=Pool().imap_unordered(n,d)
-	#d=map(n,d)
+if (1):
+	if 1:
+		d=Pool().imap_unordered(n,d)
+	else:
+		d=map(n,d)
+	print "simulation time3: ",time() - start_time,"sec"
 	o=[[i.mse_per_input_sample,i.num_quants] for i in d]
 	#o=[[i.capacity,i.num_quants] for i in d]
 	#now we will take only one line per number of bins:
-	o=lowest_y_per_x(o,0,1)
+	print "simulation time4: ",time() - start_time,"sec"
+	o=lowest_y_per_x(o,1,0)
+	print "simulation time5: ",time() - start_time,"sec"
 
 	print o
 	plot(o[:,1],o[:,0])
@@ -95,7 +119,6 @@ if (0):
 	ylabel("mse")
 	title("best mse per bins")
 	grid()
-	print "simulation time: ",time() - start_time,"sec"
 	show()
 
 #this will loop on options 

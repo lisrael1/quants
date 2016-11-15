@@ -119,12 +119,17 @@ class data_multi_inputs():
 	def __iter__(self):
 		return self.__dict__.iteritems()
 	def dict(self):#best way, but you need __iter__ and you done need d()
+		"""
+			o=pd.DataFrame([i.dict() for i in d])
+			o.to_csv("a.csv")
+		"""
 		#return pd.DataFrame({k:[v] for k,v in OrderedDict(self).iteritems()})
 		x_quant={"x_quantizer_"+k:v for k,v in OrderedDict(self.x_quantizer).iteritems() if type(v)==int or type(v)==float or type(v)==float64}
 		y_quant={"y_quantizer_"+k:v for k,v in OrderedDict(self.y_quantizer).iteritems() if type(v)==int or type(v)==float or type(v)==float64}
-		dt     ={k:v for k,v in OrderedDict(self).iteritems() if type(v)==int or type(v)==float or type(v)==float64}
+		dt1    ={k:v for k,v in OrderedDict(self).iteritems() if type(v)==int or type(v)==float or type(v)==float64 or (type(v)==matrix and len(v)==1)}
+		dt2    ={k:v for k,v in OrderedDict(self).iteritems() if type(v)==matrix and v.shape[0]==1 and v.shape[1]==1}#adding also case when we only run 1 sample
 		#return  dict(x_quant.items()+y_quant.items()+dt.items())
-		return  OrderedDict(x_quant.items()+y_quant.items()+dt.items())
+		return  OrderedDict(x_quant.items()+y_quant.items()+dt1.items()+dt2.items())
 
 #class data_1_input(data_multi_inputs):
 

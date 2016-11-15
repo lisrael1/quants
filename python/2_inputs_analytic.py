@@ -58,16 +58,57 @@ if 0:
 	print "simulation time1: ",time() - start_time,"sec"
 
 
-qx=[quantizer(number_of_quants=j,modulo_edge_to_edge=i) for i in arange(0.1,10,.5) for j in range(1,max_x_bin_number)]
-qy=[quantizer(number_of_quants=i,modulo_edge_to_edge=24) for i in [3,100,500]]
-d=[data_2_inputs(
-	number_of_samples=4e2,#dont put above 4e5
-	covar=1,
-	x_quantizer=i,
-	y_quantizer=j,
-	dither_on=0
-	) for i in qx for j in qy]
-print "simulation time2: ",time() - start_time,"sec"
+if 0:
+	qx=[quantizer(number_of_quants=j,modulo_edge_to_edge=i) for i in arange(0.1,10,.5) for j in range(1,max_x_bin_number)]
+	qy=[quantizer(number_of_quants=i,modulo_edge_to_edge=24) for i in [3,100,50000]]
+	d=[data_2_inputs(
+		number_of_samples=4e2,#dont put above 4e5
+		covar=1,
+		x_quantizer=i,
+		y_quantizer=j,
+		dither_on=0
+		) for i in qx for j in qy]
+	print "simulation time2: ",time() - start_time,"sec"
+else:
+	d=[data_2_inputs(	
+		number_of_samples=1,#dont put above 4e5
+		covar=60,
+		x_quantizer=quantizer(number_of_quants=5,modulo_edge_to_edge=6.6),
+		y_quantizer=quantizer(number_of_quants=2000,modulo_edge_to_edge=24),
+		dither_on=0
+		)]
+		
+
+
+#running on best mse for each:
+if (1):
+	if 0:
+		d=Pool().imap_unordered(n,d)
+	else:
+		d=map(n,d)
+	print "simulation time3: ",time() - start_time,"sec"
+	o=pd.DataFrame([i.dict() for i in d])
+	o=o.sort(columns=['x_quantizer_number_of_quants','mse_per_input_sample'])#sorting from A to Z
+	print "data ready,",o.index.size,"lines"
+	if o.index.size<100:
+		o.transpose().to_csv("all_data.csv")
+	else:
+		o.to_csv("all_data.csv")
+	for i in set(o.y_quantizer_number_of_quants.tolist()):
+		o_i=o.loc[o.y_quantizer_number_of_quants==i]
+		o_i=o_i.sort(columns=['x_quantizer_number_of_quants','mse_per_input_sample'])#sorting from A to Z
+		o_i=o_i.drop_duplicates(subset="x_quantizer_number_of_quants",take_last=False)#take the first one, lowest mse
+		if 1:
+			plot(o_i.x_quantizer_number_of_quants,o_i.mse_per_input_sample,label=i)
+		else:
+			plot(o_i.x_quantizer_number_of_quants,o_i.x_quantizer_modulo_edge_to_edge,label=i)
+	
+	xlabel("bins")
+	ylabel("mse")
+	title("best mse per bins")
+	legend(loc="best")
+	grid()
+	show()
 
 #running on each number of quants:
 if (0):
@@ -84,85 +125,4 @@ if (0):
 		grid()
 		savefig("mse per modulo/mse vs mod size at "+str(j)+" bins.jpg")
 		close()
-		
-
-
-#running on best mse for each:
-if (1):
-	if 0:
-		d=Pool().imap_unordered(n,d)
-	else:
-		d=map(n,d)
-	print "simulation time3: ",time() - start_time,"sec"
-	if 1:
-		o=pd.DataFrame([i.dict() for i in d])
-		for i in set(o.y_quantizer_number_of_quants.tolist()):
-			o_i=o.loc[o.y_quantizer_number_of_quants==i]
-			o_i=o_i.sort(columns=['x_quantizer_number_of_quants','mse_per_input_sample'])#sorting from A to Z
-			o_i=o_i.drop_duplicates(subset="x_quantizer_number_of_quants",take_last=False)#take the first one, lowest mse
-			if 1:
-				plot(o_i.x_quantizer_number_of_quants,o_i.mse_per_input_sample,label=i)
-			else:
-				plot(o_i.x_quantizer_number_of_quants,o_i.x_quantizer_modulo_edge_to_edge,label=i)
-	##old code: #take what you need and plot it:
-	##old code: if 0:
-	##old code: 	o=[[i.mse_per_input_sample,i.x_quantizer.number_of_quants] for i in d]
-	##old code: 	print "simulation time4: ",time() - start_time,"sec"
-	##old code: 	o=lowest_y_per_x(o,1,0)
-	##old code: 	print "simulation time5: ",time() - start_time,"sec"
-
-	##old code: 	print o
-	##old code: 	plot(o[:,1],o[:,0])
-	##old code: if 0:
-	##old code: 	o=[[i.mse_per_input_sample,i.x_quantizer.modulo_edge_to_edge,i.x_quantizer.number_of_quants] for i in d]
-	##old code: 	print "simulation time4: ",time() - start_time,"sec"
-	##old code: 	o=lowest_y_per_x(o,2,0)
-	##old code: 	#o=[[i.capacity,i.x_quantizer.number_of_quants] for i in d]
-	##old code: 	#now we will take only one line per number of bins:
-	##old code: 	print "simulation time5: ",time() - start_time,"sec"
-
-	##old code: 	print o
-	##old code: 	plot(o[:,2],o[:,1])
-	
-	xlabel("bins")
-	ylabel("mse")
-	title("best mse per bins")
-	legend(loc="best")
-	grid()
-	show()
-
-#this will loop on options 
-if (0):
-	for k in [10,41,50]:
-		d=[data_2_inputs(
-			number_of_samples=40,
-	 		var=k,
-			covar=1,
-			mod_size=i,
-			num_quants=j,	
-			y_mod_size=k*2.5,
-			num_quants_for_y=15,
-			dither_on=0
-			) 
-				#for i in arange(0.1,16,.05) for j in range(1,40)
-				for i in [8] for j in range(1,40)
-			]
-		if 0:
-			d=Pool().imap_unordered(n,d)
-		else:
-			d=map(n,d)
-		#o=[[i.mod_size,i.capacity,i.x_quantizer.number_of_quants] for i in d]
-		#o=[[i.mod_size,i.snr,i.x_quantizer.number_of_quants] for i in d]
-		o=[[i.mod_size,i.mse_per_input_sample,i.x_quantizer.number_of_quants] for i in d]
-		print m(o)
-		#now we will take only one line per number of bins:
-		o=lowest_y_per_x(o,2,1)
-		plot(o[:,2],o[:,1],label=k)
-	xlabel("bins")
-	ylabel("mse")
-	title("best mse per bins")
-	grid()
-	legend(loc="best")
-	print "simulation time: ",time() - start_time,"sec"
-	show()
 print "simulation time: ",time() - start_time,"sec"

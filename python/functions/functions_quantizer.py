@@ -59,6 +59,9 @@ class quantizer():
 		print "modulo_edge_to_edge:",self.modulo_edge_to_edge
 		print "all_quants:",self.all_quants
 		return ""
+	def __iter__(self):
+		return self.__dict__.iteritems()
+
 
 
 '''

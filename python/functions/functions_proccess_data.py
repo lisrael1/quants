@@ -118,8 +118,13 @@ class data_multi_inputs():
 		self.finish_calculations()
 	def __iter__(self):
 		return self.__dict__.iteritems()
-	def d2(self):#best way, but you need __iter__ and you done need d()
-		return pd.DataFrame({k:[v] for k,v in OrderedDict(self).iteritems()})
+	def dict(self):#best way, but you need __iter__ and you done need d()
+		#return pd.DataFrame({k:[v] for k,v in OrderedDict(self).iteritems()})
+		x_quant={"x_quantizer_"+k:v for k,v in OrderedDict(self.x_quantizer).iteritems() if type(v)==int or type(v)==float or type(v)==float64}
+		y_quant={"y_quantizer_"+k:v for k,v in OrderedDict(self.y_quantizer).iteritems() if type(v)==int or type(v)==float or type(v)==float64}
+		dt     ={k:v for k,v in OrderedDict(self).iteritems() if type(v)==int or type(v)==float or type(v)==float64}
+		#return  dict(x_quant.items()+y_quant.items()+dt.items())
+		return  OrderedDict(x_quant.items()+y_quant.items()+dt.items())
 
 #class data_1_input(data_multi_inputs):
 

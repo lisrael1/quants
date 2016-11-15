@@ -19,13 +19,6 @@ za toggle folding state
 	
 """
 
-number_of_quants=10
-sigma=1.0
-q=find_best_quantizer(number_of_quants,sigma)
-q.expected_mse=analytical_error(quantizer_i=q)
-print q
-q.plot_pdf_quants()
-exit()
 
 
 #this one is just a short simulation to check if the flow ok:
@@ -47,31 +40,33 @@ if (0):
 
 
 
-#preparing the data:
 max_x_bin_number=20
-if 1:#trying all modulo sizes:
-	qx=[quantizer(number_of_quants=j,modulo_edge_to_edge=i) for i in arange(0.1,10,.05) for j in range(1,max_x_bin_number)]
-else:#looking for best quantizer:
-	#first find the best modulo size - best quantizer:
-	sigma=1.0
-	if 0:#without parallel:
-		qx=[find_best_quantizer(number_of_quants,sigma) for number_of_quants in range(1,max_x_bin_number)]
-	else:#by parallel:
-		def find_best_quantizer_parallel(number_of_quants):
-			return find_best_quantizer(number_of_quants,sigma)
-		qx=Pool().imap_unordered(find_best_quantizer_parallel,range(1,max_x_bin_number))
-		#[str(i) for i in q]
-print "simulation time1: ",time() - start_time,"sec"
+#preparing the data - try to fix this to search for the best one:
+if 0:
+	if 1:#trying all modulo sizes:
+		qx=[quantizer(number_of_quants=j,modulo_edge_to_edge=i) for i in arange(0.1,10,.5) for j in range(1,max_x_bin_number)]
+	else:#looking for best quantizer:
+		#first find the best modulo size - best quantizer:
+		sigma=1.0
+		if 0:#without parallel:
+			qx=[find_best_quantizer(number_of_quants,sigma) for number_of_quants in range(1,max_x_bin_number)]
+		else:#by parallel:
+			def find_best_quantizer_parallel(number_of_quants):
+				return find_best_quantizer(number_of_quants,sigma)
+			qx=Pool().imap_unordered(find_best_quantizer_parallel,range(1,max_x_bin_number))
+			#[str(i) for i in q]
+	print "simulation time1: ",time() - start_time,"sec"
 
 
-qy=quantizer(number_of_quants=3,modulo_edge_to_edge=24)
+qx=[quantizer(number_of_quants=j,modulo_edge_to_edge=i) for i in arange(0.1,10,.5) for j in range(1,max_x_bin_number)]
+qy=[quantizer(number_of_quants=i,modulo_edge_to_edge=24) for i in [3,100,500]]
 d=[data_2_inputs(
 	number_of_samples=4e2,#dont put above 4e5
 	covar=1,
 	x_quantizer=i,
-	y_quantizer=qy,
+	y_quantizer=j,
 	dither_on=0
-	) for i in qx]
+	) for i in qx for j in qy]
 print "simulation time2: ",time() - start_time,"sec"
 
 #running on each number of quants:
@@ -94,36 +89,45 @@ if (0):
 
 #running on best mse for each:
 if (1):
-	if 1:
+	if 0:
 		d=Pool().imap_unordered(n,d)
 	else:
 		d=map(n,d)
 	print "simulation time3: ",time() - start_time,"sec"
-
-	
-	#take what you need and plot it:
 	if 1:
-		o=[[i.mse_per_input_sample,i.x_quantizer.number_of_quants] for i in d]
-		print "simulation time4: ",time() - start_time,"sec"
-		o=lowest_y_per_x(o,1,0)
-		print "simulation time5: ",time() - start_time,"sec"
+		o=pd.DataFrame([i.dict() for i in d])
+		for i in set(o.y_quantizer_number_of_quants.tolist()):
+			o_i=o.loc[o.y_quantizer_number_of_quants==i]
+			o_i=o_i.sort(columns=['x_quantizer_number_of_quants','mse_per_input_sample'])#sorting from A to Z
+			o_i=o_i.drop_duplicates(subset="x_quantizer_number_of_quants",take_last=False)#take the first one, lowest mse
+			if 1:
+				plot(o_i.x_quantizer_number_of_quants,o_i.mse_per_input_sample,label=i)
+			else:
+				plot(o_i.x_quantizer_number_of_quants,o_i.x_quantizer_modulo_edge_to_edge,label=i)
+	##old code: #take what you need and plot it:
+	##old code: if 0:
+	##old code: 	o=[[i.mse_per_input_sample,i.x_quantizer.number_of_quants] for i in d]
+	##old code: 	print "simulation time4: ",time() - start_time,"sec"
+	##old code: 	o=lowest_y_per_x(o,1,0)
+	##old code: 	print "simulation time5: ",time() - start_time,"sec"
 
-		print o
-		plot(o[:,1],o[:,0])
-	if 0:
-		o=[[i.mse_per_input_sample,i.x_quantizer.modulo_edge_to_edge,i.x_quantizer.number_of_quants] for i in d]
-		print "simulation time4: ",time() - start_time,"sec"
-		o=lowest_y_per_x(o,2,0)
-		#o=[[i.capacity,i.x_quantizer.number_of_quants] for i in d]
-		#now we will take only one line per number of bins:
-		print "simulation time5: ",time() - start_time,"sec"
+	##old code: 	print o
+	##old code: 	plot(o[:,1],o[:,0])
+	##old code: if 0:
+	##old code: 	o=[[i.mse_per_input_sample,i.x_quantizer.modulo_edge_to_edge,i.x_quantizer.number_of_quants] for i in d]
+	##old code: 	print "simulation time4: ",time() - start_time,"sec"
+	##old code: 	o=lowest_y_per_x(o,2,0)
+	##old code: 	#o=[[i.capacity,i.x_quantizer.number_of_quants] for i in d]
+	##old code: 	#now we will take only one line per number of bins:
+	##old code: 	print "simulation time5: ",time() - start_time,"sec"
 
-		print o
-		plot(o[:,2],o[:,1])
+	##old code: 	print o
+	##old code: 	plot(o[:,2],o[:,1])
 	
 	xlabel("bins")
 	ylabel("mse")
 	title("best mse per bins")
+	legend(loc="best")
 	grid()
 	show()
 

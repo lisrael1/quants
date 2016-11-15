@@ -2,6 +2,8 @@ from time import time
 start_time = time()
 from numpy import matrix as m
 from numpy import *
+import pandas as ps
+from collections import OrderedDict
 from scipy.integrate import quad
 from scipy.stats import norm
 from scipy.optimize import brent,minimize,fmin

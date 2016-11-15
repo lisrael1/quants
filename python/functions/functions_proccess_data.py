@@ -1,5 +1,5 @@
 """
-if the modulo_size here for example is 3, we will 
+if the modulo_size here for example is 3, we will
 not change values between -1.5 and 1.5, but 1.6 will become -1.4
 """
 def mod_op(num,modulo_size):
@@ -27,7 +27,7 @@ def add_dither(data,dither_size):
 		dither=zeros(rows*columns).reshape((rows,columns))
 	return data+dither,dither
 
-	
+
 
 #data_matrix should be 2D list, not np matrix...
 def lowest_y_per_x(data_matrix,x_column,y_column):
@@ -116,6 +116,11 @@ class data_multi_inputs():
 			self.x_y_delta=self.x_after_quantizer
 		self.recovered_x=self.x_y_delta+self.original_y
 		self.finish_calculations()
+	def __iter__(self):
+		return self.__dict__.iteritems()
+	def d2(self):#best way, but you need __iter__ and you done need d()
+		return pd.DataFrame({k:[v] for k,v in OrderedDict(self).iteritems()})
+
 #class data_1_input(data_multi_inputs):
 
 class data_2_inputs(data_multi_inputs):
@@ -173,7 +178,7 @@ class data_2_inputs(data_multi_inputs):
 		self.x_y_delta=mod_op(self.x_after_quantizer-self.y_after_quantizer,self.x_quantizer.modulo_edge_to_edge)
 		self.recovered_x=self.x_y_delta+self.y_after_quantizer
 		self.finish_calculations()
-	
+
 #a function for running parallel:
 def n(a):
 	a.run_sim()

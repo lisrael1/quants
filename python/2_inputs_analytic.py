@@ -58,12 +58,12 @@ if 0:
 	print "simulation time1: ",time() - start_time,"sec"
 
 
-if 0:
-	qx=[quantizer(number_of_quants=j,modulo_edge_to_edge=i) for i in arange(0.1,10,.5) for j in range(1,max_x_bin_number)]
-	qy=[quantizer(number_of_quants=i,modulo_edge_to_edge=24) for i in [3,100,50000]]
+if 1:
+	qx=[quantizer(number_of_quants=j,modulo_edge_to_edge=i) for i in arange(0.1,10,.05) for j in range(1,max_x_bin_number)]
+	qy=[quantizer(number_of_quants=200,bin_size=i,disable_modulo=True) for i in [0.1,1,1.5,2]]
 	d=[data_2_inputs(
 		number_of_samples=4e2,#dont put above 4e5
-		covar=1,
+		covar=10,
 		x_quantizer=i,
 		y_quantizer=j,
 		dither_on=0
@@ -72,17 +72,17 @@ if 0:
 else:
 	d=[data_2_inputs(	
 		number_of_samples=1,#dont put above 4e5
-		covar=60,
+		covar=100,
 		x_quantizer=quantizer(number_of_quants=5,modulo_edge_to_edge=6.6),
-		y_quantizer=quantizer(number_of_quants=2000,modulo_edge_to_edge=24),
+		y_quantizer=quantizer(number_of_quants=20,modulo_edge_to_edge=5,disable_modulo=True),
 		dither_on=0
-		)]
+		) for i in range(20)]
 		
 
 
 #running on best mse for each:
 if (1):
-	if 0:
+	if 1:
 		d=Pool().imap_unordered(n,d)
 	else:
 		d=map(n,d)
@@ -94,8 +94,8 @@ if (1):
 		o.transpose().to_csv("all_data.csv")
 	else:
 		o.to_csv("all_data.csv")
-	for i in set(o.y_quantizer_number_of_quants.tolist()):
-		o_i=o.loc[o.y_quantizer_number_of_quants==i]
+	for i in set(o.y_quantizer_bin_size.tolist()):
+		o_i=o.loc[o.y_quantizer_bin_size==i]
 		o_i=o_i.sort(columns=['x_quantizer_number_of_quants','mse_per_input_sample'])#sorting from A to Z
 		o_i=o_i.drop_duplicates(subset="x_quantizer_number_of_quants",take_last=False)#take the first one, lowest mse
 		if 1:
@@ -106,8 +106,9 @@ if (1):
 	xlabel("bins")
 	ylabel("mse")
 	title("best mse per bins")
-	legend(loc="best")
+	legend(loc="best", shadow=True, title="# y quants")
 	grid()
+	print "simulation time before show: ",time() - start_time,"sec"
 	show()
 
 #running on each number of quants:

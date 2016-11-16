@@ -7,7 +7,7 @@ example code:
 	print q
 '''
 class quantizer():
-	def __init__(self,bin_size=None,number_of_quants=None,max_val=None,all_quants=None,mu=0,sigma=1,modulo_edge_to_edge=None):
+	def __init__(self,bin_size=None,number_of_quants=None,max_val=None,all_quants=None,mu=0,sigma=1,modulo_edge_to_edge=None,disable_modulo=None):
 		self.mu=mu
 		self.sigma=float(sigma)
 		self.var=self.sigma**2
@@ -30,6 +30,10 @@ class quantizer():
 			self.number_of_quants=len(all_quants)
 			self.max_val=self.all_quants[-1]
 			self.modulo_edge_to_edge=self.max_val*2+self.bin_size
+		if disable_modulo==None:
+			self.disable_modulo=False
+		else:
+			self.disable_modulo=disable_modulo
 	"""
 	this function quantize a number by a given quantizer with bins
 	"""
@@ -38,8 +42,9 @@ class quantizer():
 			return numbers
 		#rounding to the quantizer:
 		q=rint((numbers+self.max_val)/(1.0*self.bin_size))*self.bin_size-self.max_val
-		#taking the edges:
-		q=mat([self.max_val if i>self.max_val else -self.max_val if i<-self.max_val else i for i in q.A1]).reshape(q.shape)
+		if not self.disable_modulo:
+			#taking the edges:
+			q=mat([self.max_val if i>self.max_val else -self.max_val if i<-self.max_val else i for i in q.A1]).reshape(q.shape)
 		return q
 	def plot_pdf_quants(self):
 		x=arange(-self.max_val-2*self.bin_size,self.max_val+2*self.bin_size,self.sigma/1000.0)

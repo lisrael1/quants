@@ -10,13 +10,13 @@ each row is at specific time, each column is an input
 at var=0 you will get normal dist around 0 at all inputs
 """
 def generate_data(covar,var,inputs,samples):
-	if (inputs<1 or int(inputs)!=inputs):
+	if (inputs<1 or type(inputs)!=int):
 		print "inputs has to be positive integer"
 		exit()
 	if (inputs==1):
 		return m(random.normal(0,covar,samples)).T
-	#first input will be the uniform dist and the others will be the normal around it:
-	data=m([hstack((i,random.normal(i,sqrt(covar),inputs-1))) for i in random.normal(0,sqrt(var),samples)])
+	#first input will be the normal dist by covar and the others will be the normal around it by var:
+	data=m([hstack([i,random.normal(i,sqrt(var),inputs-1)]) for i in random.normal(0,sqrt(covar),samples)])
 	return data
 
 def add_dither(data,dither_size):
@@ -124,8 +124,8 @@ class data_multi_inputs():
 			o.to_csv("a.csv")
 		"""
 		#return pd.DataFrame({k:[v] for k,v in OrderedDict(self).iteritems()})
-		x_quant={"x_quantizer_"+k:v for k,v in OrderedDict(self.x_quantizer).iteritems() if type(v)==int or type(v)==float or type(v)==float64}
-		y_quant={"y_quantizer_"+k:v for k,v in OrderedDict(self.y_quantizer).iteritems() if type(v)==int or type(v)==float or type(v)==float64}
+		x_quant={"x_quantizer_"+k:v for k,v in OrderedDict(self.x_quantizer).iteritems() if type(v)==int or type(v)==float or type(v)==float64 or type(v)==bool}
+		y_quant={"y_quantizer_"+k:v for k,v in OrderedDict(self.y_quantizer).iteritems() if type(v)==int or type(v)==float or type(v)==float64 or type(v)==bool}
 		dt1    ={k:v for k,v in OrderedDict(self).iteritems() if type(v)==int or type(v)==float or type(v)==float64 or (type(v)==matrix and len(v)==1)}
 		dt2    ={k:v for k,v in OrderedDict(self).iteritems() if type(v)==matrix and v.shape[0]==1 and v.shape[1]==1}#adding also case when we only run 1 sample
 		#return  dict(x_quant.items()+y_quant.items()+dt.items())
@@ -177,10 +177,14 @@ class data_2_inputs(data_multi_inputs):
 		self.original_x=self.original_data[:,1] #[:,1:]
 		self.original_y=self.original_data[:,0]
 		self.x_after_dither,self.dither=add_dither(self.original_x,self.dither_size)
-		self.x_after_modulo=mod_op(self.x_after_dither,self.x_quantizer.modulo_edge_to_edge)
+		self.x_after_modulo=self.x_after_dither
+		if not self.x_quantizer.disable_modulo:
+			self.x_after_modulo=mod_op(self.x_after_dither,self.x_quantizer.modulo_edge_to_edge)
 		self.x_after_quantizer=self.x_quantizer.quantizise(self.x_after_modulo)-self.dither
 		self.y_after_dither=self.original_y+self.dither
-		self.y_after_modulo=mod_op(self.y_after_dither,self.y_quantizer.modulo_edge_to_edge)
+		self.y_after_modulo=self.y_after_dither
+		if not self.y_quantizer.disable_modulo:
+			self.y_after_modulo=mod_op(self.y_after_dither,self.y_quantizer.modulo_edge_to_edge)
 		self.y_after_quantizer=self.y_quantizer.quantizise(self.y_after_modulo)-self.dither
 		#TODO alpha
 		#TODO modulo and quantizer also on y, but not the same modulo and quantizer of x

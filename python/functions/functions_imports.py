@@ -11,6 +11,9 @@ from pylab import plot,show,grid,xlabel,ylabel,title,legend,close,savefig,ion,dr
 from time import sleep
 from multiprocessing import Pool
 from operator import methodcaller
+from struct import unpack
 set_printoptions(precision=6, threshold=None, edgeitems=None, linewidth=100, suppress=1, nanstr=None, infstr=None, formatter=None)
 import warnings
 warnings.filterwarnings("ignore")
+
+print "simulation time done importing libraries: ",time() - start_time,"sec"

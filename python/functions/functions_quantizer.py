@@ -7,7 +7,7 @@ example code:
 	print q
 '''
 class quantizer():
-	def __init__(self,bin_size=None,number_of_quants=None,max_val=None,all_quants=None,mu=0,sigma=1,modulo_edge_to_edge=None,disable_modulo=None):
+	def __init__(self,bin_size=None,number_of_quants=None,max_val=None,all_quants=None,mu=0,sigma=1,modulo_edge_to_edge=None):
 		self.mu=mu
 		self.sigma=float(sigma)
 		self.var=self.sigma**2
@@ -30,21 +30,16 @@ class quantizer():
 			self.number_of_quants=len(all_quants)
 			self.max_val=self.all_quants[-1]
 			self.modulo_edge_to_edge=self.max_val*2+self.bin_size
-		if disable_modulo==None:
-			self.disable_modulo=False
-		else:
-			self.disable_modulo=disable_modulo
 	"""
 	this function quantize a number by a given quantizer with bins
 	"""
 	def quantizise(self,numbers):
-		if (self.number_of_quants>1000):
+		if (self.number_of_quants>1e4):
 			return numbers
 		#rounding to the quantizer:
 		q=rint((numbers+self.max_val)/(1.0*self.bin_size))*self.bin_size-self.max_val
-		if not self.disable_modulo:
-			#taking the edges:
-			q=mat([self.max_val if i>self.max_val else -self.max_val if i<-self.max_val else i for i in q.A1]).reshape(q.shape)
+		#taking the edges:
+		q=mat([self.max_val if i>self.max_val else -self.max_val if i<-self.max_val else i for i in q.A1]).reshape(q.shape)
 		return q
 	def plot_pdf_quants(self):
 		x=arange(-self.max_val-2*self.bin_size,self.max_val+2*self.bin_size,self.sigma/1000.0)
@@ -123,10 +118,14 @@ example:
 def find_best_quantizer(number_of_quants,sigma,mu=0):
 	#we will start looking from sigma 
 	start_looking_from=4*sigma/number_of_quants
-	stop_looking_at_bin_size_error=sigma/(100.0*number_of_quants)
+	stop_looking_at_bin_size_error=sigma/(1000.0*number_of_quants)#at brent /100 took 100 sec, /10 took 80 sec and /1 took 60 sec
 	#bin_size=fmin(analytical_error,start_looking_from,xtol=stop_looking_at_bin_size_error,ftol=sigma*100,args=(number_of_quants,mu,sigma),disp=False).tolist()[0]
 	q=quantizer(bin_size=1,number_of_quants=number_of_quants,sigma=sigma,mu=mu)
-	bin_size=fmin(analytical_error,start_looking_from,xtol=stop_looking_at_bin_size_error,ftol=sigma*100,args=(q,),disp=False).tolist()[0]
+	debug_searching_func=True
+	if 0:
+		bin_size=fmin(analytical_error,start_looking_from,xtol=stop_looking_at_bin_size_error,ftol=sigma*100,args=(q,),disp=debug_searching_func).tolist()[0]
+	else:#seems like brent is faster...
+		bin_size=brent(analytical_error,args=(q,),tol=stop_looking_at_bin_size_error)
 	return quantizer(bin_size=bin_size,number_of_quants=number_of_quants,mu=mu,sigma=sigma)
 	#print brent(analytical_error,args=(1000,0,1))
 	#print minimize(analytical_error,(1,0.1),method='TNC',args=(1000,0,1))

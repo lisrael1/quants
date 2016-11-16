@@ -2,6 +2,12 @@
 if the modulo_size here for example is 3, we will
 not change values between -1.5 and 1.5, but 1.6 will become -1.4
 """
+
+def matching(*args):
+	if 1:
+		return Pool().imap_unordered(*args)
+	else:
+		return map(*args)
 def mod_op(num,modulo_size):
 	return m((m(num)+modulo_size/2.0)%(modulo_size)-modulo_size/2.0)
 
@@ -10,12 +16,15 @@ each row is at specific time, each column is an input
 at var=0 you will get normal dist around 0 at all inputs
 """
 def generate_data(covar,var,inputs,samples):
+	rand_int = unpack('I', open("/dev/urandom","rb").read(4))[0]
+	random.seed(rand_int)
 	if (inputs<1 or type(inputs)!=int):
 		print "inputs has to be positive integer"
 		exit()
 	if (inputs==1):
 		return m(random.normal(0,covar,samples)).T
 	#first input will be the normal dist by covar and the others will be the normal around it by var:
+	#(random.normal gets mu and sigma, not the var...
 	data=m([hstack([i,random.normal(i,sqrt(var),inputs-1)]) for i in random.normal(0,sqrt(covar),samples)])
 	return data
 
@@ -177,14 +186,10 @@ class data_2_inputs(data_multi_inputs):
 		self.original_x=self.original_data[:,1] #[:,1:]
 		self.original_y=self.original_data[:,0]
 		self.x_after_dither,self.dither=add_dither(self.original_x,self.dither_size)
-		self.x_after_modulo=self.x_after_dither
-		if not self.x_quantizer.disable_modulo:
-			self.x_after_modulo=mod_op(self.x_after_dither,self.x_quantizer.modulo_edge_to_edge)
+		self.x_after_modulo=mod_op(self.x_after_dither,self.x_quantizer.modulo_edge_to_edge)
 		self.x_after_quantizer=self.x_quantizer.quantizise(self.x_after_modulo)-self.dither
 		self.y_after_dither=self.original_y+self.dither
-		self.y_after_modulo=self.y_after_dither
-		if not self.y_quantizer.disable_modulo:
-			self.y_after_modulo=mod_op(self.y_after_dither,self.y_quantizer.modulo_edge_to_edge)
+		self.y_after_modulo=mod_op(self.y_after_dither,self.y_quantizer.modulo_edge_to_edge)
 		self.y_after_quantizer=self.y_quantizer.quantizise(self.y_after_modulo)-self.dither
 		#TODO alpha
 		#TODO modulo and quantizer also on y, but not the same modulo and quantizer of x

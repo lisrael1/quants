@@ -40,73 +40,93 @@ if (0):
 
 
 
-max_x_bin_number=20
+
 #preparing the data - try to fix this to search for the best one:
-if 0:
-	if 1:#trying all modulo sizes:
+if 1:
+	print "simulation time start creating quantizers: ",time() - start_time,"sec"
+	max_x_bin_number=20
+	if 0:#trying all modulo sizes:
 		qx=[quantizer(number_of_quants=j,modulo_edge_to_edge=i) for i in arange(0.1,10,.5) for j in range(1,max_x_bin_number)]
 	else:#looking for best quantizer:
 		#first find the best modulo size - best quantizer:
 		sigma=1.0
-		if 0:#without parallel:
-			qx=[find_best_quantizer(number_of_quants,sigma) for number_of_quants in range(1,max_x_bin_number)]
-		else:#by parallel:
-			def find_best_quantizer_parallel(number_of_quants):
-				return find_best_quantizer(number_of_quants,sigma)
+		def find_best_quantizer_parallel(number_of_quants):
+			return find_best_quantizer(number_of_quants,sigma)
+		if 1:
 			qx=Pool().imap_unordered(find_best_quantizer_parallel,range(1,max_x_bin_number))
-			#[str(i) for i in q]
+		else:
+			#qx=[find_best_quantizer(number_of_quants,sigma) for number_of_quants in range(1,max_x_bin_number)]
+			qx=map(find_best_quantizer_parallel,range(1,max_x_bin_number))
+		#[str(i) for i in qx]
+		#[i.plot_pdf_quants() for i in qx]
+		print "simulation time finish finding quantizers: ",time() - start_time,"sec"
 	print "simulation time1: ",time() - start_time,"sec"
-
-
-if 1:
-	qx=[quantizer(number_of_quants=j,modulo_edge_to_edge=i) for i in arange(0.1,10,.05) for j in range(1,max_x_bin_number)]
-	qy=[quantizer(number_of_quants=200,bin_size=i,disable_modulo=True) for i in [0.1,1,1.5,2]]
+	if 0:
+		qy=[quantizer(number_of_quants=200,bin_size=i) for i in [2,4,5,6,7,8]]
+	else:
+		qy=[quantizer(number_of_quants=200000,bin_size=2)]
 	d=[data_2_inputs(
-		number_of_samples=4e2,#dont put above 4e5
+		number_of_samples=4e4,#dont put above 4e5
 		covar=10,
 		x_quantizer=i,
 		y_quantizer=j,
 		dither_on=0
 		) for i in qx for j in qy]
 	print "simulation time2: ",time() - start_time,"sec"
-else:
+else:#run just a few samples to see if the flow working ok
 	d=[data_2_inputs(	
 		number_of_samples=1,#dont put above 4e5
 		covar=100,
 		x_quantizer=quantizer(number_of_quants=5,modulo_edge_to_edge=6.6),
-		y_quantizer=quantizer(number_of_quants=20,modulo_edge_to_edge=5,disable_modulo=True),
+		y_quantizer=quantizer(number_of_quants=200,bin_size=2),
 		dither_on=0
 		) for i in range(20)]
 		
 
 
-#running on best mse for each:
+#running on best mse for each number of quants:
 if (1):
 	if 1:
 		d=Pool().imap_unordered(n,d)
 	else:
 		d=map(n,d)
 	print "simulation time3: ",time() - start_time,"sec"
+	
+	if 1:
+		plot_threads="y_quantizer_bin_size"
+		x_plot='x_quantizer_number_of_quants'
+		y_sort="mse_per_input_sample"
+		y_plot=y_sort	
+		if 0:
+			y_plot="x_quantizer_modulo_edge_to_edge"
+	if 0:#spliting by modulo size
+		plot_threads="x_quantizer_number_of_quants"
+		x_plot='x_quantizer_modulo_edge_to_edge'
+		y_plot="mse_per_input_sample"
+		y_sort=y_plot#doesnt matter because we dont have duplications at x
 	o=pd.DataFrame([i.dict() for i in d])
-	o=o.sort(columns=['x_quantizer_number_of_quants','mse_per_input_sample'])#sorting from A to Z
+	o=o.sort(columns=[x_plot,y_sort])#sorting from A to Z
 	print "data ready,",o.index.size,"lines"
 	if o.index.size<100:
 		o.transpose().to_csv("all_data.csv")
 	else:
 		o.to_csv("all_data.csv")
-	for i in set(o.y_quantizer_bin_size.tolist()):
-		o_i=o.loc[o.y_quantizer_bin_size==i]
-		o_i=o_i.sort(columns=['x_quantizer_number_of_quants','mse_per_input_sample'])#sorting from A to Z
-		o_i=o_i.drop_duplicates(subset="x_quantizer_number_of_quants",take_last=False)#take the first one, lowest mse
-		if 1:
-			plot(o_i.x_quantizer_number_of_quants,o_i.mse_per_input_sample,label=i)
-		else:
-			plot(o_i.x_quantizer_number_of_quants,o_i.x_quantizer_modulo_edge_to_edge,label=i)
-	
-	xlabel("bins")
-	ylabel("mse")
-	title("best mse per bins")
-	legend(loc="best", shadow=True, title="# y quants")
+	for i in set(o[plot_threads].tolist()):
+		o_i=o.loc[o[plot_threads]==i]
+		o_i=o_i.sort(columns=[x_plot,y_sort])#sorting from A to Z
+		o_i=o_i.drop_duplicates(subset=x_plot,take_last=False)#take the first one, lowest mse
+		plot(o_i[x_plot],o_i[y_plot],label=i)
+		if 0:#for ploting the plot threads in different plots
+			xlabel(x_plot)
+			ylabel(y_plot)
+			title("number of quants ="+str(i))
+			grid()
+			savefig("mse per modulo/mse vs mod size at "+str(i)+" bins.jpg")
+			close()
+	xlabel(x_plot)
+	ylabel(y_plot)
+	title("-")
+	legend(loc="best", shadow=True, title=plot_threads)
 	grid()
 	print "simulation time before show: ",time() - start_time,"sec"
 	show()

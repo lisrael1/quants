@@ -2,11 +2,7 @@
 execfile("functions/functions.py")
 
 #next TODO:
-'''first TODO - update this file to run with analytic finding on the quantizer instead of trying a lot of quantizers'''
 #try to do SNR minus quantization SNR
-#add different modulo and quantization also on y
-#add simple and short flow for code sanity check
-#change max val to sigma and change uniform to normal!!!!!!!!!
 
 
 """
@@ -16,20 +12,23 @@ we want to see how the change of y modulo and quantization replects on x mse
 gvim shortcuts:
 zf create folding
 za toggle folding state
-	
-"""
 
-max_x_bin_number=40
+"""
+best_bin_sizes={1: 0, 2: 0.0616666, 3: 1.64, 4: 1.342, 5: 1.186666, 6: 1.0021428571428579, 7: 0.91375, 8: 0.838888, 9: 0.7565, 10: 0.660454, 11: 0.6333333, 12: 0.57346153846153891, 13: 0.535, 14: 0.5106666, 15: 0.4821875, 16: 0.4529411764705884, 17: 0.434166666, 18: 0.415263157894, 19: 0.38925, 20: 0.36142857142857165, 21: 0.368181818181, 22: 0.34456521739130475, 23: 0.32666666, 24: 0.3184, 25: 0.30692307692307708, 26: 0.28555555555, 27: 0.28392857142857153, 28: 0.27741379310344838, 29: 0.265833333, 30: 0.25983870967741973, 31: 0.245625, 32: 0.2360606060606063, 33: 0.23573529411764715, 34: 0.21785714285714297, 35: 0.22208333333333341, 36: 0.21310810810810832, 37: 0.21381578947368451, 38: 0.20243589743589752, 39: 0.188}
+
+max_x_bin_number=30
 min_x_bin_number=3
-number_of_samples=4e2
+number_of_samples=4e4
 modulo_jumps_resolution=0.5
 min_modulo_size=5.5
 #preparing the data - try to fix this to search for the best one:
 if 1:
 	print "simulation time start creating quantizers: ",time() - start_time,"sec"
-	if 1:#trying all modulo sizes (at relevant range of 4 to 9):
+	if 1:#take known best quantizer instead of looking for them
+		qx=[quantizer(number_of_quants=i,bin_size=best_bin_sizes[i]) for i in range(min_x_bin_number,max_x_bin_number)]
+	if 0:#trying all modulo sizes (at relevant range of 4 to 9):
 		qx=[quantizer(number_of_quants=j,modulo_edge_to_edge=i) for i in arange(min_modulo_size,9,modulo_jumps_resolution) for j in range(min_x_bin_number,max_x_bin_number)]
-	else:#looking for best quantizer:
+	if 0:#looking for best quantizer:
 		qx=matching(find_best_quantizer_parallel_for_1_sigma,range(min_x_bin_number,max_x_bin_number))
 		#qx=[find_best_quantizer(number_of_quants,1) for number_of_quants in range(1,max_x_bin_number)]
 		#[str(i) for i in qx]
@@ -52,26 +51,26 @@ if 1:
 		) for i in qx for j in qy]
 	print "simulation time2: ",time() - start_time,"sec"
 else:#run just a few samples to see if the flow working ok
-	d=[data_2_inputs(	
+	d=[data_2_inputs(
 		number_of_samples=1,#dont put above 4e5
 		independed_var=100,
 		x_quantizer=quantizer(number_of_quants=5,modulo_edge_to_edge=6.6),
 		y_quantizer=quantizer(number_of_quants=200,bin_size=2),
 		dither_on=0
 		) for i in range(20)]
-		
+
 
 
 #running on best mse for each number of quants:
 if (1):
 	d=matching(n,d)
 	print "simulation time3: ",time() - start_time,"sec"
-	
+
 	if 1:
 		plot_threads="y_quantizer_bin_size"
 		x_plot='x_quantizer_number_of_quants'
 		y_sort="mse_per_input_sample"
-		y_plot=y_sort	
+		y_plot=y_sort
 		if 0:
 			y_plot="x_quantizer_modulo_edge_to_edge"
 	if 0:#spliting by modulo size
@@ -94,7 +93,8 @@ if (1):
 		o_i=o_i.sort(columns=[x_plot,y_sort])#sorting from A to Z
 		o_i=o_i.drop_duplicates(subset=x_plot,take_last=False)#take the first one, lowest mse
 		plot(o_i[x_plot],o_i[y_plot],label=i)
-		text(10,0.2,o_i[[x_plot,y_plot]].values)
+		if len(thread_options)==1:
+			text(10,0.2,o_i[[x_plot,y_plot]].values)
 		print o_i[[x_plot,y_plot]]
 		if 0:#for ploting the plot threads in different plots
 			xlabel(x_plot)

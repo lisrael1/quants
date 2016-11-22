@@ -4,7 +4,7 @@ not change values between -1.5 and 1.5, but 1.6 will become -1.4
 """
 
 def matching(*args):
-	if 1:
+	if 1 and not "win" in platform:
 		return Pool().imap_unordered(*args)
 	else:
 		return map(*args)
@@ -17,7 +17,10 @@ each row is at specific time, each column is an input
 at var=0 you will get normal dist around 0 at all inputs
 """
 def generate_data(independed_var,var,inputs,samples):
-	rand_int = unpack('I', open("/dev/urandom","rb").read(4))[0]
+	if "win" in platform:
+	   rand_int=1
+	else:
+	     rand_int = unpack('I', open("/dev/urandom","rb").read(4))[0]
 	random.seed(rand_int)
 	if (inputs<1 or type(inputs)!=int):
 		print "inputs has to be positive integer"

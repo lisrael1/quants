@@ -1,5 +1,6 @@
 from time import time
 start_time = time()
+from sys import platform
 from numpy import matrix as m
 from numpy import *
 import pandas as pd

@@ -121,12 +121,15 @@ def find_best_quantizer(number_of_quants,sigma,mu=0):
 	stop_looking_at_bin_size_error=sigma/(1000.0*number_of_quants)#at brent /100 took 100 sec, /10 took 80 sec and /1 took 60 sec
 	#bin_size=fmin(analytical_error,start_looking_from,xtol=stop_looking_at_bin_size_error,ftol=sigma*100,args=(number_of_quants,mu,sigma),disp=False).tolist()[0]
 	q=quantizer(bin_size=1,number_of_quants=number_of_quants,sigma=sigma,mu=mu)
-	debug_searching_func=True
-	if 0:
+	debug_searching_func=False
+	if 0:#seems like the fmin is not working here
 		bin_size=fmin(analytical_error,start_looking_from,xtol=stop_looking_at_bin_size_error,ftol=sigma*100,args=(q,),disp=debug_searching_func).tolist()[0]
-	else:#seems like brent is faster...
+	else:
 		bin_size=brent(analytical_error,args=(q,),tol=stop_looking_at_bin_size_error)
+		#bin_size=brent(analytical_error,args=(q,))
 	return quantizer(bin_size=bin_size,number_of_quants=number_of_quants,mu=mu,sigma=sigma)
 	#print brent(analytical_error,args=(1000,0,1))
 	#print minimize(analytical_error,(1,0.1),method='TNC',args=(1000,0,1))
-	
+def find_best_quantizer_parallel_for_1_sigma(number_of_quants):
+	return find_best_quantizer(number_of_quants=number_of_quants,sigma=1)
+

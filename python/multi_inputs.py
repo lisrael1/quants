@@ -18,7 +18,7 @@ d=[data_multi_inputs(
 	number_of_inputs=4,#input*samples: 300*40 will take 27 sec, 300*400 4 minutes, and 300*4000 will take 40 minutes, 300*4e4 will get memory error
 	number_of_samples=40,
 	var=10,
-	covar=1,
+	independed_var=1,
 	mod_size=i,
 	num_quants=j,
 	dither_on=0
@@ -76,7 +76,7 @@ if (0):
 			number_of_inputs=2,#input*samples: 300*40 will take 27 sec, 300*400 4 minutes, and 300*4000 will take 40 minutes, 300*4e4 will get memory error
 			number_of_samples=40,
 			var=k,
-			covar=1,
+			independed_var=1,
 			mod_size=i,
 			num_quants=j,
 			dither_on=0

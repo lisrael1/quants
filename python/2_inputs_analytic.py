@@ -27,15 +27,14 @@ if (0):
 		#input*samples: 300*40 will take 27 sec, 300*400 4 minutes, and 300*4000 will take 40 minutes, 300*4e4 will get memory error
 		number_of_samples=3,
 		var=10,
-		covar=1,
+		independed_var=1,
 		mod_size=i,
 		num_quants=j,
 		y_mod_size=24,
 		num_quants_for_y=300,
 		dither_on=0
 		) for i in [1,4,8] for j in [1,4,300]]
-	d=Pool().imap_unordered(n,d_for_prints)
-	#d=map(n,d)
+	d=matching(n,d_for_prints)
 	[i.print_all() for i in d]
 
 
@@ -44,30 +43,25 @@ if (0):
 #preparing the data - try to fix this to search for the best one:
 if 1:
 	print "simulation time start creating quantizers: ",time() - start_time,"sec"
-	max_x_bin_number=20
-	if 0:#trying all modulo sizes:
+	max_x_bin_number=40
+	if 1:#trying all modulo sizes:
 		qx=[quantizer(number_of_quants=j,modulo_edge_to_edge=i) for i in arange(0.1,10,.5) for j in range(1,max_x_bin_number)]
 	else:#looking for best quantizer:
-		#first find the best modulo size - best quantizer:
-		sigma=1.0
-		def find_best_quantizer_parallel(number_of_quants):
-			return find_best_quantizer(number_of_quants,sigma)
-		if 1:
-			qx=Pool().imap_unordered(find_best_quantizer_parallel,range(1,max_x_bin_number))
-		else:
-			#qx=[find_best_quantizer(number_of_quants,sigma) for number_of_quants in range(1,max_x_bin_number)]
-			qx=map(find_best_quantizer_parallel,range(1,max_x_bin_number))
+		qx=matching(find_best_quantizer_parallel_for_1_sigma,range(1,max_x_bin_number))
+		#qx=[find_best_quantizer(number_of_quants,1) for number_of_quants in range(1,max_x_bin_number)]
 		#[str(i) for i in qx]
 		#[i.plot_pdf_quants() for i in qx]
+		#print [[i.number_of_quants,i.all_quants] for i in qx]
+		#exit()
+
 		print "simulation time finish finding quantizers: ",time() - start_time,"sec"
-	print "simulation time1: ",time() - start_time,"sec"
 	if 0:
 		qy=[quantizer(number_of_quants=200,bin_size=i) for i in [2,4,5,6,7,8]]
 	else:
-		qy=[quantizer(number_of_quants=200000,bin_size=2)]
+		qy=[quantizer(number_of_quants=200000,bin_size=2)]#if number_of_quants>1e4 it makes it not under quantizer and with bin_size big it's also not under modulo
 	d=[data_2_inputs(
 		number_of_samples=4e4,#dont put above 4e5
-		covar=10,
+		independed_var=10,
 		x_quantizer=i,
 		y_quantizer=j,
 		dither_on=0
@@ -76,7 +70,7 @@ if 1:
 else:#run just a few samples to see if the flow working ok
 	d=[data_2_inputs(	
 		number_of_samples=1,#dont put above 4e5
-		covar=100,
+		independed_var=100,
 		x_quantizer=quantizer(number_of_quants=5,modulo_edge_to_edge=6.6),
 		y_quantizer=quantizer(number_of_quants=200,bin_size=2),
 		dither_on=0
@@ -86,10 +80,7 @@ else:#run just a few samples to see if the flow working ok
 
 #running on best mse for each number of quants:
 if (1):
-	if 1:
-		d=Pool().imap_unordered(n,d)
-	else:
-		d=map(n,d)
+	d=matching(n,d)
 	print "simulation time3: ",time() - start_time,"sec"
 	
 	if 1:
@@ -104,6 +95,8 @@ if (1):
 		x_plot='x_quantizer_modulo_edge_to_edge'
 		y_plot="mse_per_input_sample"
 		y_sort=y_plot#doesnt matter because we dont have duplications at x
+	print [[i.x_quantizer.number_of_quants,i.x_quantizer.all_quants,i.mse_per_input_sample] for i in d]
+	exit()
 	o=pd.DataFrame([i.dict() for i in d])
 	o=o.sort(columns=[x_plot,y_sort])#sorting from A to Z
 	print "data ready,",o.index.size,"lines"
@@ -131,19 +124,4 @@ if (1):
 	print "simulation time before show: ",time() - start_time,"sec"
 	show()
 
-#running on each number of quants:
-if (0):
-	d=Pool().imap_unordered(n,d)
-	o=m([[i.mod_size,i.mse_per_input_sample,i.x_quantizer.number_of_quants] for i in d])
-	for j in set(o[:,2].A1):
-		j=int(j)
-		print j," done"
-		specific=m([i for i in o.tolist() if i[2]==j])
-		plot(specific[:,0],specific[:,1])
-		xlabel("mod size")
-		ylabel("mse")
-		title("number of quants ="+str(j))
-		grid()
-		savefig("mse per modulo/mse vs mod size at "+str(j)+" bins.jpg")
-		close()
 print "simulation time: ",time() - start_time,"sec"

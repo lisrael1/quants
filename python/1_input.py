@@ -25,10 +25,11 @@ d=[data_multi_inputs(
 	) for i in q for m_o in [1,0] for d_o in [1,0]]
 	#) for i in [5] for j in [4]]
 	#) for i in arange(0.1,10,.05) for j in range(1,20) for m_o in [1,0] for d_o in [1,0]]
-if 0:
-	d=Pool().imap_unordered(n,d)
-else:
-	d=map(n,d)
+d=matching(n,d)
+#if 0:
+#	d=Pool().imap_unordered(n,d)
+#else:
+#	d=map(n,d)
 #[i.print_all() for i in d]
 #exit()
 o1=[[i.x_quantizer.modulo_edge_to_edge,i.mse_per_input_sample,i.x_quantizer.number_of_quants,i.modulo_on,i.dither_on] for i in d]

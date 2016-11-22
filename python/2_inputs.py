@@ -23,7 +23,7 @@ if (0):
 		#input*samples: 300*40 will take 27 sec, 300*400 4 minutes, and 300*4000 will take 40 minutes, 300*4e4 will get memory error
 		number_of_samples=3,
 		var=10,
-		covar=1,
+		independed_var=1,
 		mod_size=i,
 		num_quants=j,
 		y_mod_size=24,
@@ -41,7 +41,7 @@ d=[data_2_inputs(
 	#input*samples: 300*40 will take 27 sec, 300*400 4 minutes, and 300*4000 will take 40 minutes, 300*4e4 will get memory error
 	number_of_samples=400,
 	var=10,
-	covar=1,
+	independed_var=1,
 	mod_size=i,
 	num_quants=j,
 	y_mod_size=24,
@@ -91,7 +91,7 @@ if (1):
 		d=[data_2_inputs(
 			number_of_samples=40,
 	 		var=k,
-			covar=1,
+			independed_var=1,
 			mod_size=i,
 			num_quants=j,	
 			y_mod_size=k*2.5,

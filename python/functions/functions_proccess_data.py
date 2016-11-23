@@ -17,11 +17,9 @@ each row is at specific time, each column is an input
 at var=0 you will get normal dist around 0 at all inputs
 """
 def generate_data(independed_var,var,inputs,samples):
-	if "win" in platform:
-	   rand_int=1
-	else:
+	if not "win" in platform:#at windows we dont run parallel and we dont have /dev/urandom
 	     rand_int = unpack('I', open("/dev/urandom","rb").read(4))[0]
-	random.seed(rand_int)
+	     random.seed(rand_int)
 	if (inputs<1 or type(inputs)!=int):
 		print "inputs has to be positive integer"
 		exit()

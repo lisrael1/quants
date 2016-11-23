@@ -16,16 +16,17 @@ za toggle folding state
 """
 best_bin_sizes={1: 0, 2: 0.0616666, 3: 1.64, 4: 1.342, 5: 1.186666, 6: 1.0021428571428579, 7: 0.91375, 8: 0.838888, 9: 0.7565, 10: 0.660454, 11: 0.6333333, 12: 0.57346153846153891, 13: 0.535, 14: 0.5106666, 15: 0.4821875, 16: 0.4529411764705884, 17: 0.434166666, 18: 0.415263157894, 19: 0.38925, 20: 0.36142857142857165, 21: 0.368181818181, 22: 0.34456521739130475, 23: 0.32666666, 24: 0.3184, 25: 0.30692307692307708, 26: 0.28555555555, 27: 0.28392857142857153, 28: 0.27741379310344838, 29: 0.265833333, 30: 0.25983870967741973, 31: 0.245625, 32: 0.2360606060606063, 33: 0.23573529411764715, 34: 0.21785714285714297, 35: 0.22208333333333341, 36: 0.21310810810810832, 37: 0.21381578947368451, 38: 0.20243589743589752, 39: 0.188}
 
-max_x_bin_number=6
-min_x_bin_number=5
-number_of_samples=4e4
+max_x_bin_number=30
+min_x_bin_number=3
+number_of_samples=4e3
 modulo_jumps_resolution=0.5
 min_modulo_size=5.5
+sigma_scaling=1
 #preparing the data - try to fix this to search for the best one:
 if 1:
 	print "simulation time start creating quantizers: ",time() - start_time,"sec"
 	if 1:#take known best quantizer instead of looking for them
-		qx=[quantizer(number_of_quants=i,bin_size=best_bin_sizes[i]) for i in range(min_x_bin_number,max_x_bin_number)]
+		qx=[quantizer(number_of_quants=i,bin_size=sigma_scaling*best_bin_sizes[i],sigma=sigma_scaling) for i in range(min_x_bin_number,max_x_bin_number)]
 	if 0:#trying all modulo sizes (at relevant range of 4 to 9):
 		qx=[quantizer(number_of_quants=j,modulo_edge_to_edge=i) for i in arange(min_modulo_size,9,modulo_jumps_resolution) for j in range(min_x_bin_number,max_x_bin_number)]
 	if 0:#looking for best quantizer:
@@ -62,10 +63,10 @@ if (1):
 	d=matching(n,d)
 	print "simulation time3: ",time() - start_time,"sec"
 
-	if 1:#if we dont want parsing text, and we want the class functionality. note that you dont sort the data here but you will have mse
+	if 0:#if we dont want parsing text, and we want the class functionality. note that you dont sort the data here but you will have mse
 	   [i.x_quantizer.plot_pdf_quants() for i in d]
 	   exit()
-	if 0:
+	if 1:#basic one, exp plot
 		plot_threads="y_quantizer_bin_size"
 		x_plot='x_quantizer_number_of_quants'
 		y_sort="mse_per_input_sample"
@@ -99,7 +100,7 @@ if (1):
 			ylabel(y_plot)
 			title("number of quants ="+str(i))
 			grid()
-			savefig("mse per modulo/mse vs mod size at "+str(i)+" bins.jpg")
+			savefig("temp"+dlmtr+"mse per modulo"+dlmtr+"mse vs mod size at "+str(i)+" bins"+img_type)
 			close()
 	xlabel(x_plot)
 	ylabel(y_plot)

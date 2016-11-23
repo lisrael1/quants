@@ -45,12 +45,17 @@ class quantizer():
 		x=arange(-self.max_val-2*self.bin_size,self.max_val+2*self.bin_size,self.sigma/1000.0)
 		plot(x,norm.pdf(x,self.mu,self.sigma),label="pdf")
 		plot(self.all_quants,zeros(self.number_of_quants),"D",label="quants")
+		plot([-self.modulo_edge_to_edge/2,self.modulo_edge_to_edge/2],zeros(2),"D",label="modulo edge")
 		legend(loc="best")
 		#error=analytical_error(self.bin_size,self.number_of_quants,self.mu,self.sigma)
 		error=analytical_error(quantizer_i=self)
 		title("#bins="+str(self.number_of_quants)+", bin size="+str(self.bin_size)+"\nself.mu="+str(self.mu)+", self.sigma="+str(self.sigma)+", error="+str(error))
 		grid()
-		show()
+		if 0:
+		   show()
+		else:
+			 savefig("temp"+dlmtr+"quantizer on bell"+dlmtr+"quantizer on bell "+str(self.number_of_quants)+" quants"+img_type)
+			 close()
 	def __str__(self):
 		print "-----"
 		print "bin_size:",self.bin_size
@@ -88,9 +93,9 @@ def analytical_error(bin_size=None,quantizer_i=None):
 		q=rint((x+quantizer_i.max_val)/(1.0*quantizer_i.bin_size))*quantizer_i.bin_size-quantizer_i.max_val
 		#cutting the edges to the mas quantizer_i value:
 		if q>quantizer_i.max_val:
-			q=quantizer_i.max_val 
+			q=quantizer_i.max_val
 		if q<-quantizer_i.max_val:
-			q=-quantizer_i.max_val 
+			q=-quantizer_i.max_val
 		return q
 	def mse_for_single_dot(x,quantizer_i):
 		simple_one=0
@@ -116,7 +121,7 @@ example:
 	q.plot_pdf_quants()
 '''
 def find_best_quantizer(number_of_quants,sigma,mu=0):
-	#we will start looking from sigma 
+	#we will start looking from sigma
 	start_looking_from=4*sigma/number_of_quants
 	stop_looking_at_bin_size_error=sigma/(1000.0*number_of_quants)#at brent /100 took 100 sec, /10 took 80 sec and /1 took 60 sec
 	#bin_size=fmin(analytical_error,start_looking_from,xtol=stop_looking_at_bin_size_error,ftol=sigma*100,args=(number_of_quants,mu,sigma),disp=False).tolist()[0]

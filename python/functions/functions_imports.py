@@ -1,6 +1,12 @@
 from time import time
 start_time = time()
 from sys import platform
+if "win" in platform:
+   dlmtr="\\"
+   img_type=".png"
+else:
+     dlmtr="/"
+     img_type=".jpg"
 from numpy import matrix as m
 from numpy import *
 import pandas as pd

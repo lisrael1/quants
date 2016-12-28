@@ -65,37 +65,6 @@ class data_multi_inputs():
 		self.dither_on=dither_on
 		self.modulo_on=modulo_on
 		self.init_calculations()
-	def __str__(self):
-		self.print_all()
-		return ""
-	def print_all(self):
-		self.print_inputs()
-		self.print_flow()
-		return self
-	def print_inputs(self):
-		print "===variables==="
-		print "number of inputs\n",self.number_of_inputs
-		print "number of samples\n",self.number_of_samples
-		print "modulo size\n",self.x_quantizer.modulo_edge_to_edge
-		print "number of quants\n",self.x_quantizer.number_of_quants
-		print "independed_var\n",self.independed_var
-		print "dither size\n",self.dither_size
-		return self
-	def print_flow(self):
-		print "===data==="
-		print "original_data\n",self.original_data
-		print "y x_original delta (y is the first input):\n",self.original_data-self.original_data[:,0]
-		print "after_dither\n",self.after_dither
-		print "x_after_modulo\n",self.x_after_modulo
-		print "x_after_quantizer\n",self.x_after_quantizer
-		print "original_y\n",self.original_y
-		print "x_y_delta\n",self.x_y_delta
-		print "recovered_x\n",self.recovered_x
-		print "error\n",self.error
-		print "mse\n",m(self.normalized_mse)
-		#i think i can remove this... 	print "normalize mse:\n",m(self.normal_mse)
-		print "-------------------------------------------"
-		return self
 	def init_calculations(self):
 		self.dither_size=0
 		if (self.dither_on):
@@ -142,36 +111,7 @@ class data_multi_inputs():
 		#return  dict(x_quant.items()+y_quant.items()+dt.items())
 		return  OrderedDict(x_quant.items()+y_quant.items()+dt1.items()+dt2.items())
 
-#class data_1_input(data_multi_inputs):
-
 class data_2_inputs(data_multi_inputs):
-	def print_inputs(self):
-		print "===variables==="
-		print "number of inputs\n",self.number_of_inputs
-		print "number of samples\n",self.number_of_samples
-		print "x modulo size\n",self.x_quantizer.modulo_edge_to_edge
-		print "y modulo size\n",self.y_quantizer.modulo_edge_to_edge
-		print "number of x quants\n",self.x_quantizer.number_of_quants
-		print "number of y quants\n",self.y_quantizer.number_of_quants
-		print "independed_var\n",self.independed_var
-		print "dither size\n",self.dither_size
-		return self
-	def print_flow(self):
-		print "===data==="
-		print "original_data\n",self.original_data
-		print "y x_original delta (y is the first input):\n",self.original_data-self.original_data[:,0]
-		print "x_after_dither\n",self.x_after_dither
-		print "x_after_modulo\n",self.x_after_modulo
-		print "y_after_modulo\n",self.y_after_modulo
-		print "x_after_quantizer\n",self.x_after_quantizer
-		print "y_after_quantizer\n",self.y_after_quantizer
-		print "modulo on x_y_delta after quantizers\n",self.x_y_delta
-		print "recovered_x\n",self.recovered_x
-		print "error\n",self.error
-		print "mse\n",m(self.normalized_mse)
-		#i think i can remove this... 	print "normalize mse:\n",m(self.normal_mse)
-		print "-------------------------------------------"
-		return self
 	def finish_calculations(self):
 		#we calcualte the error only on x, not on y...
 		self.error=self.original_x-self.recovered_x

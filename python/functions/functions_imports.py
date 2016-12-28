@@ -14,7 +14,7 @@ from collections import OrderedDict
 from scipy.integrate import quad
 from scipy.stats import norm
 from scipy.optimize import brent,minimize,fmin
-from pylab import plot,show,grid,xlabel,ylabel,title,legend,close,savefig,ion,draw,figure,annotate,text
+from pylab import plot,show,grid,xlabel,ylabel,title,legend,close,savefig,ion,draw,figure,annotate,text,subplot
 from time import sleep
 from multiprocessing import Pool
 from operator import methodcaller

@@ -36,10 +36,13 @@ class quantizer():
 	def quantizise(self,numbers):
 		if (self.number_of_quants>1e4):
 			return numbers
-		#rounding to the quantizer:
+		#rounding to the quantizer (rint is rounding to the closes integer):
+		numbers=mat(numbers)
 		q=rint((numbers+self.max_val)/(1.0*self.bin_size))*self.bin_size-self.max_val
 		#taking the edges:
-		q=mat([self.max_val if i>self.max_val else -self.max_val if i<-self.max_val else i for i in q.A1]).reshape(q.shape)
+		#the modulo should do this so i dropped it here
+##		q=mat([self.max_val if i>self.max_val else -self.max_val if i<-self.max_val else i for i in q.A1]).reshape(q.shape)
+##		q=mat(q).reshape(q.shape)
 		return q
 	def plot_pdf_quants(self):
 		x=arange(-self.max_val-2*self.bin_size,self.max_val+2*self.bin_size,self.sigma/1000.0)

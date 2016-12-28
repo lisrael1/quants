@@ -36,7 +36,7 @@ def n(a):
 #running on each number of quants:
 if (0):
 	d=Pool().imap_unordered(n,d)
-	o=m([[i.mod_size,i.mse_per_input_sample,i.num_quants] for i in d])
+	o=m([[i.mod_size,i.normalized_mse,i.num_quants] for i in d])
 	for j in set(o[:,2].A1):
 		j=int(j)
 		print j
@@ -55,7 +55,7 @@ if (0):
 if (1):
 	d=Pool().imap_unordered(n,d)
 	#d=map(n,d)
-	o=[[i.mse_per_input_sample,i.num_quants] for i in d]
+	o=[[i.normalized_mse,i.num_quants] for i in d]
 	#o=[[i.capacity,i.num_quants] for i in d]
 	#now we will take only one line per number of bins:
 	o=lowest_y_per_x(o,1,0)
@@ -85,7 +85,7 @@ if (0):
 		#d=map(n,d)
 		#o=[[i.mod_size,i.capacity,i.num_quants] for i in d]
 		o=[[i.mod_size,i.snr,i.num_quants] for i in d]
-		#o=[[i.mod_size,i.mse_per_input_sample,i.num_quants] for i in d]
+		#o=[[i.mod_size,i.normalized_mse,i.num_quants] for i in d]
 		#now we will take only one line per number of bins:
 		o=lowest_y_per_x(o,1,2)
 		plot(o[:,2],o[:,1])

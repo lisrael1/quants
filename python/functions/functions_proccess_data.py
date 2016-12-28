@@ -92,7 +92,7 @@ class data_multi_inputs():
 		print "x_y_delta\n",self.x_y_delta
 		print "recovered_x\n",self.recovered_x
 		print "error\n",self.error
-		print "mse\n",m(self.mse_per_input_sample)
+		print "mse\n",m(self.normalized_mse)
 		#i think i can remove this... 	print "normalize mse:\n",m(self.normal_mse)
 		print "-------------------------------------------"
 		return self
@@ -103,9 +103,9 @@ class data_multi_inputs():
 	def finish_calculations(self):
 		self.error=self.original_data-self.recovered_x
 		#for mse we will flaten the error matrix so we can do power 2 just by dot product
-		self.mse_per_input_sample=1.0*sum(self.error.A1.T*self.error.A1)/(self.number_of_inputs*self.number_of_samples*self.x_quantizer.sigma*self.x_quantizer.sigma)
+		self.normalized_mse=1.0*sum(self.error.A1.T*self.error.A1)/(self.number_of_inputs*self.number_of_samples*self.x_quantizer.sigma*self.x_quantizer.sigma)
 		#what should impact on the mse is the number of inputs, samples modulo size and independed_var but not on the single data variance
-		self.snr=1.0*self.x_quantizer.var/self.mse_per_input_sample
+		self.snr=1.0*self.x_quantizer.var/self.normalized_mse
 		self.capacity=log2(self.snr+1)
 	#this function is for only 2 inputs
 	def run_sim(self):
@@ -168,7 +168,7 @@ class data_2_inputs(data_multi_inputs):
 		print "modulo on x_y_delta after quantizers\n",self.x_y_delta
 		print "recovered_x\n",self.recovered_x
 		print "error\n",self.error
-		print "mse\n",m(self.mse_per_input_sample)
+		print "mse\n",m(self.normalized_mse)
 		#i think i can remove this... 	print "normalize mse:\n",m(self.normal_mse)
 		print "-------------------------------------------"
 		return self
@@ -176,11 +176,11 @@ class data_2_inputs(data_multi_inputs):
 		#we calcualte the error only on x, not on y...
 		self.error=self.original_x-self.recovered_x
 		#for mse we will flaten the error matrix so we can do power 2 just by dot product
-		self.mse_per_input_sample=1.0*sum(self.error.A1.T*self.error.A1)/(self.number_of_samples*self.x_quantizer.sigma*self.x_quantizer.sigma)
+		self.normalized_mse=1.0*sum(self.error.A1.T*self.error.A1)/(self.number_of_samples*self.x_quantizer.sigma*self.x_quantizer.sigma)
 		#i think i can remove this... self.all_data_var=var(self.original_x) #should be (2*var)^2/12
 		#what should impact on the mse is the number of inputs, samples modulo size and independed_var but not on the single data variance
-		#i think i can remove this... 	self.normal_mse=(self.mse_per_input_sample/self.independed_var)/((self.number_of_inputs-1)*self.number_of_samples)#not working...
-		self.snr=(4.0*self.x_quantizer.var*self.x_quantizer.var)/self.mse_per_input_sample
+		#i think i can remove this... 	self.normal_mse=(self.normalized_mse/self.independed_var)/((self.number_of_inputs-1)*self.number_of_samples)#not working...
+		self.snr=(4.0*self.x_quantizer.var*self.x_quantizer.var)/self.normalized_mse
 		self.capacity=log2(self.snr+1)
 	#this function is for only 2 inputs
 	def run_sim(self):

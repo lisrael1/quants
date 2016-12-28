@@ -17,8 +17,8 @@ if (0):
 	a.num_quants=range(2,40)
 	a.create_data()
 	a.run_sim()
-	#print a.plot_results('num_quants','mse_per_input_sample','dither_on')
-	print a.plot_results('num_quants','mse_per_input_sample','number_of_samples')
+	#print a.plot_results('num_quants','normalized_mse','dither_on')
+	print a.plot_results('num_quants','normalized_mse','number_of_samples')
 
 if (1):
 	#simple curve:
@@ -28,9 +28,9 @@ if (1):
 	a.num_quants=range(2,40)
 	a.create_data()
 	a.run_sim()
-	#print a.plot_results('num_quants','mse_per_input_sample','dither_on')
-	#print a.plot_results('num_quants','mse_per_input_sample','number_of_samples')
-	print a.plot_results('num_quants','mod_size','number_of_samples','mse_per_input_sample')
+	#print a.plot_results('num_quants','normalized_mse','dither_on')
+	#print a.plot_results('num_quants','normalized_mse','number_of_samples')
+	print a.plot_results('num_quants','mod_size','number_of_samples','normalized_mse')
 if (0):
 	#check number of samples:
 	a.num_quants=range(2,40)
@@ -39,7 +39,7 @@ if (0):
 	a.mod_size=[4.5]
 	a.create_data()
 	a.run_sim()
-	print a.plot_results('num_quants','mse_per_input_sample','number_of_samples')
+	print a.plot_results('num_quants','normalized_mse','number_of_samples')
 
 exit()
 

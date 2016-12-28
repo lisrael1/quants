@@ -32,7 +32,7 @@ d=matching(n,d)
 #	d=map(n,d)
 #[i.print_all() for i in d]
 #exit()
-o1=[[i.x_quantizer.modulo_edge_to_edge,i.mse_per_input_sample,i.x_quantizer.number_of_quants,i.modulo_on,i.dither_on] for i in d]
+o1=[[i.x_quantizer.modulo_edge_to_edge,i.normalized_mse,i.x_quantizer.number_of_quants,i.modulo_on,i.dither_on] for i in d]
 for m_o in [1,0]:
 	for d_o in [1,0]:
 		o=m([i for i in o1 if i[3]==m_o and i[4]==d_o])

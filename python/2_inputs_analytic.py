@@ -3,6 +3,7 @@ execfile("functions/functions.py")
 
 #next TODO:
 #try to do SNR minus quantization SNR
+#probably you better put a quant at the 0, but then you will always will have odd number of quants
 
 
 """
@@ -69,14 +70,14 @@ if (1):
 	if 1:#basic one, exp plot
 		plot_threads="y_quantizer_bin_size"
 		x_plot='x_quantizer_number_of_quants'
-		y_sort="mse_per_input_sample"
+		y_sort="normalized_mse"
 		y_plot=y_sort
 		if 0:
 			y_plot="x_quantizer_modulo_edge_to_edge"
 	if 0:#spliting by x_quantizer_number_of_quants
 		plot_threads="x_quantizer_number_of_quants"
 		x_plot='x_quantizer_modulo_edge_to_edge'
-		y_sort="mse_per_input_sample"
+		y_sort="normalized_mse"
 		y_plot=y_sort#doesnt matter because we dont have duplications at x
 
 	o=pd.DataFrame([i.dict() for i in d])#note that here we loose the functions of all classes and we just have data!

@@ -54,7 +54,10 @@ def lowest_y_per_x(data_matrix,x_column,y_column):
 
 
 
-class data_multi_inputs():
+
+
+
+class data_2_inputs():
 	#when you create data, it will run it and calculate the dither, the data after modulo and after all decoders..
 	def __init__(self,number_of_samples,independed_var,x_quantizer,y_quantizer=None,number_of_inputs=2,dither_on=1,modulo_on=1):
 		self.x_quantizer=x_quantizer
@@ -69,33 +72,6 @@ class data_multi_inputs():
 		self.dither_size=0
 		if (self.dither_on):
 			self.dither_size=self.x_quantizer.bin_size
-	def finish_calculations(self):
-		self.error=self.original_data-self.recovered_x
-		#for mse we will flaten the error matrix so we can do power 2 just by dot product
-		self.normalized_mse=1.0*sum(self.error.A1.T*self.error.A1)/(self.number_of_inputs*self.number_of_samples*self.x_quantizer.sigma*self.x_quantizer.sigma)
-		#what should impact on the mse is the number of inputs, samples modulo size and independed_var but not on the single data variance
-		self.snr=1.0*self.x_quantizer.var/self.normalized_mse
-		self.capacity=log2(self.snr+1)
-	#this function is for only 2 inputs
-	def run_sim(self):
-		self.original_data=generate_data(self.independed_var,self.x_quantizer.var,self.number_of_inputs,self.number_of_samples)
-		#TODO here we do x-y, where y is the first column but in fact we need matrix with permutation on all matrix, not just the first column and not just x-y, it can also be 2x+1y etc.
-		self.original_y=self.original_data[:,0]
-		if (self.number_of_inputs==1):
-			self.original_y=m(zeros(self.original_data.shape[0])).T
-		self.after_dither,self.dither=add_dither(self.original_data,self.dither_size)
-		self.x_after_modulo=mod_op(self.after_dither,self.x_quantizer.modulo_edge_to_edge)
-		if (self.number_of_inputs==1 and self.modulo_on==False):
-			self.x_after_modulo=self.after_dither
-		self.x_after_quantizer=self.x_quantizer.quantizise(self.x_after_modulo)-self.dither
-		#TODO alpha
-		#TODO modulo and quantizer also on y, but not the same modulo and quantizer of x
-		#aqctually we pick here x-y but it should be multiply in A
-		self.x_y_delta=mod_op(self.x_after_quantizer-self.original_y,self.x_quantizer.modulo_edge_to_edge)
-		if (self.number_of_inputs==1 and self.modulo_on==False):
-			self.x_y_delta=self.x_after_quantizer
-		self.recovered_x=self.x_y_delta+self.original_y
-		self.finish_calculations()
 	def __iter__(self):
 		return self.__dict__.iteritems()
 	def dict(self):#best way, but you need __iter__ and you done need d()
@@ -110,8 +86,6 @@ class data_multi_inputs():
 		dt2    ={k:v for k,v in OrderedDict(self).iteritems() if type(v)==matrix and v.shape[0]==1 and v.shape[1]==1}#adding also case when we only run 1 sample
 		#return  dict(x_quant.items()+y_quant.items()+dt.items())
 		return  OrderedDict(x_quant.items()+y_quant.items()+dt1.items()+dt2.items())
-
-class data_2_inputs(data_multi_inputs):
 	def finish_calculations(self):
 		#we calcualte the error only on x, not on y...
 		self.error=self.original_x-self.recovered_x

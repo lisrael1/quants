@@ -1,9 +1,33 @@
+class simple_quantizer():
+	  '''
+		when first_quantizer_bar_at_zero is True, you have quantizer bar at 0, when not, if bin_size is 0.1, you will have bar quantizer at ...,-0.15,-0.05,0.05,0.15,...
+		for example:
+                    print simple_quantizer(0.1,0).quantizise([-0.91,0.11,-0.49])
+                          [[-0.9  0.1 -0.5]]
+	  '''
+	  def __init__(self, bin_size, first_quantizer_bar_at_zero):
+		  self.bin_size=bin_size
+		  self.first_quantizer_bar_at_zero=first_quantizer_bar_at_zero
+	  def quantizise(self,numbers):
+		if (self.bin_size==0):
+			return numbers
+		#rounding to the quantizer (rint is rounding to the closes integer):
+		numbers=mat(numbers)
+		if self.first_quantizer_bar_at_zero:
+		   q=self.bin_size*rint((numbers+self.bin_size*0.5)/self.bin_size)-self.bin_size*0.5
+		else:
+			 q=self.bin_size*rint(numbers/self.bin_size)
+		return q
+
+
 '''
 for now, the quantizer is around 0
 example code:
 	q=quantizer(0.1,4)
+	  bin size = 0.1, number of quants = 4
 	q=quantizer(0.1,4,10)
 	q=quantizer(all_quants=[-0.15,-0.05,0.05,0.15])
+	  entering the quantizers
 	print q
 '''
 class quantizer():

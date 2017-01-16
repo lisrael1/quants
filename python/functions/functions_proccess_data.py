@@ -1,33 +1,32 @@
-"""
-if the modulo_size here for example is 3, we will
-not change values between -1.5 and 1.5, but 1.6 will become -1.4
-"""
-
 def matching(*args):
 	if 1 and not "win" in platform:
 		return Pool().imap_unordered(*args)
 	else:
 		return map(*args)
 
+"""
+if the modulo_size here for example is 3, we will
+not change values between -1.5 and 1.5, but 1.6 will become -1.4
+"""
 def mod_op(num,modulo_size):
 	return m((m(num)+modulo_size/2.0)%(modulo_size)-modulo_size/2.0)
 
 """
 each row is at specific time, each column is an input
-at var=0 you will get normal dist around 0 at all inputs
+at independed_var=0 you will get normal dist around 0 with var of depended_var, at all inputs
 """
-def generate_data(independed_var,var,inputs,samples):
+def generate_data(independed_var,depended_var,number_of_inputs,samples):
 	if not "win" in platform:#at windows we dont run parallel and we dont have /dev/urandom
 	     rand_int = unpack('I', open("/dev/urandom","rb").read(4))[0]
 	     random.seed(rand_int)
-	if (inputs<1 or type(inputs)!=int):
-		print "inputs has to be positive integer"
+	if (number_of_inputs<1 or type(number_of_inputs)!=int):
+		print "number_of_inputs has to be positive integer"
 		exit()
-	if (inputs==1):
+	if (number_of_inputs==1):
 		return m(random.normal(0,independed_var,samples)).T
 	#first input will be the normal dist by independed_var and the others will be the normal around it by var:
 	#(random.normal gets mu and sigma, not the var...
-	data=m([hstack([i,random.normal(i,sqrt(var),inputs-1)]) for i in random.normal(0,sqrt(independed_var),samples)])
+	data=m([hstack([i,random.normal(i,sqrt(depended_var),number_of_inputs-1)]) for i in random.normal(0,sqrt(independed_var),samples)])
 	return data
 
 def add_dither(data,dither_size):
@@ -46,27 +45,14 @@ def lowest_y_per_x(data_matrix,x_column,y_column):
 	data_matrix={i[x_column]:i for i in data_matrix}.values()
 	return m(data_matrix)
 
-
-
-
-
-
-
-
-
-
-
-
 class data_2_inputs():
 	#when you create data, it will run it and calculate the dither, the data after modulo and after all decoders..
-	def __init__(self,number_of_samples,independed_var,x_quantizer,y_quantizer=None,number_of_inputs=2,dither_on=1,modulo_on=1):
+	def __init__(self,number_of_samples,independed_var,x_quantizer,y_quantizer=None,dither_on=1):
 		self.x_quantizer=x_quantizer
 		self.y_quantizer=y_quantizer
-		self.number_of_inputs=number_of_inputs
 		self.number_of_samples=number_of_samples
 		self.independed_var=independed_var
 		self.dither_on=dither_on
-		self.modulo_on=modulo_on
 		self.init_calculations()
 	def init_calculations(self):
 		self.dither_size=0
@@ -96,9 +82,8 @@ class data_2_inputs():
 		#i think i can remove this... 	self.normal_mse=(self.normalized_mse/self.independed_var)/((self.number_of_inputs-1)*self.number_of_samples)#not working...
 		self.snr=(4.0*self.x_quantizer.var*self.x_quantizer.var)/self.normalized_mse
 		self.capacity=log2(self.snr+1)
-	#this function is for only 2 inputs
 	def run_sim(self):
-		self.original_data=generate_data(self.independed_var,self.x_quantizer.var,self.number_of_inputs,self.number_of_samples)
+		self.original_data=generate_data(self.independed_var,self.x_quantizer.var,2,self.number_of_samples)
 		self.original_x=self.original_data[:,1] #[:,1:]
 		self.original_y=self.original_data[:,0]
 		self.x_after_dither,self.dither=add_dither(self.original_x,self.dither_size)

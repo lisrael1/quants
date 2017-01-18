@@ -1,26 +1,32 @@
 class simple_quantizer():
-	  '''
+	  """
 		when first_quantizer_bar_at_zero is True, you have quantizer bar at 0, when not, if bin_size is 0.1, you will have bar quantizer at ...,-0.15,-0.05,0.05,0.15,...
 		for example:
-                    print simple_quantizer(0.1,0).quantizise([-0.91,0.11,-0.49])
+                    print simple_quantizer(0.1,11).quantizise([-0.91,0.11,-0.49])#if you put (0.1,5), you will get the same results...
                           [[-0.9  0.1 -0.5]]
-	  '''
-	  def __init__(self, bin_size, first_quantizer_bar_at_zero):
+                    print simple_quantizer(0.1,20).quantizise([-0.91,0.11,-0.49])
+                          [[-0.95  0.15 -0.45]]
+                    print simple_quantizer(0.1,3).modulo_edge_to_edge
+						  0.3
+	  """
+	  def __init__(self, bin_size, number_of_quants):
 		  self.bin_size=bin_size
-		  self.first_quantizer_bar_at_zero=first_quantizer_bar_at_zero
+		  self.number_of_quants=number_of_quants
+		  self.modulo_edge_to_edge=self.bin_size*self.number_of_quants#you have half bin at the left side and half at the right
 	  def quantizise(self,numbers):
 		if (self.bin_size==0):
 			return numbers
 		#rounding to the quantizer (rint is rounding to the closes integer):
 		numbers=mat(numbers)
-		if self.first_quantizer_bar_at_zero:
-		   q=self.bin_size*rint((numbers+self.bin_size*0.5)/self.bin_size)-self.bin_size*0.5
+		if self.number_of_quants%2:
+		   q=self.bin_size*rint(numbers/self.bin_size)
 		else:
-			 q=self.bin_size*rint(numbers/self.bin_size)
+			 q=self.bin_size*rint((numbers+self.bin_size*0.5)/self.bin_size)-self.bin_size*0.5
 		return q
+	  def __iter__(self):
+		return self.__dict__.iteritems()
 
-
-'''
+"""
 for now, the quantizer is around 0
 example code:
 	q=quantizer(0.1,4)
@@ -29,7 +35,7 @@ example code:
 	q=quantizer(all_quants=[-0.15,-0.05,0.05,0.15])
 	  entering the quantizers
 	print q
-'''
+"""
 class quantizer():
 	def __init__(self,bin_size=None,number_of_quants=None,max_val=None,all_quants=None,mu=0,sigma=1,modulo_edge_to_edge=None):
 		self.mu=mu
@@ -140,6 +146,7 @@ def analytical_error(bin_size=None,quantizer_i=None):
 
 '''
 look for best quantizer by number of quants and normal dist args
+this one is for quantizer, not for simple_quantizer
 example:
 	number_of_quants=5
 	sigma=1.0

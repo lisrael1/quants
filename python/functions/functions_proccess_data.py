@@ -45,13 +45,18 @@ def lowest_y_per_x(data_matrix,x_column,y_column):
 	data_matrix={i[x_column]:i for i in data_matrix}.values()
 	return m(data_matrix)
 
-class data_2_inputs():
+class sim_2_inputs():
 	#when you create data, it will run it and calculate the dither, the data after modulo and after all decoders..
-	def __init__(self,number_of_samples,independed_var,x_quantizer,y_quantizer=None,dither_on=1):
+##	def __init__(self,number_of_samples,independed_var,x_quantizer,y_quantizer=None,dither_on=1):
+	def __init__(self,number_of_samples,cov,x_quantizer,y_quantizer=None,dither_on=1):
 		self.x_quantizer=x_quantizer
 		self.y_quantizer=y_quantizer
 		self.number_of_samples=number_of_samples
-		self.independed_var=independed_var
+		self.depended_var=cov[0,1]
+		self.x_var=cov[0,0]
+		self.y_var=cov[1,1]
+		self.x_mod=self.x_quantizer.modulo_edge_to_edge
+		self.y_mod=self.y_quantizer.modulo_edge_to_edge
 		self.dither_on=dither_on
 		self.init_calculations()
 	def init_calculations(self):
@@ -76,26 +81,26 @@ class data_2_inputs():
 		#we calcualte the error only on x, not on y...
 		self.error=self.original_x-self.recovered_x
 		#for mse we will flaten the error matrix so we can do power 2 just by dot product
-		self.normalized_mse=1.0*sum(self.error.A1.T*self.error.A1)/(self.number_of_samples*self.x_quantizer.sigma*self.x_quantizer.sigma)
+		self.normalized_mse=1.0*sum(self.error.A1.T*self.error.A1)/(self.number_of_samples*self.x_var)
 		#i think i can remove this... self.all_data_var=var(self.original_x) #should be (2*var)^2/12
 		#what should impact on the mse is the number of inputs, samples modulo size and independed_var but not on the single data variance
 		#i think i can remove this... 	self.normal_mse=(self.normalized_mse/self.independed_var)/((self.number_of_inputs-1)*self.number_of_samples)#not working...
-		self.snr=(4.0*self.x_quantizer.var*self.x_quantizer.var)/self.normalized_mse
+		self.snr=(4.0*(self.x_var**2))/self.normalized_mse
 		self.capacity=log2(self.snr+1)
 	def run_sim(self):
-		self.original_data=generate_data(self.independed_var,self.x_quantizer.var,2,self.number_of_samples)
+		self.original_data=generate_data(self.x_var,self.depended_var,2,self.number_of_samples)
 		self.original_x=self.original_data[:,1] #[:,1:]
 		self.original_y=self.original_data[:,0]
 		self.x_after_dither,self.dither=add_dither(self.original_x,self.dither_size)
-		self.x_after_modulo=mod_op(self.x_after_dither,self.x_quantizer.modulo_edge_to_edge)
+		self.x_after_modulo=mod_op(self.x_after_dither,self.x_mod)
 		self.x_after_quantizer=self.x_quantizer.quantizise(self.x_after_modulo)-self.dither
 		self.y_after_dither=self.original_y+self.dither
-		self.y_after_modulo=mod_op(self.y_after_dither,self.y_quantizer.modulo_edge_to_edge)
+		self.y_after_modulo=mod_op(self.y_after_dither,self.y_mod)
 		self.y_after_quantizer=self.y_quantizer.quantizise(self.y_after_modulo)-self.dither
 		#TODO alpha
 		#TODO modulo and quantizer also on y, but not the same modulo and quantizer of x
 		#aqctually we pick here x-y but it should be multiply in A
-		self.x_y_delta=mod_op(self.x_after_quantizer-self.y_after_quantizer,self.x_quantizer.modulo_edge_to_edge)
+		self.x_y_delta=mod_op(self.x_after_quantizer-self.y_after_quantizer,self.x_mod)
 		self.recovered_x=self.x_y_delta+self.y_after_quantizer
 		self.finish_calculations()
 

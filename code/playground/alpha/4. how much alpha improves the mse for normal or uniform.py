@@ -6,10 +6,10 @@ class pc():
 	  def  __iter__(self):
 	  	   return self.__dict__.iteritems()
 	  def table(self):
-			data=pd.DataFrame([{k:v for k,v in dict(self).iteritems() if t(v)}])
+			data=pd.DataFrame([{k:v for k,v in dict(self).iteritems() if self.t(v)}])
         	#return data
 			return data.transpose()
-	  def t(v):
+	  def t(self,v):
 		try:
 			return size(v)<10
 		except:

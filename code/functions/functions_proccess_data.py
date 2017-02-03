@@ -48,7 +48,7 @@ def lowest_y_per_x(data_matrix,x_column,y_column):
 class sim_2_inputs():
 	#when you create data, it will run it and calculate the dither, the data after modulo and after all decoders..
 ##	def __init__(self,number_of_samples,independed_var,x_quantizer,y_quantizer=None,dither_on=1):
-	def __init__(self,number_of_samples,cov,x_quantizer,y_quantizer=None,dither_on=1):
+	def __init__(self,number_of_samples,cov,x_quantizer,y_quantizer=None,dither_on=0):
 		self.x_quantizer=x_quantizer
 		self.y_quantizer=y_quantizer
 		self.number_of_samples=number_of_samples
@@ -63,9 +63,9 @@ class sim_2_inputs():
 		self.dither_size=0
 		if (self.dither_on):
 			self.dither_size=self.x_quantizer.bin_size
-	def __iter__(self):
+	def __iter__(self):#just for dict function
 		return self.__dict__.iteritems()
-	def dict(self):#best way, but you need __iter__ and you done need d()
+	def dict(self):
 		"""
 			o=pd.DataFrame([i.dict() for i in d])
 			o.to_csv("a.csv")
@@ -75,18 +75,23 @@ class sim_2_inputs():
 		y_quant={"y_quantizer_"+k:v for k,v in OrderedDict(self.y_quantizer).iteritems() if type(v)==int or type(v)==float or type(v)==float64 or type(v)==bool}
 		dt1    ={k:v for k,v in OrderedDict(self).iteritems() if type(v)==int or type(v)==float or type(v)==float64 or (type(v)==matrix and len(v)==1)}
 		dt2    ={k:v for k,v in OrderedDict(self).iteritems() if type(v)==matrix and v.shape[0]==1 and v.shape[1]==1}#adding also case when we only run 1 sample
-		#return  dict(x_quant.items()+y_quant.items()+dt.items())
 		return  OrderedDict(x_quant.items()+y_quant.items()+dt1.items()+dt2.items())
 	def finish_calculations(self):
 		#we calcualte the error only on x, not on y...
 		self.error=self.original_x-self.recovered_x
 		#for mse we will flaten the error matrix so we can do power 2 just by dot product
-		self.normalized_mse=1.0*sum(self.error.A1.T*self.error.A1)/(self.number_of_samples*self.x_var)
-		#i think i can remove this... self.all_data_var=var(self.original_x) #should be (2*var)^2/12
+		self.error_bias=mean(self.error)
+		self.mse=sum(self.error.A1.T*self.error.A1)/self.number_of_samples
+		self.error_from_big_errors=m([i for i in self.error.A1 if i>2*self.x_quantizer.bin_size])
+		self.number_of_big_errors=self.error_from_big_errors.A1.size
+		self.mse_from_big_errors=sum(self.error_from_big_errors.A1.T*self.error_from_big_errors.A1)/self.number_of_samples#self.error_from_big_errors.A1.size
+		self.normalized_mse=self.mse*self.x_var
 		#what should impact on the mse is the number of inputs, samples modulo size and independed_var but not on the single data variance
-		#i think i can remove this... 	self.normal_mse=(self.normalized_mse/self.independed_var)/((self.number_of_inputs-1)*self.number_of_samples)#not working...
-		self.snr=(4.0*(self.x_var**2))/self.normalized_mse
+		self.snr=self.x_var/(self.normalized_mse)
 		self.capacity=log2(self.snr+1)
+		self.snr_normalized=1.0/self.normalized_mse
+		self.capacity_normalized=log2(self.snr_normalized+1)
+
 	def run_sim(self):
 		self.original_data=generate_data(self.x_var,self.depended_var,2,self.number_of_samples)
 		self.original_x=self.original_data[:,1] #[:,1:]

@@ -1,3 +1,4 @@
 *.swp
 *.pyc
 temp/
+all_data.csv

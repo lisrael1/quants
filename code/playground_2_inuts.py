@@ -22,12 +22,14 @@ max_x_bin_number=20
 min_x_bin_number=2
 ##min_x_bin_number=5#for fast estimation
 
+number_of_samples=2.8e7#supper slow
+number_of_samples=4e6#slow, only for server
 number_of_samples=4e4#slow
 number_of_samples=4e1#fast estimation
 ##number_of_samples=1#put here 1 and look at all_data.csv to see the flow on single sample
 
 modulo_jumps_resolution=0.05
-modulo_jumps_resolution=0.5#for fast estimation
+#modulo_jumps_resolution=0.5#for fast estimation
 min_modulo_size=5.5
 ##min_modulo_size=7#from 5 quants, the modulo starts at 7
 
@@ -121,8 +123,7 @@ def parse_sim_results(sim_results):
 
 if 1:
     #run sim
-    sim_args=prepare_sim_args()
-    sim_results=run_sim(sim_args)
+    sim_results=run_sim(prepare_sim_args())
     sim_results.to_csv('temp/sim_results.csv')
 
 #parse sim results:
@@ -131,4 +132,3 @@ sim_results_table=parse_sim_results(sim_results)
 print "simulation time: ",time() - start_time,"sec"
 
 
-##sim_results_table.sort(columns=["x_quantizer_number_of_quants","x_quantizer_bin_size"]).to_csv("temp/big_errors.csv")#debug

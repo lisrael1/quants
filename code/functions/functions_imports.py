@@ -1,6 +1,7 @@
 from time import time
+from datetime import datetime
 start_time = time()
-from sys import platform
+from sys import platform,getsizeof
 if "win" in platform:
    dlmtr="\\"
    img_type=".png"

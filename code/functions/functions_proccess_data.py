@@ -1,3 +1,4 @@
+sim_number_id=0
 def matching(*args):
 	if 1 and not "win" in platform:
 		return Pool().imap_unordered(*args)
@@ -48,6 +49,9 @@ def lowest_y_per_x(data_matrix,x_column,y_column):
 class sim_2_inputs():
 	#when you create data, it will run it and calculate the dither, the data after modulo and after all decoders..
 	def __init__(self,number_of_samples,cov,x_quantizer,y_quantizer=None,dither_on=0):
+		global sim_number_id
+		self.sim_id=sim_number_id
+		sim_number_id+=1
 		self.x_quantizer=x_quantizer
 		self.y_quantizer=y_quantizer
 		self.number_of_samples=number_of_samples
@@ -62,8 +66,16 @@ class sim_2_inputs():
 		self.dither_size=0
 		if (self.dither_on):
 			self.dither_size=self.x_quantizer.bin_size
+	def sim_log(self,msg):
+		log=str(self.sim_id).zfill(5)+" "+str(datetime.now())+" "+str(msg)
+		if 0:
+			print log
+		else:
+			f=open("temp/sim_proccess_log.log","a")
+			f.write(log+"\n")
+			f.close()
 	def __del__(self):
-	   print "exit"
+	   self.sim_log("deleting simulation")
 	def __iter__(self):#just for dict function
 		return self.__dict__.iteritems()
 	def dict(self):
@@ -97,14 +109,19 @@ class sim_2_inputs():
 		self.capacity=log2(self.snr+1)
 		self.snr_normalized=1.0/self.normalized_mse
 		self.capacity_normalized=log2(self.snr_normalized+1)
+		self.sim_log("finish calculation on single sim ")
 
 	def run_sim(self):
+		self.sim_log("starting calculation")
 		self.original_data=generate_data(self.x_var,self.depended_var,2,self.number_of_samples)
+		self.sim_log("done generating data for sim number with size of "+str(getsizeof(self.original_data)))
 		self.original_x=self.original_data[:,1] #[:,1:]
 		self.original_y=self.original_data[:,0]
 		self.x_after_dither,self.dither=add_dither(self.original_x,self.dither_size)
 		self.x_after_modulo=mod_op(self.x_after_dither,self.x_mod)
+		self.sim_log("starting qunatizing")
 		self.x_after_quantizer=self.x_quantizer.quantizise(self.x_after_modulo)-self.dither
+		self.sim_log("finish quantizing")
 		self.y_after_dither=self.original_y+self.dither
 		self.y_after_modulo=mod_op(self.y_after_dither,self.y_mod)
 		self.y_after_quantizer=self.y_quantizer.quantizise(self.y_after_modulo)-self.dither

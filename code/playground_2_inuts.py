@@ -23,7 +23,7 @@ min_x_bin_number=2
 ##min_x_bin_number=5#for fast estimation
 
 number_of_samples=4e4#slow
-number_of_samples=4e2#fast estimation
+number_of_samples=4e1#fast estimation
 ##number_of_samples=1#put here 1 and look at all_data.csv to see the flow on single sample
 
 modulo_jumps_resolution=0.05
@@ -65,15 +65,14 @@ def prepare_sim_args():
     return sim_args
 
 def run_sim(sim_args):
-    return matching(n,sim_args)
+    list_of_df=matching(run_single_sim,sim_args)
+    sim_results=pd.concat(list_of_df,axis=0)
+    return sim_results
 
 #running on best mse for each number of quants:
 def parse_sim_results(sim_results):
 	print "simulation time3: ",time() - start_time,"sec"
 
-	if 0:#if we dont want parsing text, and we want the class functionality. note that you dont sort the data here but you will have mse
-	   [i.x_quantizer.plot_pdf_quants() for i in sim_results]
-	   exit()
 	if 1:#basic one, exp plot
 		plot_threads="y_quantizer_bin_size"
 		x_plot='x_quantizer_number_of_quants'
@@ -86,14 +85,14 @@ def parse_sim_results(sim_results):
 		y_sort="normalized_mse"
 		y_plot=y_sort#doesnt matter because we dont have duplications at x
 
-	sim_results_table=pd.DataFrame([i.dict() for i in sim_results])#note that here we loose the functions of all classes and we just have data!
-	sim_results_table=sim_results_table.sort(columns=[x_plot,y_sort]).reset_index().drop('index',1)#sorting from A to Z
+##	sim_results_table=pd.DataFrame([i.dict() for i in sim_results])
+	sim_results_table=sim_results.sort(columns=[x_plot,y_sort]).reset_index().drop('index',1)#sorting from A to Z
 	print "data ready,",sim_results_table.index.size,"lines"
 ##	return sim_results_table#temp debug
 	if sim_results_table.index.size<100:
 		sim_results_table.transpose().to_csv("temp/all_data.csv")#we will see each sample at different column
 	else:
-		sim_results_table.to_csv("all_data.csv")
+		sim_results_table.to_csv("temp/all_data.csv")
 	thread_options=set(sim_results_table[plot_threads].tolist())
 	for i in thread_options:
 		thread_in_sim_results_table=sim_results_table.loc[sim_results_table[plot_threads]==i]
@@ -120,8 +119,14 @@ def parse_sim_results(sim_results):
 	show()
 	return sim_results_table
 
-sim_args=prepare_sim_args()
-sim_results=run_sim(sim_args)
+if 1:
+    #run sim
+    sim_args=prepare_sim_args()
+    sim_results=run_sim(sim_args)
+    sim_results.to_csv('temp/sim_results.csv')
+
+#parse sim results:
+sim_results=pd.read_csv('temp/sim_results.csv')
 sim_results_table=parse_sim_results(sim_results)
 print "simulation time: ",time() - start_time,"sec"
 

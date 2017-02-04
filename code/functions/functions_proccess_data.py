@@ -66,16 +66,21 @@ class sim_2_inputs():
 	def __iter__(self):#just for dict function
 		return self.__dict__.iteritems()
 	def dict(self):
-		"""
-			o=pd.DataFrame([i.dict() for i in d])
-			o.to_csv("a.csv")
-		"""
-		#return pd.DataFrame({k:[v] for k,v in OrderedDict(self).iteritems()})
-		x_quant={"x_quantizer_"+k:v for k,v in OrderedDict(self.x_quantizer).iteritems() if type(v)==int or type(v)==float or type(v)==float64 or type(v)==bool}
-		y_quant={"y_quantizer_"+k:v for k,v in OrderedDict(self.y_quantizer).iteritems() if type(v)==int or type(v)==float or type(v)==float64 or type(v)==bool}
-		dt1    ={k:v for k,v in OrderedDict(self).iteritems() if type(v)==int or type(v)==float or type(v)==float64 or (type(v)==matrix and len(v)==1)}
-		dt2    ={k:v for k,v in OrderedDict(self).iteritems() if type(v)==matrix and v.shape[0]==1 and v.shape[1]==1}#adding also case when we only run 1 sample
-		return  OrderedDict(x_quant.items()+y_quant.items()+dt1.items()+dt2.items())
+            def test(v):
+                "to clean some big datas"
+                if type(v)== matrix:
+                    return v.A1.size<10
+                if "simple_quantizer instance" in str(v):#it's also taking the main function of the classes so removing those values
+                    return False
+                return True
+            x_quant={"x_quantizer_"+k:v for k,v in OrderedDict(self.x_quantizer).iteritems() if test(v)}
+            y_quant={"y_quantizer_"+k:v for k,v in OrderedDict(self.y_quantizer).iteritems() if test(v)}
+            all_variables={k:v for k,v in OrderedDict(self).iteritems() if test(v)}
+            return  OrderedDict(x_quant.items()+y_quant.items()+all_variables.items())
+	def table(self):
+            data=self.dict()
+            df= pd.DataFrame([data])
+            return df
 	def finish_calculations(self):
 		#we calcualte the error only on x, not on y...
 		self.error=self.original_x-self.recovered_x
@@ -110,8 +115,10 @@ class sim_2_inputs():
 		self.finish_calculations()
 
 #a function for running parallel:
-def n(a):
-	a.run_sim()
-	return a
+def run_single_sim(a):
+    a.run_sim()
+    #note that here we loose the functions of all classes and we just have data!
+    table=a.table()
+    return table
 
 

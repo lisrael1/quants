@@ -47,7 +47,6 @@ def lowest_y_per_x(data_matrix,x_column,y_column):
 
 class sim_2_inputs():
 	#when you create data, it will run it and calculate the dither, the data after modulo and after all decoders..
-##	def __init__(self,number_of_samples,independed_var,x_quantizer,y_quantizer=None,dither_on=1):
 	def __init__(self,number_of_samples,cov,x_quantizer,y_quantizer=None,dither_on=0):
 		self.x_quantizer=x_quantizer
 		self.y_quantizer=y_quantizer
@@ -63,6 +62,8 @@ class sim_2_inputs():
 		self.dither_size=0
 		if (self.dither_on):
 			self.dither_size=self.x_quantizer.bin_size
+	def __del__(self):
+	   print "exit"
 	def __iter__(self):#just for dict function
 		return self.__dict__.iteritems()
 	def dict(self):
@@ -119,6 +120,7 @@ def run_single_sim(a):
     a.run_sim()
     #note that here we loose the functions of all classes and we just have data!
     table=a.table()
+    del a
     return table
 
 

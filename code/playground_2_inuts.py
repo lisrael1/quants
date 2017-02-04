@@ -29,7 +29,7 @@ number_of_samples=4e1#fast estimation
 modulo_jumps_resolution=0.05
 modulo_jumps_resolution=0.5#for fast estimation
 min_modulo_size=5.5
-min_modulo_size=7#from 5 quants, the modulo starts at 7
+##min_modulo_size=7#from 5 quants, the modulo starts at 7
 
 cov=mat([[1,1],
          [1,10]])
@@ -38,7 +38,7 @@ cov=mat([[1,1],
 def prepare_sim_args():
     print "simulation time start creating quantizers: ",time() - start_time,"sec"
     def x_args():
-        if 1:#take known best quantizer instead of looking for them
+        if 0:#take known best quantizer instead of looking for them
         	qx=[simple_quantizer(number_of_quants=i,bin_size=cov[0,0]*best_bin_sizes_at_1_var[i]) for i in range(min_x_bin_number,max_x_bin_number)]
         if 1:#trying all modulo sizes (at relevant range of 4 to 9):
         	qx=[simple_quantizer(number_of_quants=j,bin_size=i/j) for i in arange(min_modulo_size,9,modulo_jumps_resolution) for j in range(min_x_bin_number,max_x_bin_number)]

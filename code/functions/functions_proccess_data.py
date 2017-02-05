@@ -1,4 +1,5 @@
 sim_number_id=0
+date=datetime.now()
 def matching(*args):
 	if 1 and not "win" in platform:
 		return Pool().imap_unordered(*args)
@@ -55,7 +56,7 @@ class sim_2_inputs():
 		self.x_quantizer=x_quantizer
 		self.y_quantizer=y_quantizer
 		self.number_of_samples=number_of_samples
-		self.depended_var=cov[0,1]
+		self.cov=cov
 		self.x_var=cov[0,0]
 		self.y_var=cov[1,1]
 		self.x_mod=self.x_quantizer.modulo_edge_to_edge
@@ -71,7 +72,7 @@ class sim_2_inputs():
 		if 0:
 			print log
 		else:
-			f=open("temp/sim_proccess_log.log","a")
+			f=open("temp/sim_proccess_log_"+str(date)+"_.log","a")
 			f.write(log+"\n")
 			f.close()
 	def __del__(self):
@@ -112,9 +113,13 @@ class sim_2_inputs():
 		self.sim_log("finish calculation on single sim ")
 
 	def run_sim(self):
+		if not "win" in platform:#at windows we dont run parallel and we dont have /dev/urandom
+		     rand_int = unpack('I', open("/dev/urandom","rb").read(4))[0]
+		     random.seed(rand_int)
 		self.sim_log("starting calculation")
-		self.original_data=generate_data(self.x_var,self.depended_var,2,self.number_of_samples)
-		self.sim_log("done generating data for sim number with size of "+str(getsizeof(self.original_data)))
+		#self.original_data=generate_data(self.x_var,self.depended_var,2,self.number_of_samples)
+		self.original_data=m(random.multivariate_normal([0,0], self.cov, int(self.number_of_samples)))
+		self.sim_log("done generating data for sim number with size of "+str(getsizeof(self.original_data.tolist())))
 		self.original_x=self.original_data[:,1] #[:,1:]
 		self.original_y=self.original_data[:,0]
 		self.x_after_dither,self.dither=add_dither(self.original_x,self.dither_size)

@@ -1,9 +1,7 @@
 from time import time
-import matplotlib
-matplotlib.use('Agg')
 from datetime import datetime
 start_time = time()
-from sys import platform,getsizeof
+from sys import platform,getsizeof,argv
 if "win" in platform:
    dlmtr="\\"
    img_type=".png"

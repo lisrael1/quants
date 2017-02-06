@@ -1,5 +1,4 @@
 sim_number_id=0
-sim_date=str(datetime.now())
 def matching(*args):
 	if 1 and not "win" in platform:
 		return Pool().imap_unordered(*args)
@@ -72,7 +71,7 @@ class sim_2_inputs():
 		if 0:
 			print log
 		else:
-			f=open("temp/sim_proccess_log_"+sim_date+"_.log","a")
+			f=open("temp/sim_proccess_log_"+sim_name+"_.log","a")
 			f.write(log+"\n")
 			f.close()
 	def __del__(self):

@@ -58,8 +58,8 @@ class fl(pc):
         self.mse_w_dither_w_alpha=calc_mse(self.x_qnt_with_dither*self.alpha,self.x)
 
 
-        self.ratio=self.mse_w_dither_w_alpha/self.mse_wo_dither_wo_alpha
-        self.ratio_dither=self.mse_w_dither_w_alpha/self.mse_wo_dither_w_alpha
+        self.ratio_w_wo_dither_alpha=self.mse_w_dither_w_alpha/self.mse_wo_dither_wo_alpha
+        self.ratio_dither_w_alpha=self.mse_w_dither_w_alpha/self.mse_wo_dither_w_alpha
 
 
 
@@ -78,14 +78,14 @@ def on_subplot():
 pylab.title("bin size = "+str(bin_size))
 
 pylab.subplot(3,1,1)
-pylab.plot(d["alpha"],d["ratio"],label="ratio")
-min_ratio=d.iloc[d['ratio'].idxmin()]
-pylab.text(min_alpha,min_ratio['ratio'],"best ratio "+str(min_ratio['ratio'].A1[0])+" or "+str((1-min_ratio['ratio'].A1[0])*100.0)+"% at "+str(min_ratio['alpha']))
+pylab.plot(d["alpha"],d["ratio_w_wo_dither_alpha"],label="ratio_w_wo_dither_alpha")
+min_ratio=d.iloc[d['ratio_w_wo_dither_alpha'].idxmin()]
+pylab.text(min_alpha,min_ratio['ratio_w_wo_dither_alpha'],"best ratio_w_wo_dither_alpha "+str(min_ratio['ratio_w_wo_dither_alpha'].A1[0])+" or "+str((1-min_ratio['ratio_w_wo_dither_alpha'].A1[0])*100.0)+"% at "+str(min_ratio['alpha']))
 on_subplot()
-pylab.ylabel('ratio')
+pylab.ylabel('ratio_w_wo_dither_alpha')
 
 pylab.subplot(3,1,2)
-pylab.plot(d["alpha"],d["ratio_dither"],label="ratio_dither")
+pylab.plot(d["alpha"],d["ratio_dither_w_alpha"],label="ratio_dither_w_alpha")
 on_subplot()
 pylab.ylabel('ratio')
 

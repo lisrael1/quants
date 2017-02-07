@@ -12,14 +12,14 @@ def parse_sim_results(sim_results):
 		x_plot='x_quantizer_number_of_quants'
 		y_sort="normalized_mse"
 		y_plot=y_sort
-  		y_plot="x_quantizer_modulo_edge_to_edge"#to see the modulo size
+##  		y_plot="x_quantizer_modulo_edge_to_edge"#to see the modulo size
 	if 0:#spliting by x_quantizer_number_of_quants
 		plot_threads="x_quantizer_number_of_quants"
 		x_plot='x_quantizer_modulo_edge_to_edge'
 		y_sort="normalized_mse"
 		y_plot=y_sort#doesnt matter because we dont have duplications at x
 
-##	sim_results_table=pd.DataFrame([i.dict() for i in sim_results])
+
 	sim_results_table=sim_results.sort(columns=[x_plot,y_sort]).reset_index().drop('index',1)#sorting from A to Z
 	print "data ready,",sim_results_table.index.size,"lines"
 ##	return sim_results_table#temp debug
@@ -34,7 +34,8 @@ def parse_sim_results(sim_results):
 		thread_in_sim_results_table=thread_in_sim_results_table.drop_duplicates(subset=x_plot,take_last=False)#take the first one, lowest mse
 		plot(thread_in_sim_results_table[x_plot],thread_in_sim_results_table[y_plot],label=i)
 		if len(thread_options)==1:
-			text(15,0.,thread_in_sim_results_table[[x_plot,y_plot]].values)
+			print thread_in_sim_results_table[y_plot].tolist()
+			text(mean(thread_in_sim_results_table[x_plot]),min(thread_in_sim_results_table[y_plot]),thread_in_sim_results_table[[x_plot,y_plot]].values)
 ##		print thread_in_sim_results_table[[x_plot,y_plot]]
 		if 0:#for ploting the plot threads in different plots
 			xlabel(x_plot)
@@ -59,7 +60,7 @@ def parse_sim_results(sim_results):
 	return sim_results_table
 
 #parse sim results:
-sim_results=pd.read_csv(argv[1])
+sim_results=pd.read_csv("temp/sim_results_4e6_w_alpha.csv")
 sim_results_table=parse_sim_results(sim_results)
 print "simulation time: ",time() - start_time,"sec"
 

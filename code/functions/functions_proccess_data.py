@@ -103,7 +103,8 @@ class sim_2_inputs():
 		self.error_from_big_errors=m([i for i in self.error.A1 if i>2*self.x_quantizer.bin_size])
 		self.number_of_big_errors=self.error_from_big_errors.A1.size
 		self.mse_from_big_errors=sum(self.error_from_big_errors.A1.T*self.error_from_big_errors.A1)/self.number_of_samples#self.error_from_big_errors.A1.size
-		self.normalized_mse=self.mse*self.x_var
+		self.conditional_var=float(self.cov[0,0])+float(self.cov[1,1])-float(2*self.cov[0,1])
+		self.normalized_mse=self.mse/self.conditional_var
 		#what should impact on the mse is the number of inputs, samples modulo size and independed_var but not on the single data variance
 		self.snr=self.x_var/(self.normalized_mse)
 		self.capacity=log2(self.snr+1)
@@ -133,7 +134,11 @@ class sim_2_inputs():
 		#TODO modulo and quantizer also on y, but not the same modulo and quantizer of x
 		#aqctually we pick here x-y but it should be multiply in A
 		self.x_y_delta=mod_op(self.x_after_quantizer-self.y_after_quantizer,self.x_mod)
-		self.recovered_x=self.x_y_delta+self.y_after_quantizer
+		self.recovered_x_before_alpha=self.x_y_delta+self.y_after_quantizer
+		self.x_samples_var=var(self.original_x)
+		self.recovered_x_before_alpha_var=var(self.recovered_x_before_alpha)
+		self.alpha=self.x_samples_var/self.recovered_x_before_alpha_var
+		self.recovered_x=self.recovered_x_before_alpha*self.alpha
 		self.finish_calculations()
 
 #a function for running parallel:

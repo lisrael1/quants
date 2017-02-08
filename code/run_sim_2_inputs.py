@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #run like this:
-#./run_sim_2_inputs.py try
+#./run_sim_2_inputs.py -h
 execfile("functions/functions.py")
 
 #next TODO:
@@ -17,7 +17,21 @@ zf create folding
 za toggle folding state
 
 """
-sim_name=argv[1]+"_"+argv[2]
+parser = OptionParser()
+parser.add_option("-n","--sim_name", dest="sim_name_string", type="str", help="sim name at the output files")
+parser.add_option("-s","--samples_per_sim", dest="samples_per_sim", type="float", help="samples per sim. 4e1 is fast, 4e6 is good, 4e7 is too much")
+parser.add_option("-p","--run_only_this_itteration", dest="sim_itteration", type="int", default=-1,help="you can ignore this and it will run all cases, or you can put here number of itteration so the sim will only run this itteration")
+parser.add_option("-f","--output_folder", dest="output_folder", type="str", default="",help="creating new folder in temp for saving all results")
+(option,args)=parser.parse_args()
+
+output_folder="temp/"+option.output_folder+"/"
+if not path.exists(output_folder):
+	print "folder "+output_folder+" doesnt exist, exit"
+	exit()
+sim_name=option.sim_name_string+"_"+str(option.samples_per_sim)
+output_resutls_file=output_folder+'sim_results_'+sim_name+'.csv'
+output_log_file=output_folder+'sim_log_'+sim_name+'.log'
+
 best_bin_sizes_at_1_var={1: 0, 2: 0.0616666, 3: 1.64, 4: 1.342, 5: 1.186666, 6: 1.0021428571428579, 7: 0.91375, 8: 0.838888, 9: 0.7565, 10: 0.660454, 11: 0.6333333, 12: 0.57346153846153891, 13: 0.535, 14: 0.5106666, 15: 0.4821875, 16: 0.4529411764705884, 17: 0.434166666, 18: 0.415263157894, 19: 0.38925, 20: 0.36142857142857165, 21: 0.368181818181, 22: 0.34456521739130475, 23: 0.32666666, 24: 0.3184, 25: 0.30692307692307708, 26: 0.28555555555, 27: 0.28392857142857153, 28: 0.27741379310344838, 29: 0.265833333, 30: 0.25983870967741973, 31: 0.245625, 32: 0.2360606060606063, 33: 0.23573529411764715, 34: 0.21785714285714297, 35: 0.22208333333333341, 36: 0.21310810810810832, 37: 0.21381578947368451, 38: 0.20243589743589752, 39: 0.188}
 
 max_x_bin_number=20
@@ -30,7 +44,7 @@ number_of_samples=1#put here 1 and look at all_data.csv to see the flow on singl
 number_of_samples=4e6#slow, only for server
 number_of_samples=4e1#fast estimation
 number_of_samples=2.8e7#supper slow, always failing to me on memory size, even with 3 cpus...
-number_of_samples=float(argv[2])
+number_of_samples=option.samples_per_sim#float(argv[2])
 
 modulo_jumps_resolution=0.05
 #modulo_jumps_resolution=0.5#for fast estimation
@@ -42,7 +56,7 @@ cov=mat([[10,9.5],
 
 #preparing the data - try to fix this to search for the best one:
 def prepare_sim_args():
-    print "simulation time start creating quantizers: ",time() - start_time,"sec"
+    sim_log_print("simulation time start creating quantizers")
     def x_args():
         if 0:#take known best quantizer instead of looking for them
         	qx=[simple_quantizer(number_of_quants=i,bin_size=cov[0,0]*best_bin_sizes_at_1_var[i]) for i in range(min_x_bin_number,max_x_bin_number)]
@@ -54,7 +68,7 @@ def prepare_sim_args():
 
     def y_args():
     	#now lets pick y quantizer:
-    	if 0:
+    	if 1:
     		qy=[simple_quantizer(number_of_quants=2000,bin_size=i) for i in [0.5,1,1.5,2,2.5,3,4,5]]
     	else:#perfect Y
     		qy=[simple_quantizer(number_of_quants=200000,bin_size=1)]
@@ -67,7 +81,7 @@ def prepare_sim_args():
 		y_quantizer=j,
 		dither_on=0
 		) for i in x_args() for j in y_args()]
-    print "simulation time2: ",time() - start_time,"sec"
+    sim_log_print("simulation time finish generation sim args")
     return sim_args
 
 def run_sim(sim_args):
@@ -76,8 +90,12 @@ def run_sim(sim_args):
     return sim_results
 
 #run sim
-sim_results=run_sim(prepare_sim_args())
-sim_results.to_csv('temp/sim_results_'+sim_name+'.csv')
-print "simulation time: ",time() - start_time,"sec"
+if option.sim_itteration==-1:
+	sim_results=run_sim(prepare_sim_args())
+else:
+	sim_args=[prepare_sim_args()[option.sim_itteration]]
+	sim_results=run_sim(sim_args)
+	output_resutls_file=output_resutls_file+str(option.sim_itteration)
 
-
+sim_results.to_csv(output_resutls_file,mode='a')
+sim_log_print("simulation end time")

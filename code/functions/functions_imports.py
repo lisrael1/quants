@@ -1,7 +1,9 @@
 from time import time
 from datetime import datetime
+from os import makedirs,path
 start_time = time()
 from sys import platform,getsizeof,argv
+from  optparse import OptionParser
 if "win" in platform:
    dlmtr="\\"
    img_type=".png"
@@ -24,4 +26,4 @@ set_printoptions(precision=6, threshold=None, edgeitems=None, linewidth=100, sup
 import warnings
 warnings.filterwarnings("ignore")
 
-print "simulation time done importing libraries: ",time() - start_time,"sec"
+#print "simulation time done importing libraries: ",time() - start_time,"sec"

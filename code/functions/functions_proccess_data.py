@@ -12,24 +12,15 @@ not change values between -1.5 and 1.5, but 1.6 will become -1.4
 def mod_op(num,modulo_size):
 	return m((m(num)+modulo_size/2.0)%(modulo_size)-modulo_size/2.0)
 
-"""
-each row is at specific time, each column is an input
-at independed_var=0 you will get normal dist around 0 with var of depended_var, at all inputs
-"""
-def generate_data(independed_var,depended_var,number_of_inputs,samples):
-	if not "win" in platform:#at windows we dont run parallel and we dont have /dev/urandom
-	     rand_int = unpack('I', open("/dev/urandom","rb").read(4))[0]
-	     random.seed(rand_int)
-	if (number_of_inputs<1 or type(number_of_inputs)!=int):
-		print "number_of_inputs has to be positive integer"
-		exit()
-	if (number_of_inputs==1):
-		return m(random.normal(0,independed_var,samples)).T
-	#first input will be the normal dist by independed_var and the others will be the normal around it by var:
-	#(random.normal gets mu and sigma, not the var...
-	data=m([hstack([i,random.normal(i,sqrt(depended_var),number_of_inputs-1)]) for i in random.normal(0,sqrt(independed_var),samples)])
-	return data
-
+def sim_log_print(msg):
+	msg=str(datetime.now())+" "+str(time() - start_time)+" "+msg
+	if 0:
+		print msg
+	else:
+		f=open(output_log_file,"a")
+		f.write(msg+"\n")
+		f.close()
+	
 def add_dither(data,dither_size):
 	rows,columns=data.shape
 	if dither_size:
@@ -67,32 +58,29 @@ class sim_2_inputs():
 		if (self.dither_on):
 			self.dither_size=self.x_quantizer.bin_size
 	def sim_log(self,msg):
-		log=str(self.sim_id).zfill(5)+" "+str(datetime.now())+" "+str(msg)
-		if 0:
-			print log
-		else:
-			f=open("temp/sim_proccess_log_"+sim_name+"_.log","a")
-			f.write(log+"\n")
-			f.close()
-	def __del__(self):
-	   self.sim_log("deleting simulation")
+		log=str(self.sim_id).zfill(8)+" "+str(msg)
+		sim_log_print(log)
+	#def __del__(self):
+	#   self.sim_log("deleting simulation")
 	def __iter__(self):#just for dict function
 		return self.__dict__.iteritems()
 	def dict(self):
             def test(v):
                 "to clean some big datas"
-                if type(v)== matrix:
-                    return v.A1.size<10
+                if type(v)==matrix:
+                    return v.A1.size<5
+                if type(v)==ndarray:
+                    return len(v)<5
                 if "simple_quantizer instance" in str(v):#it's also taking the main function of the classes so removing those values
                     return False
                 return True
             x_quant={"x_quantizer_"+k:v for k,v in OrderedDict(self.x_quantizer).iteritems() if test(v)}
             y_quant={"y_quantizer_"+k:v for k,v in OrderedDict(self.y_quantizer).iteritems() if test(v)}
             all_variables={k:v for k,v in OrderedDict(self).iteritems() if test(v)}
-            return  OrderedDict(x_quant.items()+y_quant.items()+all_variables.items())
+            return OrderedDict(x_quant.items()+y_quant.items()+all_variables.items())
 	def table(self):
             data=self.dict()
-            df= pd.DataFrame([data])
+            df=pd.DataFrame([data])
             return df
 	def finish_calculations(self):
 		#we calcualte the error only on x, not on y...

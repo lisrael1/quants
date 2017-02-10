@@ -12,12 +12,20 @@ def parse_sim_results(sim_results):
 		x_plot='x_quantizer_number_of_quants'
 		y_sort="normalized_mse"
 		y_plot=y_sort
-##  		y_plot="x_quantizer_modulo_edge_to_edge"#to see the modulo size
-	if 0:#spliting by x_quantizer_number_of_quants
+        if 0:#1 for plotting the modulo size and o for plotting the mse
+  		    y_plot="x_quantizer_modulo_edge_to_edge"#to see the modulo size
+	if 0:#multi plots by x_quantizer_number_of_quants
 		plot_threads="x_quantizer_number_of_quants"
 		x_plot='x_quantizer_modulo_edge_to_edge'
 		y_sort="normalized_mse"
 		y_plot=y_sort#doesnt matter because we dont have duplications at x
+	if 0:#plot the mse for each modulo size (to see how accurate the sim choose the modulo size) you better run the sim for this with modulo size from 0 to 16 with jumps of 0.05
+            plot_threads="x_quantizer_number_of_quants"
+            if 1:
+                sim_results=sim_results.loc[sim_results.x_quantizer_number_of_quants==7]#viewing only x number of quants
+            x_plot='x_quantizer_modulo_edge_to_edge'
+            y_sort="normalized_mse"
+            y_plot=y_sort
 
 
 	sim_results_table=sim_results.sort(columns=[x_plot,y_sort]).reset_index().drop('index',1)#sorting from A to Z
@@ -27,7 +35,7 @@ def parse_sim_results(sim_results):
 		sim_results_table.transpose().to_csv("temp/all_data.csv")#we will see each sample at different column
 	else:
 		sim_results_table.to_csv("temp/all_data.csv")
-	thread_options=set(sim_results_table[plot_threads].tolist())
+	thread_options=sorted((set(sim_results_table[plot_threads].tolist())))
 	for i in thread_options:
 		thread_in_sim_results_table=sim_results_table.loc[sim_results_table[plot_threads]==i]
 		thread_in_sim_results_table=thread_in_sim_results_table.sort(columns=[x_plot,y_sort])#sorting from A to Z
@@ -60,7 +68,7 @@ def parse_sim_results(sim_results):
 	return sim_results_table
 
 #parse sim results:
-sim_results=pd.read_csv("temp/sim_results_4e6_w_alpha.csv")
+sim_results=pd.read_csv("aa.csv")
 sim_results_table=parse_sim_results(sim_results)
 print "simulation time: ",time() - start_time,"sec"
 

@@ -70,6 +70,7 @@ class sim_2_inputs():
                 if type(v)==matrix:
                     return v.A1.size<5
                 if type(v)==ndarray:
+		    return False
                     return len(v)<5
                 if "simple_quantizer instance" in str(v):#it's also taking the main function of the classes so removing those values
                     return False

@@ -1,6 +1,6 @@
 from time import time
 from datetime import datetime
-from os import makedirs,path
+from os import makedirs,path,getpid
 start_time = time()
 from sys import platform,getsizeof,argv
 from  optparse import OptionParser
@@ -23,7 +23,7 @@ from multiprocessing import Pool
 from operator import methodcaller
 from struct import unpack
 set_printoptions(precision=6, threshold=None, edgeitems=None, linewidth=100, suppress=1, nanstr=None, infstr=None, formatter=None)
-import warnings
+import warnings,psutil
 warnings.filterwarnings("ignore")
 
 #print "simulation time done importing libraries: ",time() - start_time,"sec"

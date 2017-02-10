@@ -68,7 +68,7 @@ class sim_2_inputs():
             def test(v):
                 "to clean some big datas"
                 if type(v)==matrix:
-                    return v.A1.size<5
+                    return v.shape==(2,2)#we dont want the matrices, just the covariance matrix
                 if type(v)==ndarray:
 		    return False
                     return len(v)<5
@@ -133,6 +133,7 @@ class sim_2_inputs():
 #a function for running parallel:
 def run_single_sim(a):
     a.run_sim()
+    sim_log_print("memory after sim before export to table: "+str(psutil.Process(getpid()).memory_info().rss))
     #note that here we loose the functions of all classes and we just have data!
     table=a.table()
     del a

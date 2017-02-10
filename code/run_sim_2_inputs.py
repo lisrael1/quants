@@ -25,21 +25,26 @@ help_text='''
 	run like this:
 
 	seq 0 10   |awk '{system ("sbatch  --mem=10000m -c1 --time=0:10:0 --wrap \\"run_sim_2_inputs.py -f name_del -n sim_10k -s 5e1 -p "$1"\\"")}'
-	seq 0 1259|awk '{system ("sbatch --mem=100000m -c1 --time=0:10:0 --wrap \"run_sim_2_inputs.py -f 5e6 -s 5e6 -p "$1"\"")}'
+	seq 0 1259|awk '{system ("sbatch --mem=100000m -c1 --time=0:10:0 --wrap \\"run_sim_2_inputs.py -f 5e6 -s 5e6 -p "$1"\\"")}'
 	seq 0 10027|awk '{system ("sbatch --mem=100000m -c1 --time=0:10:0 --wrap \\"run_sim_2_inputs.py -f y_quant_10k -s 5e7 -p "$1"\\"")}'
 
+	run_sim_2_inputs.py -f del -s 5e1 -p 4
 	run_sim_2_inputs.py -f try_name_del2 -n 10k -s 5e1 -p 4
 	run_sim_2_inputs.py -f try_name_del2 -n 5e1 -s 5e1 
 
 	sbatch --mem=10000m -c1 --time=0:10:0 --wrap "run_sim_2_inputs.py -f try_name_del2 -n 50 -s 5e1 -p 11"
 	sbatch --mem=10000m -c1 --time=0:10:0 --wrap "run_sim_2_inputs.py -f try_name_del2 -n 1k -s 5e1"
 
-	put at least --mem=1000m. at 100m it will fail on memory
+	put at least --mem=1100m. at 100m it will fail on memory
+		up to 5e5 use 1100
+		for 5e6 use 10G
+		for 5e7 use 100G, try also 20G
+
 
 	after running:
 		 cat *csv[0-9]* |head -1 >all.csv 
 		 cat *csv[0-9]* |grep -v alpha >>all.csv
-		 echo ""|mutt israelilior@gmail.com -a all.csv
+		 echo ""|mutt israelilior@gmail.com -s 5e6 -a all.csv
 '''
 parser = OptionParser(usage=help_text)
 parser.add_option("-n","--sim_name", dest="sim_name_string", type="str", default="", help="optional. sim name at the output files")
@@ -67,7 +72,7 @@ sim_name=option.sim_name_string+"_"+str(option.samples_per_sim)
 output_resutls_file=output_folder+'sim_results_'+sim_name+'.csv'
 output_log_file=output_folder+'sim_log_'+sim_name+'.log'
 
-sim_log_print("momory after imports all: "+str(psutil.Process(getpid()).memory_info().rss))
+sim_log_print("memory after imports all: "+str(psutil.Process(getpid()).memory_info().rss))
 
 
 
@@ -139,7 +144,7 @@ else:
 	sim_results=run_sim(sim_args)
 	output_resutls_file=output_resutls_file+str(option.sim_itteration)
 
-sim_log_print("momory before writing results to csv: "+str(psutil.Process(getpid()).memory_info().rss))
+sim_log_print("memory before writing results to csv: "+str(psutil.Process(getpid()).memory_info().rss))
 
 sim_results.to_csv(output_resutls_file,mode='a')
 sim_log_print("simulation end time")

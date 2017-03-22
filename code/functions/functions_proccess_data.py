@@ -78,7 +78,7 @@ class sim_2_inputs():
                 return True
 	    def rotate_matrix(v):
 	    	if type(v)==matrix:
-			return v.T.tolist()
+			return m([float("%.4e"%i) for i in v.A1]).reshape(v.shape).T.tolist()
 		else:
 			return v
             x_quant={"x_quantizer_"+k:rotate_matrix(v) for k,v in OrderedDict(self.x_quantizer).iteritems() if test(v)}

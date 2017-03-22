@@ -45,9 +45,10 @@ help_text='''
 
 
 	after running the cluser:
-		 cat *csv[0-9]* |head -1 >all.csv 
-		 cat *csv[0-9]* |grep -v alpha >>all.csv
-		 echo ""|mutt israelilior@gmail.com -s 5e6 -a all.csv
+		cd ./temp/<your output folder>
+		cat *csv[0-9]* |head -1 >all.csv 
+		cat *csv[0-9]* |grep -v alpha >>all.csv
+		echo ""|mutt israelilior@gmail.com -s 5e6 -a all.csv
 '''
 parser = OptionParser(usage=help_text)
 parser.add_option("-n","--sim_name", dest="sim_name_string", type="str", default="", help="optional. sim name at the output files")

@@ -22,7 +22,7 @@ from time import sleep
 from multiprocessing import Pool
 from operator import methodcaller
 from struct import unpack
-set_printoptions(precision=6, threshold=None, edgeitems=None, linewidth=100, suppress=1, nanstr=None, infstr=None, formatter=None)
+set_printoptions(precision=6, threshold=None, edgeitems=None, linewidth=10000, suppress=1, nanstr=None, infstr=None, formatter=None)
 import warnings,psutil
 warnings.filterwarnings("ignore")
 

@@ -26,7 +26,7 @@ def add_dither(data,dither_size):
 	if dither_size:
 		dither=m(random.uniform(0,dither_size,rows*columns).reshape((rows,columns)))
 	else:
-		dither=zeros(rows*columns).reshape((rows,columns))
+		dither=m(zeros(rows*columns).reshape((rows,columns)))
 	return data+dither,dither
 
 
@@ -67,17 +67,23 @@ class sim_2_inputs():
 	def dict(self):
             def test(v):
                 "to clean some big datas"
+		max_num_per_cell=20#we dont want arrays for input numbers and all the flow unless we have a few
                 if type(v)==matrix:
-                    return v.shape==(2,2)#we dont want the matrices, just the covariance matrix
+                    return v.size<max_num_per_cell#v.shape==(2,2)#we dont want the matrices, just the covariance matrix
                 if type(v)==ndarray:
-		    return False
-                    return len(v)<5
+		    #return False
+                    return len(v)<max_num_per_cell
                 if "simple_quantizer instance" in str(v):#it's also taking the main function of the classes so removing those values
                     return False
                 return True
-            x_quant={"x_quantizer_"+k:v for k,v in OrderedDict(self.x_quantizer).iteritems() if test(v)}
-            y_quant={"y_quantizer_"+k:v for k,v in OrderedDict(self.y_quantizer).iteritems() if test(v)}
-            all_variables={k:v for k,v in OrderedDict(self).iteritems() if test(v)}
+	    def rotate_matrix(v):
+	    	if type(v)==matrix:
+			return v.T.tolist()
+		else:
+			return v
+            x_quant={"x_quantizer_"+k:rotate_matrix(v) for k,v in OrderedDict(self.x_quantizer).iteritems() if test(v)}
+            y_quant={"y_quantizer_"+k:rotate_matrix(v) for k,v in OrderedDict(self.y_quantizer).iteritems() if test(v)}
+            all_variables={k:rotate_matrix(v) for k,v in OrderedDict(self).iteritems() if test(v)}
             return OrderedDict(x_quant.items()+y_quant.items()+all_variables.items())
 	def table(self):
             data=self.dict()
@@ -92,6 +98,7 @@ class sim_2_inputs():
 		self.error_from_big_errors=m([i for i in self.error.A1 if i>2*self.x_quantizer.bin_size])
 		self.number_of_big_errors=self.error_from_big_errors.A1.size
 		self.mse_from_big_errors=sum(self.error_from_big_errors.A1.T*self.error_from_big_errors.A1)/self.number_of_samples#self.error_from_big_errors.A1.size
+		self.error_from_big_errors=hstack((self.error_from_big_errors,m(full(self.number_of_samples-self.error_from_big_errors.A1.size,(nan))))).T#just that we will not get some outputs with 3 big errors and some with 100 and then we will have different number of columns TODO check if this not roinds the csv!
 		self.conditional_var=float(self.cov[0,0])+float(self.cov[1,1])-float(2*self.cov[0,1])
 		self.normalized_mse=self.mse/self.conditional_var
 		#what should impact on the mse is the number of inputs, samples modulo size and independed_var but not on the single data variance
@@ -119,8 +126,6 @@ class sim_2_inputs():
 		self.y_after_dither=self.original_y+self.dither
 		self.y_after_modulo=mod_op(self.y_after_dither,self.y_mod)
 		self.y_after_quantizer=self.y_quantizer.quantizise(self.y_after_modulo)-self.dither
-		#TODO alpha
-		#TODO modulo and quantizer also on y, but not the same modulo and quantizer of x
 		#aqctually we pick here x-y but it should be multiply in A
 		self.x_y_delta=mod_op(self.x_after_quantizer-self.y_after_quantizer,self.x_mod)
 		self.recovered_x_before_alpha=self.x_y_delta+self.y_after_quantizer

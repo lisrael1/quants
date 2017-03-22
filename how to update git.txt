@@ -9,3 +9,8 @@ git push
 #see repository commits:
 git fetch 
 git log origin/master --oneline
+
+#see your status compared to repository:
+git fetch 
+git status
+git pull

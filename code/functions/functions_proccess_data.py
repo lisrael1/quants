@@ -10,6 +10,8 @@ if the modulo_size here for example is 3, we will
 not change values between -1.5 and 1.5, but 1.6 will become -1.4
 """
 def mod_op(num,modulo_size):
+	if modulo_size=="disable":
+		return m(num)
 	return m((m(num)+modulo_size/2.0)%(modulo_size)-modulo_size/2.0)
 
 def sim_log_print(msg):
@@ -67,7 +69,7 @@ class sim_2_inputs():
 	def dict(self):
             def test(v):
                 "to clean some big datas"
-		max_num_per_cell=20#we dont want arrays for input numbers and all the flow unless we have a few
+		max_num_per_cell=1e20#TODO change this to 20. we dont want arrays for input numbers and all the flow unless we have a few
                 if type(v)==matrix:
                     return v.size<max_num_per_cell#v.shape==(2,2)#we dont want the matrices, just the covariance matrix
                 if type(v)==ndarray:

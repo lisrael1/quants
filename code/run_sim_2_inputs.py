@@ -30,9 +30,12 @@ help_text='''
 		run_sim_2_inputs.py -f my_output_folder -s 5e4 -c [[10.1,9.5],[9.5,10.2]] -x [5000,0.01] -y [10000,0.01]
 
 	for using cluster:
-		seq 0 10   |awk '{system ("sbatch  --mem=10000m -c1 --time=0:10:0 --wrap \\"run_sim_2_inputs.py -f name_del -n sim_10k -s 5e1 -p "$1"\\"")}'
+		entering cluster:
+			ssh -XC sed-gw -> then enter your linux password
+			hostname to see that you're in...
+		seq 0 10  |awk '{system ("sbatch  --mem=10000m -c1 --time=0:10:0 --wrap \\"run_sim_2_inputs.py -f name_del -n sim_10k -s 5e1 -p "$1"\\"")}'
 		seq 0 1259|awk '{system ("sbatch --mem=100000m -c1 --time=0:10:0 --wrap \\"run_sim_2_inputs.py -f 5e6 -s 5e6 -p "$1"\\"")}'
-		seq 0 10027|awk '{system ("sbatch --mem=100000m -c1 --time=0:10:0 --wrap \\"run_sim_2_inputs.py -f y_quant_10k -s 5e7 -p "$1"\\"")}'
+		seq 0 1259|awk '{system ("sbatch --mem=100000m -c1 --time=0:10:0 --wrap \\"run_sim_2_inputs.py -f y_quant_10k -s 5e7 -p "$1"\\"")}'
 	
 	
 	sbatch --mem=10000m -c1 --time=0:10:0 --wrap "run_sim_2_inputs.py -f try_name_del2 -n 50 -s 5e1 -p 11"
@@ -46,9 +49,13 @@ help_text='''
 
 	after running the cluser:
 		cd ./temp/<your output folder>
-		cat *csv[0-9]* |head -1 >all.csv 
+		cat *csv[0-9]* |head -1 >all.csv
 		cat *csv[0-9]* |grep -v alpha >>all.csv
+		mkdir del
+		mv *csv[0-9]* del
+		(or in 1 line:) cat *csv[0-9]* |head -1 >all.csv;cat *csv[0-9]* |grep -v alpha >>all.csv;mkdir del;mv *csv[0-9]* del
 		echo ""|mutt israelilior@gmail.com -s 5e6 -a all.csv
+		then run parse_sim_2_inputs.py manually 
 '''
 parser = OptionParser(usage=help_text)
 parser.add_option("-n","--sim_name", dest="sim_name_string", type="str", default="", help="optional. sim name at the output files")
@@ -125,7 +132,7 @@ def prepare_sim_args():
 		if 0:
 			qy=[simple_quantizer(number_of_quants=2000,bin_size=i) for i in [0.5,1,1.5,2,2.5,3,4,5]]
 		else:#perfect Y
-			qy=[simple_quantizer(number_of_quants=200000,bin_size=1)]
+			qy=[simple_quantizer(number_of_quants=200000,bin_size=0)]
 		return qy
 	    qx=x_args()
 	    qy=y_args()
@@ -178,7 +185,8 @@ else:
 	output_resutls_file=output_resutls_file+str(option.sim_itteration)
 
 sim_log_print("memory before writing results to csv: "+str(psutil.Process(getpid()).memory_info().rss))
-if sim_results.index.size<5:
-		sim_results=sim_results.transpose()
+#we cannot transpose because some simulations are running splitted 
+#if sim_results.index.size<5:
+#		sim_results=sim_results.transpose()
 sim_results.to_csv(output_resutls_file,mode='a')
 sim_log_print("simulation end time")

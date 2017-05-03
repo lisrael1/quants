@@ -12,10 +12,13 @@ class simple_quantizer():
 	  def __init__(self, bin_size, number_of_quants):
 		  self.bin_size=bin_size
 		  self.number_of_quants=number_of_quants
-		  self.modulo_edge_to_edge=self.bin_size*self.number_of_quants#you have half bin at the left side and half at the right
+		  if self.bin_size==0:			  
+			self.modulo_edge_to_edge="disable"
+		  else:
+		  	self.modulo_edge_to_edge=self.bin_size*self.number_of_quants#you have half bin at the left side and half at the right
 	  def quantizise(self,numbers):
 		if (self.bin_size==0):
-			return numbers
+			return mat(numbers)
 		#rounding to the quantizer (rint is rounding to the closes integer):
 		numbers=mat(numbers)
 		if self.number_of_quants%2:
@@ -64,8 +67,8 @@ class quantizer():
 	this function quantize a number by a given quantizer with bins
 	"""
 	def quantizise(self,numbers):
-		if (self.number_of_quants>1e4):
-			return numbers
+		if (self.bin_size==0):
+			return mat(numbers)
 		#rounding to the quantizer (rint is rounding to the closes integer):
 		numbers=mat(numbers)
 		q=rint((numbers+self.max_val)/(1.0*self.bin_size))*self.bin_size-self.max_val

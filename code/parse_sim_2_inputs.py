@@ -1,6 +1,18 @@
 #!/usr/bin/python
 #run like this:
 #./parse_sim_2_inputs.py temp/sim_results_try.csv
+
+#hist on each cell:
+#pd.DataFrame(sim_results.error.iloc[0][0]).hist(bins=10)
+
+#create new data frame with all errors at title on module size. taking only 15 quants
+#df=pd.DataFrame()
+#for i in range(0,70):
+#	df[sim_results.loc[(sim_results.x_quantizer_number_of_quants==15)].iloc[i].x_mod]=sim_results.loc[(sim_results.x_quantizer_number_of_quants==15)].iloc[i].error[0]
+#or	df[sim_results.loc[(sim_results.x_quantizer_number_of_quants==15)].iloc[i].x_mod]=m(m(eval(sim_results.loc[(sim_results.x_quantizer_number_of_quants==15)].iloc[i].recovered_x)[0])-m(eval(sim_results.loc[(sim_results.x_quantizer_number_of_quants==15)].iloc[i].original_y)[0])).tolist()[0]
+#df.hist(bins=100)
+#show()
+
 execfile("functions/functions.py")
 
 #running on best mse for each number of quants:
@@ -32,9 +44,9 @@ def parse_sim_results(sim_results):
 	print "data ready,",sim_results_table.index.size,"lines"
 ##	return sim_results_table#temp debug
 	if sim_results_table.index.size<100:
-		sim_results_table.transpose().to_csv("temp/all_data.csv")#we will see each sample at different column
+		sim_results_table.transpose().to_csv("temp/temp_all_data.csv")#we will see each sample at different column
 	else:
-		sim_results_table.to_csv("temp/all_data.csv")
+		sim_results_table.to_csv("temp/temp_all_data.csv")
 	thread_options=sorted((set(sim_results_table[plot_threads].tolist())))
 	for i in thread_options:
 		thread_in_sim_results_table=sim_results_table.loc[sim_results_table[plot_threads]==i]
@@ -68,7 +80,7 @@ def parse_sim_results(sim_results):
 	return sim_results_table
 
 #parse sim results:
-sim_results=pd.read_csv("aa.csv")
+sim_results=pd.read_csv(argv[1]).applymap(lambda x: eval("\""+x+"\"") if type(x)==str else x)
 sim_results_table=parse_sim_results(sim_results)
 print "simulation time: ",time() - start_time,"sec"
 

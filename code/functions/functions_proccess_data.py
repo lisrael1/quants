@@ -41,7 +41,7 @@ def lowest_y_per_x(data_matrix,x_column,y_column):
 
 class sim_2_inputs():
 	#when you create data, it will run it and calculate the dither, the data after modulo and after all decoders..
-	def __init__(self,number_of_samples,cov,x_quantizer,y_quantizer=None,dither_on=0):
+	def __init__(self,number_of_samples,cov,x_quantizer,y_quantizer=None,dither_on=0,vectors_max_length_to_save=20):
 		global sim_number_id
 		self.sim_id=sim_number_id
 		sim_number_id+=1
@@ -54,6 +54,7 @@ class sim_2_inputs():
 		self.x_mod=self.x_quantizer.modulo_edge_to_edge
 		self.y_mod=self.y_quantizer.modulo_edge_to_edge
 		self.dither_on=dither_on
+		self.vectors_max_length_to_save=vectors_max_length_to_save
 		self.init_calculations()
 	def init_calculations(self):
 		self.dither_size=0
@@ -69,12 +70,11 @@ class sim_2_inputs():
 	def dict(self):
             def test(v):
                 "to clean some big datas"
-		max_num_per_cell=1e20#TODO change this to 20. we dont want arrays for input numbers and all the flow unless we have a few
+		#we dont want arrays for input numbers and all the flow unless we have a few, so we use here self.vectors_max_length_to_save
                 if type(v)==matrix:
-                    return v.size<max_num_per_cell#v.shape==(2,2)#we dont want the matrices, just the covariance matrix
+                    return v.size<self.vectors_max_length_to_save
                 if type(v)==ndarray:
-		    #return False
-                    return len(v)<max_num_per_cell
+                    return len(v)<self.vectors_max_length_to_save
                 if "simple_quantizer instance" in str(v):#it's also taking the main function of the classes so removing those values
                     return False
                 return True

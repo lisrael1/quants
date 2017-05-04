@@ -2,16 +2,24 @@
 #run like this:
 #./parse_sim_2_inputs.py temp/sim_results_try.csv
 
-#hist on each cell:
-#pd.DataFrame(sim_results.error.iloc[0][0]).hist(bins=10)
+'''
+hist on each cell:
+pd.DataFrame(sim_results.error.iloc[0][0]).hist(bins=10)
 
-#create new data frame with all errors at title on module size. taking only 15 quants
-#df=pd.DataFrame()
-#for i in range(0,70):
-#	df[sim_results.loc[(sim_results.x_quantizer_number_of_quants==15)].iloc[i].x_mod]=sim_results.loc[(sim_results.x_quantizer_number_of_quants==15)].iloc[i].error[0]
-#or	df[sim_results.loc[(sim_results.x_quantizer_number_of_quants==15)].iloc[i].x_mod]=m(m(eval(sim_results.loc[(sim_results.x_quantizer_number_of_quants==15)].iloc[i].recovered_x)[0])-m(eval(sim_results.loc[(sim_results.x_quantizer_number_of_quants==15)].iloc[i].original_y)[0])).tolist()[0]
-#df.hist(bins=100)
-#show()
+create new data frame with all errors at title on module size. taking only 15 quants:
+
+execfile("functions/functions.py")
+sim_results=pd.read_csv("/tmp/all.csv").applymap(lambda x: m(x) if type(x)==str and "[" in x and "nan" not in x else x)
+df=pd.DataFrame()
+sub=sim_results.loc[(sim_results.x_quantizer_number_of_quants==3)]
+for i in range(0,sub.shape[0]): df[sub.iloc[i].x_mod]=(sub.iloc[i].recovered_x_before_alpha-sub.iloc[i].original_y).A1
+
+df.hist(bins=100)
+show()
+
+or	
+for i in range(0,sub.shape[0]): df[sub.iloc[i].x_mod]=sub.iloc[i].error.A1
+'''
 
 execfile("functions/functions.py")
 
@@ -80,7 +88,7 @@ def parse_sim_results(sim_results):
 	return sim_results_table
 
 #parse sim results:
-sim_results=pd.read_csv(argv[1]).applymap(lambda x: eval("\""+x+"\"") if type(x)==str else x)
+sim_results=pd.read_csv(argv[1]).applymap(lambda x: m(x) if type(x)==str and "[" in x and "nan" not in x else x)
 sim_results_table=parse_sim_results(sim_results)
 print "simulation time: ",time() - start_time,"sec"
 

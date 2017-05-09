@@ -23,7 +23,7 @@ from multiprocessing import Pool
 from operator import methodcaller
 from struct import unpack
 set_printoptions(precision=6, threshold=None, edgeitems=None, linewidth=10000, suppress=1, nanstr=None, infstr=None, formatter=None)
-import warnings,psutil
+import warnings,psutil,configparser
 warnings.filterwarnings("ignore")
 
 #print "simulation time done importing libraries: ",time() - start_time,"sec"

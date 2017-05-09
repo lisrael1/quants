@@ -62,11 +62,11 @@ parser = OptionParser(usage=help_text)
 parser.add_option("-n","--sim_name", dest="sim_name_string", type="str", default="", help="optional. sim name at the output files")
 parser.add_option("-s","--samples_per_sim", dest="samples_per_sim", type="float", help="samples per sim. 4e1 is fast, 4e6 is good, 4e7 is too much. if you put less than 20 you will see the randomed numbers and all the flow at the csv")
 '''when running on local pc:
-	number_of_samples=4e1#fast estimation
-	number_of_samples=4e4#slow
-	number_of_samples=1#put here 1 and look at all_data.csv to see the flow on single sample
-	number_of_samples=4e6#slow, only for server. for pc dont put above 4e5
-	number_of_samples=2.8e7#supper slow, always failing to me on memory size, even with 3 cpus...
+	samples_per_sim=4e1#fast estimation
+	samples_per_sim=4e4#slow
+	samples_per_sim=1#put here 1 and look at all_data.csv to see the flow on single sample
+	samples_per_sim=4e6#slow, only for server. for pc dont put above 4e5
+	samples_per_sim=2.8e7#supper slow, always failing to me on memory size, even with 3 cpus...
 '''
 parser.add_option("-p","--run_only_this_itteration", dest="sim_itteration", type="int", default=-1,help="the simulation will split your quantizations for multi simulations, by bin size and number. for example, 3 bins at size of 0.5 will be 1 run and 3 bins with 0.44 size will be another one. if y also have quantizer it will multiply the sim number. you can ignore this and it will run all cases without splitting, or you can put here number of itteration so the sim will only run this itteration (for cluster use...). if you put -2 you will only print you the number of split sim, if output is 306 you can run from 0 to 305")
 parser.add_option("-f","--output_folder", dest="output_folder", type="str", default="last_run",help="creating new folder in ./ for saving all results. at full path it will generate the full path, even sub sub folders... dont put it at /tmp because each machine has it own /tmp")
@@ -112,8 +112,8 @@ min_modulo_size=5.5
 max_modulo_size=9.0
 #max_modulo_size=100.0
 
-cov=mat([[10,9.5],
-         [9.5,10]])
+#cov=mat([[10,9.5],
+#         [9.5,10]])
 
 #preparing the data - try to fix this to search for the best one:
 def prepare_sim_args():

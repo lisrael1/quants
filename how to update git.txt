@@ -14,3 +14,8 @@ git log origin/master --oneline
 git fetch 
 git status
 git pull
+
+
+some extras:
+	python auto complete:
+		import rlcompleter, readline;readline.parse_and_bind('tab:complete')

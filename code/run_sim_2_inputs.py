@@ -5,6 +5,7 @@ execfile("functions/functions.py")
 
 
 #next TODO:
+#add disable option for modulo a he ini file
 #try to do SNR minus quantization SNR
 #probably you better put a quant at the 0, but then you will always will have odd number of quants
 
@@ -24,9 +25,9 @@ help_text='''
 	we want to see how the change of y modulo and quantization replects on x mse
 
 	run like this:
-		run_sim_2_inputs.py -i config/config_file.ini
+		run_sim_2_inputs.py -i configs/config_file.ini
 	ini simulation input file:
-		see examples at the config folder
+		see examples at the configs folder
 		when running on local pc:
 			samples_per_sim=4e1#fast estimation
 			samples_per_sim=4e4#slow
@@ -45,11 +46,17 @@ help_text='''
 		entering cluster:
 			ssh -XC sed-gw -> then enter your linux password
 			hostname to see that you're in...
-		seq 0 1259|awk '{system ("sbatch --mem=100000m -c1 --time=0:10:0 --wrap \\"run_sim_2_inputs.py -i config/basic.ini -p "$1"\\"")}'
-	
-	
-	sbatch --mem=10000m -c1 --time=0:10:0 --wrap "run_sim_2_inputs.py -i config/basic.ini-p 11"
-	sbatch --mem=10000m -c1 --time=0:10:0 --wrap "run_sim_2_inputs.py -i config/basic.ini"
+		run
+				seq 0 592| xargs -I^ sbatch --mem=10000m -c1 --time=0:10:0 --wrap "run_sim_2_inputs.py -i configs/wide_modulo_for_hist.ini -p ^"
+			or
+				for i in `seq 0 702`; do sbatch --mem=10000m -c1 --time=0:10:0 --wrap "run_sim_2_inputs.py -i configs/wide_modulo_fast.ini -p $i";done
+			or
+				seq 0 1259|awk '{system ("sbatch --mem=100000m -c1 --time=0:10:0 --wrap \\"run_sim_2_inputs.py -i configs/basic.ini -p "$1"\\"")}'
+			or	
+				sbatch --mem=100000m -c1 --time=0:10:0 --array=0-702 --wrap "run_sim_2_inputs.py -i configs/wide_modulo_fast.ini"
+
+	sbatch --mem=10000m -c1 --time=0:10:0 --wrap "run_sim_2_inputs.py -i configs/basic.ini -p 11"
+	sbatch --mem=10000m -c1 --time=0:10:0 --wrap "run_sim_2_inputs.py -i configs/basic.ini"
 
 	put at least --mem=1100m. at 100m it will fail on memory
 		up to 5e5 sim samples use 1100
@@ -69,7 +76,7 @@ help_text='''
 		then run parse_sim_2_inputs.py manually 
 '''
 parser = OptionParser(usage=help_text)
-parser.add_option("-i","--input_config_file", dest="input_config_file", type="str",help="ini file, you have some at the config/ folder")
+parser.add_option("-i","--input_config_file", dest="input_config_file", type="str",help="ini file, you have some at the configs/ folder")
 parser.add_option("-p","--run_only_this_itteration", dest="sim_itteration", type="int", default=-1,help="the simulation will split your quantizations for multi simulations, by bin size and number. for example, 3 bins at size of 0.5 will be 1 run and 3 bins with 0.44 size will be another one. if y also have quantizer it will multiply the sim number. you can ignore this and it will run all cases without splitting, or you can put here number of itteration so the sim will only run this itteration (for cluster use...). if you put -2 you will only print you the number of split sim, if output is 306 you can run from 0 to 305")
 
 (program_args,args)=parser.parse_args()
@@ -77,14 +84,16 @@ parser.add_option("-p","--run_only_this_itteration", dest="sim_itteration", type
 cfg_file=configparser.ConfigParser()
 #TODO check if file exist, because it just takes it like empty file
 cfg_file.read(program_args.input_config_file)
+if len(cfg_file)==1:#only 1 selection - the default one...
+	print "no input ini file, exit"
+	exit()
 class cfg():
 	#TODO add checking for errors
 	samples_per_sim             = float(cfg_file.get('sim','samples_per_sim',fallback = "3e3"))
 	output_folder               =      cfg_file.get('sim','output_folder',fallback = "./")
 	cov_matrix                  = m(eval(cfg_file.get('globals','cov_matrix',fallback = "[[10,9.5],[9.5,10]]")))
-	vectors_max_length_to_save  = float(cfg_file.get('sim','samples_per_sim',fallback = "3e3"))
+	vectors_max_length_to_save  = float(cfg_file.get('sim','vectors_max_length_to_save',fallback = "10"))
 	transpose_csv		    = cfg_file.get('sim','transpose_csv',fallback = "no")
-	print cov_matrix
 	class x_quantizer():
 		max_bin_number =int(cfg_file.get('x_quantizer','max_bin_number',fallback = "20"))
 		min_bin_number =int(cfg_file.get('x_quantizer','min_bin_number',fallback = "2"))
@@ -99,6 +108,7 @@ class cfg():
 		max_modulo_size =float(cfg_file.get('y_quantizer','max_modulo_size',fallback = "10001"))
 
 #outputs:
+#output_folder=cfg.output_folder+"sim_outputs__"+str(datetime.now().strftime("%Y-%m-%d-%H_%M_%S_%f"))+str("__{:.2e}".format(cfg.samples_per_sim))+"/"
 output_folder=cfg.output_folder+"sim_outputs_"+str("{:.2e}".format(cfg.samples_per_sim))+"/"
 try:
 	makedirs(output_folder)
@@ -124,7 +134,7 @@ def prepare_sim_args():
 		qx=[simple_quantizer(number_of_quants=j,bin_size=i/j) for i in arange(cfg.x_quantizer.min_modulo_size,cfg.x_quantizer.max_modulo_size,cfg.x_quantizer.modulo_jumps_resolution) for j in range(cfg.x_quantizer.min_bin_number,cfg.x_quantizer.max_bin_number+1)]
 
 	qy=[simple_quantizer(number_of_quants=j,bin_size=i/j) for i in arange(cfg.y_quantizer.min_modulo_size,cfg.y_quantizer.max_modulo_size,cfg.y_quantizer.modulo_jumps_resolution) for j in range(cfg.y_quantizer.min_bin_number,cfg.y_quantizer.max_bin_number+1)]
-        sim_args=[sim_2_inputs(
+	sim_args=[sim_2_inputs(
             	number_of_samples=cfg.samples_per_sim,
             	cov=cfg.cov_matrix,
             	x_quantizer=i,
@@ -141,6 +151,8 @@ def run_sim(sim_args):
     return sim_results
 
 #run sim
+if getenv("SLURM_ARRAY_TASK_ID")!=None:
+	program_args.sim_itteration=int(getenv("SLURM_ARRAY_TASK_ID"))
 if program_args.sim_itteration==-1:
 	sim_results=run_sim(prepare_sim_args())
 elif program_args.sim_itteration==-2:

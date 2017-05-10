@@ -8,6 +8,7 @@ def matching(*args):
 """
 if the modulo_size here for example is 3, we will
 not change values between -1.5 and 1.5, but 1.6 will become -1.4
+if desable, just return the numbers without doing modulo
 """
 def mod_op(num,modulo_size):
 	if modulo_size=="disable":
@@ -118,7 +119,7 @@ class sim_2_inputs():
 		#self.original_data=generate_data(self.x_var,self.depended_var,2,self.number_of_samples)
 		self.original_data=m(random.multivariate_normal([0,0], self.cov, int(self.number_of_samples)))
 		self.sim_log("done generating data for sim number with size of "+str(getsizeof(self.original_data.tolist())))
-		self.original_x=self.original_data[:,1] #[:,1:]
+		self.original_x=self.original_data[:,1] 
 		self.original_y=self.original_data[:,0]
 		self.x_after_dither,self.dither=add_dither(self.original_x,self.dither_size)
 		self.x_after_modulo=mod_op(self.x_after_dither,self.x_mod)

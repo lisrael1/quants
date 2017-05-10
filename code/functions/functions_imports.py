@@ -1,6 +1,6 @@
 from time import time
 from datetime import datetime
-from os import makedirs,path,getpid
+from os import makedirs,path,getpid,getenv
 start_time = time()
 from sys import platform,getsizeof,argv
 from  optparse import OptionParser

@@ -10,6 +10,8 @@ class simple_quantizer():
 						  0.3
 	  """
 	  def __init__(self, bin_size, number_of_quants):
+	  	  if isnan(bin_size) or isinf(bin_size):
+			  bin_size=0;
 		  self.bin_size=bin_size
 		  self.number_of_quants=number_of_quants
 		  if self.bin_size==0:			  

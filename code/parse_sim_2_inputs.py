@@ -9,7 +9,7 @@ pd.DataFrame(sim_results.error.iloc[0][0]).hist(bins=10)
 create new data frame with all errors at title on module size. taking only 15 quants:
 
 execfile("functions/functions.py")
-sim_results=pd.read_csv("/tmp/all.csv").applymap(lambda x: m(x) if type(x)==str and "[" in x and "nan" not in x else x)
+sim_results=pd.read_csv("all.csv").applymap(lambda x: m(x) if type(x)==str and "[" in x and "nan" not in x else x)
 df=pd.DataFrame()
 sub=sim_results.loc[(sim_results.x_quantizer_number_of_quants==3)]
 for i in range(0,sub.shape[0]): df[sub.iloc[i].x_mod]=(sub.iloc[i].recovered_x_before_alpha-sub.iloc[i].original_y).A1

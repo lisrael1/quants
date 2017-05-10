@@ -92,24 +92,6 @@ class sim_2_inputs():
             data=self.dict()
             df=pd.DataFrame([data])
             return df
-	def finish_calculations(self):
-		#we calcualte the error only on x, not on y...
-		self.error=self.original_x-self.recovered_x
-		#for mse we will flaten the error matrix so we can do power 2 just by dot product
-		self.error_bias=mean(self.error)
-		self.mse=sum(self.error.A1.T*self.error.A1)/self.number_of_samples
-		self.error_from_big_errors=m([i for i in self.error.A1 if i>2*self.x_quantizer.bin_size])
-		self.number_of_big_errors=self.error_from_big_errors.A1.size
-		self.mse_from_big_errors=sum(self.error_from_big_errors.A1.T*self.error_from_big_errors.A1)/self.number_of_samples#self.error_from_big_errors.A1.size
-		self.error_from_big_errors=hstack((self.error_from_big_errors,m(full(self.number_of_samples-self.error_from_big_errors.A1.size,(nan))))).T#just that we will not get some outputs with 3 big errors and some with 100 and then we will have different number of columns TODO check if this not roinds the csv!
-		self.conditional_var=float(self.cov[0,0])+float(self.cov[1,1])-float(2*self.cov[0,1])
-		self.normalized_mse=self.mse/self.conditional_var
-		#what should impact on the mse is the number of inputs, samples modulo size and independed_var but not on the single data variance
-		self.snr=self.x_var/(self.normalized_mse)
-		self.capacity=log2(self.snr+1)
-		self.snr_normalized=1.0/self.normalized_mse
-		self.capacity_normalized=log2(self.snr_normalized+1)
-		self.sim_log("finish calculation on single sim ")
 
 	def run_sim(self):
 		if not "win" in platform:#at windows we dont run parallel and we dont have /dev/urandom
@@ -134,9 +116,28 @@ class sim_2_inputs():
 		self.recovered_x_before_alpha=self.x_y_delta+self.y_after_quantizer
 		self.x_samples_var=var(self.original_x)
 		self.recovered_x_before_alpha_var=var(self.recovered_x_before_alpha)
-		self.alpha=self.x_samples_var/self.recovered_x_before_alpha_var
+		self.alpha=1#TODO fix this self.x_samples_var/self.recovered_x_before_alpha_var
 		self.recovered_x=self.recovered_x_before_alpha*self.alpha
 		self.finish_calculations()
+
+	def finish_calculations(self):
+		#we calcualte the error only on x, not on y...
+		self.error=self.original_x-self.recovered_x
+		#for mse we will flaten the error matrix so we can do power 2 just by dot product
+		self.error_bias=mean(self.error)
+		self.mse=sum(self.error.A1.T*self.error.A1)/self.number_of_samples
+		self.error_from_big_errors=m([i for i in self.error.A1 if i>2*self.x_quantizer.bin_size])
+		self.number_of_big_errors=self.error_from_big_errors.A1.size
+		self.mse_from_big_errors=sum(self.error_from_big_errors.A1.T*self.error_from_big_errors.A1)/self.number_of_samples#self.error_from_big_errors.A1.size
+		self.error_from_big_errors=hstack((self.error_from_big_errors,m(full(self.number_of_samples-self.error_from_big_errors.A1.size,(nan))))).T#just that we will not get some outputs with 3 big errors and some with 100 and then we will have different number of columns TODO check if this not roinds the csv!
+		self.conditional_var=float(self.cov[0,0])+float(self.cov[1,1])-float(2*self.cov[0,1])
+		self.normalized_mse=self.mse/self.conditional_var
+		#what should impact on the mse is the number of inputs, samples modulo size and independed_var but not on the single data variance
+		self.snr=self.x_var/(self.normalized_mse)
+		self.capacity=log2(self.snr+1)
+		self.snr_normalized=1.0/self.normalized_mse
+		self.capacity_normalized=log2(self.snr_normalized+1)
+		self.sim_log("finish calculation on single sim ")
 
 #a function for running parallel:
 def run_single_sim(a):

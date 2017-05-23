@@ -13,10 +13,11 @@ print "taking needed data"
 df=pd.DataFrame()
 sub=sim_results.loc[(sim_results.x_quantizer_number_of_quants==q)]
 #for i in range(0,sub.shape[0]): df[sub.iloc[i].x_mod]=(sub.iloc[i].recovered_x_before_alpha-sub.iloc[i].original_y).A1
-for i in range(0,sub.shape[0]): df[sub.iloc[i].x_mod]=(sub.iloc[i].recovered_x).A1
+#for i in range(0,sub.shape[0]): df[sub.iloc[i].x_mod]=(sub.iloc[i].recovered_x).A1
+for i in range(0,sub.shape[0]): df[sub.iloc[i]["cov"].A1[1]]=(sub.iloc[i].recovered_x).A1
 
 print "doing hist"
-df.hist(bins=180, range=[-30,30])
+df.hist(bins=180, range=[-10,10])
 #df.hist(bins=80)
 show()
 

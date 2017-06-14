@@ -1,0 +1,40 @@
+capacity,5.581493155
+capacity_normalized,2.50804092
+conditional_var,1
+cov,"[[10.0, 9.5], [9.5, 10.0]]"
+dither,"[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]"
+dither_on,0
+dither_size,0
+error,"[[-0.18903, 0.17323, 0.0026285, 0.83989, 0.3674, 0.14484, -0.38852, 0.41051, 0.69367, -0.6365]]"
+error_bias,0.141811509
+error_from_big_errors,"[[nan, nan, nan, nan, nan, nan, nan, nan, nan, nan]]"
+mse,0.213289152
+mse_from_big_errors,0
+normalized_mse,0.213289152
+number_of_big_errors,0
+number_of_samples,10
+original_x,"[[-4.189, 2.1732, 0.0026285, 2.8399, 2.3674, 4.1448, 3.6115, 4.4105, 0.69367, -0.6365]]"
+original_y,"[[-3.9979, 2.9761, -1.9806, 3.5871, 2.6245, 3.0726, 3.0958, 4.325, -0.35292, -0.61367]]"
+recovered_x,"[[-4.0, 2.0, 0.0, 2.0, 2.0, 4.0, 4.0, 4.0, 0, 0]]"
+sim_id,0
+snr,46.88470985
+snr_normalized,4.688470985
+vectors_max_length_to_save,20
+x_after_dither,"[[-4.189, 2.1732, 0.0026285, 2.8399, 2.3674, 4.1448, 3.6115, 4.4105, 0.69367, -0.6365]]"
+x_after_modulo,"[[1.811, 2.1732, 0.0026285, 2.8399, 2.3674, -1.8552, -2.3885, -1.5895, 0.69367, -0.6365]]"
+x_after_quantizer,"[[2.0, 2.0, 0.0, 2.0, 2.0, -2.0, -2.0, -2.0, 0.0, -0.0]]"
+x_mod,6
+x_quantizer_bin_size,2
+x_quantizer_modulo_edge_to_edge,6
+x_quantizer_number_of_quants,3
+x_samples_var,6.273001638
+x_var,10
+x_y_delta,"[[-0.0021012, -0.97614, 1.9806, -1.5871, -0.62447, 0.92736, 0.90423, -0.32497, 0.35292, 0.61367]]"
+y_after_dither,"[[-3.9979, 2.9761, -1.9806, 3.5871, 2.6245, 3.0726, 3.0958, 4.325, -0.35292, -0.61367]]"
+y_after_modulo,"[[-3.9979, 2.9761, -1.9806, 3.5871, 2.6245, 3.0726, 3.0958, 4.325, -0.35292, -0.61367]]"
+y_after_quantizer,"[[-3.9979, 2.9761, -1.9806, 3.5871, 2.6245, 3.0726, 3.0958, 4.325, -0.35292, -0.61367]]"
+y_mod,disable
+y_quantizer_bin_size,0
+y_quantizer_modulo_edge_to_edge,disable
+y_quantizer_number_of_quants,0
+y_var,10

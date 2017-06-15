@@ -5,16 +5,16 @@ max_val=3
 min_val=-max_val
 
 def get_A():
-    i=0
+    j=0
     while True:
-        i+=1
+        j+=1
         a=np.matrix(np.random.randint(min_val,max_val,number_of_inputs**2)).reshape(number_of_inputs,number_of_inputs)
         a[:,-1]=np.matrix([-1*sum(i.A1) for i in a[:,0:-1]]).T
         ##a[:,-1]+=-np.ones((number_of_inputs,1),int)
         a[:,-1]+=np.matrix([1,-1]).T
-        if np.linalg.matrix_rank(a)==number_of_inputs:
+        if np.linalg.matrix_rank(a)==number_of_inputs and np.linalg.det(a)==1:
                 break
-        if i==1000:
+        if j==100:
             print "cannot find A matrix, exit"
             exit()
     aI=a.I
@@ -55,7 +55,7 @@ def get_cov():
 
 def print_x(a,cov):
     mean = [0, 0]
-    x = np.mat(np.random.multivariate_normal(mean, cov, 50000).T)
+    x = np.mat(np.random.multivariate_normal(mean, cov, 5000).T)
 
     #print a*x
     #print ((a*x)[0]).A1,((a*x)[1]).A1
@@ -71,7 +71,7 @@ def print_x(a,cov):
     print "new cov:"
     print np.cov((a*x), bias=1)
 
-for i in range(10):
+for i in range(1):
     a=get_A()
     cov=get_cov()
     print
@@ -93,7 +93,8 @@ for i in range(10):
     print "y strach=",np.sqrt(v_y_new)/np.sqrt(cov[1,1])
     print "eigenvalues:",np.linalg.eig(a)[0]
     print "det:",np.linalg.det(a)
-
+    print "a*cov*aT (=new cov):\n",a*cov*a.T
+    print_x(a,cov)
     if 1:#if you want to see the A input output, to see the strach
-        print_x(a,cov)
+
         pl.show()

@@ -4,3 +4,4 @@ temp/
 all_data.csv
 slurm-*out
 all.csv
+output.pdf

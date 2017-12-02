@@ -32,7 +32,6 @@ def plot_single_U_N(modulo,threshold,sigma,samples):
     plt.legend(loc="best",ncol=1, shadow=True, title="in plot:")
     plt.text(-5 * sigma,0.2,U_N_errors)
 
-    plt.show()
 
 def U_N_error_vs_sigma(modulo,threshold,samples):
     sigma_samples=50
@@ -66,38 +65,40 @@ def plot_U_N_error_vs_sigma(modulo,samples,sigma_samples,threshold_samples):
 
 
 
-samples = 500
+samples = 5
 modulo = 8.8
 sigma = 1
-threshold=3.5
-sigma_samples=100
-threshold_samples=100
-# U_N_error_vs_threshold(modulo,sigma,samples).set_index('threshold')[['U error','N error']].plot(grid=True,title="samples: %d , module: %g, sigma: %g "%(samples,modulo,sigma));plt.show()
-# plot_single_U_N(modulo,threshold,sigma,samples)
-# plot_U_N_error_vs_sigma(modulo,samples,sigma_samples,threshold_samples).set_index('sigma')[['U error','N error','threshold']].plot(title="samples: %d"%samples);plt.show()
-# U_N_error_vs_sigma(modulo,threshold,samples).set_index('sigma')[['U error','N error']].plot(grid=True,title="samples: %d , module: %g, threshold: %g "%(samples,modulo,threshold));plt.show()
+threshold=2.5
+sigma_samples=30
+threshold_samples=30
+U_N_error_vs_threshold(modulo,sigma,samples).set_index('threshold')[['U error','N error']].plot(grid=True,title="U_N_error_vs_threshold\nsamples: %d , module: %g, sigma: %g "%(samples,modulo,sigma))
+plot_single_U_N(modulo,threshold,sigma,samples)
+plot_U_N_error_vs_sigma(modulo,samples,sigma_samples,threshold_samples).set_index('sigma')[['U error','N error']].plot(title="plot_U_N_error_vs_sigma\nsamples: %d"%samples)
+plot_U_N_error_vs_sigma(modulo,samples,sigma_samples,threshold_samples).set_index('sigma')[['threshold']].plot(title="plot_U_N_error_vs_sigma\nsamples: %d"%samples)
+U_N_error_vs_sigma(modulo,threshold,samples).set_index('sigma')[['U error','N error']].plot(grid=True,title="U_N_error_vs_sigma\nsamples: %d , module: %g, threshold: %g "%(samples,modulo,threshold))
+plt.show()
+if 0: # we better look for
+    print("generating cases")
+    inx=pd.MultiIndex.from_product([[5,10,20,50],np.linspace(0.1,1,20),np.linspace(0,4.4,20),[8.8]],names=['samples','sigma','threshold','modulo'])
+    print("done generating cases")
+    df=pd.DataFrame(index=inx).reset_index(drop=False)
+    print("we have %d cases"%df.index.size)
+    # df.assign(**{'U_error':0,'N_error':0,'best_sigma':0,'best_threshold':0})
+    print("calc errors")
+    df[['U_error','N_error']]=df.apply(lambda x:pd.Series(errors(u_size=x.modulo, threshold=x.threshold, n_std=x.sigma, samples=x.samples)),axis=1)
+    print("done calc errors")
+    df['delta'] = (df['U_error'] - df['N_error']).apply(np.abs)
+    df[['best_sigma','best_threshold']]=df.apply(lambda x :pd.Series([False,False]),axis=1)
+    # df[['best_sigma','best_threshold']]=pd.DataFrame(columns=[True,False])
+    for name,group in df.groupby(['samples','sigma']):
+        inx = group.delta.argmin()
+        df.loc[inx, 'best_threshold'] = True
+        # df.loc[group.index,'best_threshold']=True
+        # break
+    for name,group in df.groupby(['samples','threshold']):
+        inx=group.delta.argmin()
+        df.loc[inx,'best_sigma']=True
 
-print("generating cases")
-inx=pd.MultiIndex.from_product([[5,10,20,50],np.linspace(0.1,1,20),np.linspace(0,4.4,20),[8.8]],names=['samples','sigma','threshold','modulo'])
-print("done generating cases")
-df=pd.DataFrame(index=inx).reset_index(drop=False)
-print("we have %d cases"%df.index.size)
-# df.assign(**{'U_error':0,'N_error':0,'best_sigma':0,'best_threshold':0})
-print("calc errors")
-df[['U_error','N_error']]=df.apply(lambda x:pd.Series(errors(u_size=x.modulo, threshold=x.threshold, n_std=x.sigma, samples=x.samples)),axis=1)
-print("done calc errors")
-df['delta'] = (df['U_error'] - df['N_error']).apply(np.abs)
-df[['best_sigma','best_threshold']]=df.apply(lambda x :pd.Series([False,False]),axis=1)
-# df[['best_sigma','best_threshold']]=pd.DataFrame(columns=[True,False])
-for name,group in df.groupby(['samples','sigma']):
-    inx = group.delta.argmin()
-    df.loc[inx, 'best_threshold'] = True
-    # df.loc[group.index,'best_threshold']=True
-    # break
-for name,group in df.groupby(['samples','threshold']):
-    inx=group.delta.argmin()
-    df.loc[inx,'best_sigma']=True
-
-print(df.sample(100))
-print(df[df.best_threshold==True])
+    print(df.sample(100))
+    print(df[df.best_threshold==True])
 

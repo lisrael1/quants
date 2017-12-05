@@ -2,12 +2,12 @@
 import pandas as pd
 import numpy as np
 import matplotlib
+from sys import platform
 matplotlib.use('Agg')
 import pylab as plt
 # import seaborn as sns
 import matplotlib.backends.backend_pdf
-from matplotlib import rcParams
-rcParams.update({'figure.autolayout': True})
+plt.rcParams.update({'figure.autolayout': True,'figure.figsize':(11,11)})
 from  optparse import OptionParser
 
 parser = OptionParser()
@@ -35,13 +35,15 @@ else:
 modulo_size_edge_to_edge=u.modulo_size_edge_to_edge
 samples=int(round(u.samples))
 
-print ("inputs:")
-print ("A:\n"+str(A))
-print ("cov:\n"+str(cov))
-print ("modulo_size_edge_to_edge:\n"+str(modulo_size_edge_to_edge))
-print ("samples:\n"+str(samples))
-
-
+cases="----inputs cases----\nA:\n%s\ncov:\n%s\nmodulo_size_edge_to_edge:\n%s\nsamples:\n%s"%(str(A),str(cov),str(modulo_size_edge_to_edge),str(samples))
+print (cases)
+# print ("inputs:")
+# print ("A:\n"+str(A))
+# print ("cov:\n"+str(cov))
+# print ("modulo_size_edge_to_edge:\n"+str(modulo_size_edge_to_edge))
+# print ("samples:\n"+str(samples))
+plt.figure()
+plt.figtext(x=0.3,y=0.5,s=cases, fontsize=30, multialignment='left', color='#000066', wrap=True)
 
 
 def random_data(cov,samples):
@@ -80,8 +82,8 @@ def plot_bars(df):
 
 
 mse_all_bins=pd.DataFrame()
-i=0
-for bins in range(3,30):
+i=1
+for bins in list(range(3,30))+[200]:
     print("running now on "+str(bins)+" bins")
     df_original=random_data(cov,samples)
     df_mod1=sign_mod(df_original,modulo_size_edge_to_edge)
@@ -92,7 +94,12 @@ for bins in range(3,30):
     df_AI=df_mod2.dot(A.I)
     df_AI.columns=['X','Y']
     xy_mse=pd.DataFrame([(df_AI-df_original).X.var(),(df_AI-df_original).Y.var()],index=['X','Y'],columns=[bins]).T
-    mse_all_bins=pd.concat([mse_all_bins,xy_mse],axis=0)
+    if bins!=200:
+        mse_all_bins=pd.concat([mse_all_bins,xy_mse],axis=0)
+    else:
+        std_200=pd.concat([df_original.std(),df_AI.std()],axis=1).round(2)
+        std_200.columns=['df_original','df_AI']
+
 
     if not bins%5:
         fig, axes = plt.subplots(3, 2)#, figsize=(6, 9))
@@ -113,6 +120,8 @@ for bins in range(3,30):
     # print(mse.loc['X','X'])
     # print(mse.loc['Y','Y'])
 
+plt.figure()
+plt.figtext(x=0.3,y=0.5,s="std:\n"+str(std_200), fontsize=30, multialignment='left', color='#000066', wrap=True)
 
 # i+=1
 # plt.figure(i)
@@ -122,7 +131,11 @@ mse_all_bins.plot(title="MSE per bins",grid=True, rasterized=True)
 pd.DataFrame(random_data(cov,samples), columns=['X', 'Y']).plot.scatter(x='X', y='Y', title='data and A', alpha=0.2, grid=True, rasterized=True)
 for i in [0,1]:
     plt.arrow(0, 0, A[0,i], A[1,i], head_width=0.5, head_length=0.5,length_includes_head=True, fc='k', ec='k')
-pdf = matplotlib.backends.backend_pdf.PdfPages("/tmp/output.pdf")
+if "win" in platform:
+    output_pdf="output.pdf"
+else:
+    output_pdf="/tmp/output.pdf"
+pdf = matplotlib.backends.backend_pdf.PdfPages(output_pdf)
 for fig in range(1, plt.figure().number): ## will open an empty extra figure :(
     pdf.savefig(fig,bbox_inches='tight',pad_inches=1)
     print ("saving fig "+str(fig))

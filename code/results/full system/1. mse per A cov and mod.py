@@ -7,7 +7,7 @@ matplotlib.use('Agg')
 import pylab as plt
 # import seaborn as sns
 import matplotlib.backends.backend_pdf
-plt.rcParams.update({'figure.autolayout': True,'figure.figsize':(11,11)})
+plt.rcParams.update({'figure.autolayout': True,'figure.figsize':(11,11)})#'figure.figsize':(8.3,11.7)
 from  optparse import OptionParser
 
 parser = OptionParser()
@@ -66,7 +66,7 @@ def quantize(xy,modulo_size_edge_to_edge,number_of_bins):
     df['Y'] = pd.cut(xy.Y, bins, labels=center).astype(float)
     return df
 def plot(data,title):
-    pd.DataFrame(data,columns=['X','Y']).plot.scatter(x='X', y='Y', title=title, ax=axes.pop(),alpha=0.2,grid=True,figsize=(11,11), rasterized=True)
+    pd.DataFrame(data,columns=['X','Y']).plot.scatter(x='X', y='Y', title=title, ax=axes.pop(),alpha=0.2,grid=True, rasterized=True)
     # pd.DataFrame(data,columns=['X','Y']).plot.hexbin(x='X', y='Y', title=title,gridsize=10, ax=axes.pop())
     # sns.jointplot(x="X", y="Y", data=df_mod, kind="kde")
 def plot_bars(df):
@@ -97,12 +97,12 @@ for bins in list(range(3,30))+[200]:
     if bins!=200:
         mse_all_bins=pd.concat([mse_all_bins,xy_mse],axis=0)
     else:
-        std_200=pd.concat([df_original.std(),df_AI.std()],axis=1).round(2)
-        std_200.columns=['df_original','df_AI']
+        std_200=pd.concat([df_original.std(),df_mod2.std()],axis=1).round(2)
+        std_200.columns=['df_original','df_mod2']
 
 
     if not bins%5:
-        fig, axes = plt.subplots(3, 2)#, figsize=(6, 9))
+        fig, axes = plt.subplots(4, 2)#, figsize=(6, 9))
         axes = list(pd.DataFrame(axes).values.flatten())[::-1]
         i += 1
         plt.figure(i)#,figsize=(117,83))
@@ -112,7 +112,9 @@ for bins in list(range(3,30))+[200]:
         plot(df_mod1,'2.after modulo')
         plot(df_quant,'3.after quantizer')
         plot(df_A,'4.after A')
-        plot(df_AI,'5.after A.I')
+        plot(df_mod2,'5.after second modulo')
+        plot(df_AI,'6.after A.I')
+        df_mod2.plot.hist(bins=50, alpha=0.2, title="after second mod", grid=True,ax=axes.pop(),normed=True)
         plot_bars(xy_mse)
     # print (pd.concat([df_AI,df_original,error],axis=1))
     # print("MSE:")
@@ -122,7 +124,7 @@ for bins in list(range(3,30))+[200]:
 
 plt.figure()
 plt.figtext(x=0.3,y=0.5,s="std:\n"+str(std_200), fontsize=30, multialignment='left', color='#000066', wrap=True)
-
+df_original.plot.hist(bins=50,alpha=0.2,title="before",grid=True,normed=True)
 # i+=1
 # plt.figure(i)
 mse_all_bins.plot(title="MSE per bins",grid=True, rasterized=True)

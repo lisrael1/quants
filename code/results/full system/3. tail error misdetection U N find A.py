@@ -1,16 +1,33 @@
 #!/usr/bin/python3
+'''
+this script is:
+    generating all combinations of A
+    in loop:
+        randomizing data det
+        getting few samples from data
+        for each A:
+            deciding by tails of the samples if A is good
+            deciding by A*cov*A if A is good
+            checking errors
+'''
 import pandas as pd
 import numpy as np
 import itertools,random
 from optparse import OptionParser
 
 parser = OptionParser()
-parser.add_option("-n","", dest="samples", type="int", default=2,help='number of dots, for example 1000. you better use 5')
+parser.add_option("-n","", dest="samples", type="int", default=2,help='number of dots X2 because you have x and y. for example 1000. you better use 5')
 parser.add_option("-s","", dest="simulations", type="int", default=10,help='number of simulations, for example 50. you better use 400')
 parser.add_option("-b","", dest="bins", type="int", default=200,help='number of bins, for example 200')
-parser.add_option("-m","", dest="A_max_num", type="int", default=2,help='A max number for example for 2 you can get [[-2,1],[2,0]]. you better use 10')
+parser.add_option("-t","", dest="threshold", type="float", default=2.5,help='this threshold is for deciding if data is U or N, by checking if there are samples over the threshold. this defines the tail size. bigger number will result of more detecting output as N')
+parser.add_option("-m","", dest="A_max_num", type="int", default=2,help='A max number for example for 2 you can get [[-2,1],[2,0]]. for number 10, you will get 189,776 options at A. at 5 you will have 13608. . you better use 10')
 parser.add_option("-o",    dest="different_cov", help="if set, using same cov matrix for all simulations", default=False, action="store_true")
 (u,args)=parser.parse_args()
+
+if 0:
+    u.samples=10
+    u.A_max_num=8
+    u.threshold=1.3
 
 def rand_cov():
     m=np.matrix(np.random.normal(0,1,[2,2]))
@@ -62,7 +79,7 @@ def quantize(xy,modulo_size_edge_to_edge,number_of_bins):
 modulo_size_edge_to_edge=8.8
 samples=u.samples
 bins=u.bins
-threshold=2.5
+threshold=u.threshold
 
 # cases="----inputs cases----\nA:\n%s\ncov:\n%s\nmodulo_size_edge_to_edge:\n%s\nsamples:\n%s"%(str(A),str(cov),str(modulo_size_edge_to_edge),str(samples))
 # print (cases)
@@ -109,7 +126,7 @@ def run_all_A_on_cov(cov,all_A):
                 plt.show()
                 print("*"*30)
     # print({'misdetecting_as_U':"%5d"%misdetecting_as_U,'misdetecting_as_N':"%5d"%misdetecting_as_N,'good_A':"%5d"%good_A,'sqrt_cov_det':"%3s"%str(np.sqrt(np.linalg.det(cov)).round(2)),'prsn':"%3s"%str((cov[1,0]/np.sqrt(cov[0,0]*cov[1,1])).round(2)),'cov':str(cov.round(2))})
-    return {'sqrt_cov_det':np.sqrt(np.linalg.det(cov)),'prsn':cov[1,0]/np.sqrt(cov[0,0]*cov[1,1]),'good_A':good_A,'good_N_detection':100.0*good_N_detection/good_A,'misdetecting_N_as_U':misdetecting_N_as_U,'misdetecting_U_as_N':misdetecting_U_as_N,'cov':cov}
+    return {'sqrt_cov_det':np.sqrt(np.linalg.det(cov)),'prsn':cov[1,0]/np.sqrt(cov[0,0]*cov[1,1]),'good_A':good_A,'good_N_detection':100.0*good_N_detection/good_A,'misdetecting_N_as_U':misdetecting_N_as_U,'misdetecting_U_as_N':misdetecting_U_as_N,'cov':cov.round(3)}
 
 n=u.A_max_num
 a=range(-n,n+1)
@@ -131,4 +148,4 @@ for i in range(u.simulations):
     all+=[outputs]
 df=pd.DataFrame(all).round(2)
 df=df.reindex_axis([i for i in df.columns if i!='cov']+['cov'],axis=1)
-df.to_excel("all results.xlsx")
+df.to_excel("all results_n_%d_t_%g_m_%d.xlsx"%(u.samples,u.threshold,u.A_max_num))

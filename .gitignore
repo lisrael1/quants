@@ -8,3 +8,4 @@ output.pdf
 *.html
 debug.log
 *.xlsx
+.idea/

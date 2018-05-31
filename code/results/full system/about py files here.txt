@@ -1,0 +1,4 @@
+6.0. ROC diagram for comparing methods for checking A
+7.3. not working because when you do specific threshold you might get good mse or bad.
+7.4. we just need to many samples (=1M) so we will have statistics with rare cases and it's too heavy...
+7.5. you cannot use theoretical values, because mse is mainly from rare cases that you random, so you need to run full system with random, not with theoretical values

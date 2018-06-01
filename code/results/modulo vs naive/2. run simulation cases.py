@@ -137,10 +137,10 @@ def mse_from_naive_method(samples, quant_size, number_of_bins, std_threshold=3, 
     q[q > number_of_bins] = number_of_bins
     q[q < 0] = 0
     if (q.std()>std_threshold).astype(int).sum()>0:
-        return original.values.flatten().var()
+        return float(q.std()),original.values.flatten().var()
         # return np.nan
     o = from_codebook(q, quant_size, number_of_bins)
-    return (o - original).values.flatten().var()
+    return float(q.std()),(o - original).values.flatten().var()
 
 
 def mse_from_basic_method(samples,quant_size,number_of_bins=False, A_rows=None):
@@ -161,7 +161,7 @@ def mse_from_basic_method(samples,quant_size,number_of_bins=False, A_rows=None):
     original = random_data(rand_cov_det_1(),samples)#data.copy()
     q = to_codebook(original, quant_size, 0)
     o = from_codebook(q, quant_size, 0)
-    return (o - original).values.flatten().var()
+    return 0,(o - original).values.flatten().var()
 
 
 def mse_from_modulo_method(samples, quant_size, number_of_bins, std_threshold=3, A_rows=None):
@@ -189,7 +189,7 @@ def mse_from_modulo_method(samples, quant_size, number_of_bins, std_threshold=3,
     a_rows = A_rows#get_all_a_rows(15)
     best_std=m1.dot(a_rows.T).std().sort_values().head(2)
     if (best_std>std_threshold).astype(int).sum()>0:
-        return original.values.flatten().var()
+        return best_std.max(),original.values.flatten().var()
         # return np.nan
     best_inx = best_std.index.values
     A = a_rows[best_inx].T
@@ -206,14 +206,14 @@ def mse_from_modulo_method(samples, quant_size, number_of_bins, std_threshold=3,
     o = from_codebook(r3, quant_size, 0)
     # o = from_codebook(r, quant_size, number_of_bins)
     # visualize_data_defore_after(original, o)
-    return (o - original).values.flatten().var()
+    return best_std.max(),(o - original).values.flatten().var()
 
 if __name__ == '__main__':
     start = time.time()
     parser = OptionParser()
-    parser.add_option("-n", "", dest="samples", type="int", default=100, help='number of dots X2 because you have x and y. for example 1000. you better use 5')
-    parser.add_option("--number_of_splits", dest="number_of_splits", type="int", default=1, help='you have 1k cases, and you want to run them with x splits')
-    parser.add_option("--number_of_split", dest="number_of_split", type="int", default=0, help='the split number from all splits')
+    parser.add_option("-n", "", dest="samples", type="int", default=100, help='number of dots X2 because you have x and y. for example 1000. you better use 5 [default: %default]')
+    parser.add_option("--number_of_splits", dest="number_of_splits", type="int", default=1, help='you have 1k cases, and you want to run them with x splits [default: %default]')
+    parser.add_option("--number_of_split", dest="number_of_split", type="int", default=0, help='the split number from all splits [default: %default]')
     # parser.add_option("-s", "", dest="simulations", type="int", default=200, help='number of simulations, for example 50. you better use 400') # about 8360 sims per unit here
     # parser.add_option("-s", "", dest="simulations", type="int", default=20000, help='number of simulations, for example 50. you better use 400') # about 8360 sims per unit here
     # parser.add_option("-b", "", dest="number_of_bins_range", type="str", default='[3,25]', help='number of bins, for example [3,25]')
@@ -223,16 +223,20 @@ if __name__ == '__main__':
     # number_of_quant_size=1#20
     # parser.add_option("-t", "", dest="std_threshold_range", type="str", default='[0.6,3]', help='number of bins, for example [0,2]')
     # number_of_thresholds=20
-    parser.add_option("-m", "", dest="A_max_num", type="int", default=15,help='A max number for example for 2 you can get [[-2,1],[2,0]]. for number 10, you will get 189,776 options at A. at 5 you will have 13608. . you better use 10')
-    parser.add_option("-p", dest="run_serial", action='store_false', help="dont run parallel [default: %default]",default=True)
+    parser.add_option("-m", "", dest="A_max_num", type="int", default=15,help='A max number for example for 2 you can get [[-2,1],[2,0]]. for number 10, you will get 189,776 options at A. at 5 you will have 13608. . you better use 10 [default: %default]')
+    parser.add_option("-p", dest="run_serial", action='store_false', help="dont run parallel. disables when you have splits [default: %default]",default=True)
     (u, args) = parser.parse_args()
 
     A_rows=get_all_a_rows(u.A_max_num)
 
     '''420,000 rows took me 1645 sec'''
-    df = pd.read_csv('simulation_cases.csv')
+    df = pd.read_csv('simulation_cases.csv',index_col=[0])
+    #taking part of the simulation for this split
     df=df.iloc[np.array_split(df.index.values,u.number_of_splits)[u.number_of_split]]
     print('done reading simulation cases')
+
+    df['sampled_std']=None
+    df['mse']=None
 
     if 0:
         '''removing non interesting cases'''
@@ -240,8 +244,7 @@ if __name__ == '__main__':
         df=df[df.quant_size*df.number_of_bins>8.9]
         print('dropping non interesting cases - running only %d simulations'%df.shape[0])
         df.reset_index(drop=True,inplace=True)
-
-    if u.run_serial:
+    if not u.run_serial and u.number_of_splits==1:
         '''multi cores'''
         num_of_cpu = mp.cpu_count()
         if 0:
@@ -250,10 +253,10 @@ if __name__ == '__main__':
         print('number of cpus: %d' % num_of_cpu)
         p = mp.Pool(num_of_cpu)
         args = [dict(df=df.iloc[inx], A_rows=A_rows, samples=u.samples) for inx in np.array_split(range(df.shape[0]), num_of_cpu)]
-        df['mse'] = pd.concat(p.map(lambda y: y['df'].apply(lambda x:globals()[x.method](samples=y['samples'] ,quant_size=x.quant_size, std_threshold=x.std_threshold,number_of_bins=x.number_of_bins,A_rows=y['A_rows']),axis=1),args))
+        df[['sampled_std','mse']] = pd.concat(p.map(lambda y: y['df'].apply(lambda x:pd.Series(globals()[x.method](samples=y['samples'] ,quant_size=x.quant_size, std_threshold=x.std_threshold,number_of_bins=x.number_of_bins,A_rows=y['A_rows']),index=['sampled_std','mse']),axis=1),args))
     else:
-        for inx in tqdm(np.array_split(range(df.shape[0]),10000)):
-            df.loc[inx,'mse']=df.iloc[inx].apply(lambda x:globals()[x.method](samples=u.samples ,quant_size=x.quant_size,number_of_bins=x.number_of_bins, std_threshold=x.std_threshold,A_rows=A_rows),axis=1)
+        for inx in tqdm(np.array_split(range(df.shape[0]),100)):
+            df.loc[inx+df.index.values[0],['sampled_std','mse']]=df.iloc[inx].apply(lambda x:pd.Series(globals()[x.method](samples=u.samples ,quant_size=x.quant_size,number_of_bins=x.number_of_bins, std_threshold=x.std_threshold,A_rows=A_rows),index=['sampled_std','mse']),axis=1)
     print(df.head())
     df.to_csv('resutls_%08d.csv'%u.number_of_split)
     # df.dropna(how='any',inplace=True)

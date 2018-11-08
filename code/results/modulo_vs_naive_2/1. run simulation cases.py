@@ -121,6 +121,7 @@ def expected_mse_from_quantization(quant_size):
 
 def clipping_method(samples, quant_size, number_of_bins, std_threshold=None, A_rows=None, snr=1000): # TODO maybe we can return nan when we have more than given mse instead of std_threadold. or maybe the TX always transmite so the std checker is after the cutting
     '''
+    importand note - this will not work on even number of bins!!!
     for quants with cutting high values to max quant value
     example:
         quant_size = 0.2
@@ -138,15 +139,14 @@ def clipping_method(samples, quant_size, number_of_bins, std_threshold=None, A_r
     cov=rand_cov_det(snr=snr)
     pearson=cov[0,1]/np.sqrt(cov[0,0]*cov[1,1])
     original = pd.DataFrame(random_data(cov,samples).values.flatten())
-    q = to_codebook(original, quant_size, number_of_bins)
+    q = to_codebook(original, quant_size, 0)
 
     '''now cutting the edges:'''
-    q[q > number_of_bins] = number_of_bins
-    q[q < 0] = 0
+    q=np.clip(q,np.ceil(-number_of_bins/2),np.floor(number_of_bins/2)).astype(int)
     if std_threshold and (q.std()>std_threshold).astype(int).sum()>0:
         return float(q.std()),original.values.flatten().var()
         # return np.nan
-    o = from_codebook(q, quant_size, number_of_bins)
+    o = from_codebook(q, quant_size, 0)
     return float(q.std()),(o - original).values.flatten().var(),((o-original).abs().values.flatten()>quant_size).astype(int).mean(),pearson
 
 
@@ -168,7 +168,7 @@ def basic_method(samples,quant_size, number_of_bins=False, A_rows=None, snr=1000
     original = random_data(rand_cov_det(snr=snr),samples)#data.copy()
     q = to_codebook(original, quant_size, 0)
     o = from_codebook(q, quant_size, 0)
-    return 0,(o - original).values.flatten().var(),((o-original).abs().values.flatten()>quant_size).astype(int).mean()
+    return 0,(o - original).values.flatten().var(),((o-original).abs().values.flatten()>quant_size).astype(int).mean(),0
 
 
 def modulo_method(samples, quant_size, number_of_bins, std_threshold=None, A_rows=None, snr=1000):
@@ -193,7 +193,7 @@ def modulo_method(samples, quant_size, number_of_bins, std_threshold=None, A_row
     q = to_codebook(original, quant_size, 0)
     # q = to_codebook(original, quant_size, number_of_bins)
     # m1 = q % number_of_bins
-    m1 = sign_mod(q,number_of_bins)
+    m1 = sign_mod(q,number_of_bins).astype(int)
     '''finding best rows by sampled std'''
     a_rows = A_rows#get_all_a_rows(15)
     # best_std=m1.dot(a_rows.T).std().sort_values().head(2)
@@ -223,13 +223,14 @@ if __name__ == '__main__':
     start = time.time()
     help_text='''
     examples:
-        seq 0 40 |xargs -I ^ echo python3 "2.\ run\ simulation\ cases.py" --number_of_splits 40 --number_of_split ^ \&
-        sbatch --mem=1800m -c1 --time=0:50:0 --array=0-399 --wrap "python3 2.\ run\ simulation\ cases.py --number_of_splits \$SLURM_ARRAY_TASK_COUNT --number_of_split \$SLURM_ARRAY_TASK_ID"
+        seq 0 40 |xargs -I ^ echo python3 "1.\ run\ simulation\ cases.py" -s ^ \&
+        sbatch --mem=1800m -c1 --time=0:50:0 --array=0-399 --wrap 'python3 1.\ run\ simulation\ cases.py -s $SLURM_ARRAY_TASK_ID'
     '''
     parser = OptionParser(usage=help_text, version="%prog 1.0 beta")
     parser.add_option("-n", dest="samples", type="int", default=100, help='number of dots X2 because you have x and y. for example 1000. you better use 5 [default: %default]')
     parser.add_option("-s", dest="number_of_split", type="int", default=0, help='the split number from all splits [default: %default]')
-    parser.add_option("-m", dest="A_max_num", type="int", default=15,help='A max number for example for 2 you can get [[-2,1],[2,0]]. for number 10, you will get 189,776 options at A. at 5 you will have 13608. . you better use 10 [default: %default]')
+    parser.add_option("-a", dest="A_max_num", type="int", default=15,help='A max number for example for 2 you can get [[-2,1],[2,0]]. for number 10, you will get 189,776 options at A. at 5 you will have 13608. . you better use 10 [default: %default]')
+    parser.add_option("-m", dest="multiply_simulations", type="int", default=15,help='multiply those simulations n times [default: %default]')
     parser.add_option("-p", dest="run_serial", action='store_false', help="dont run parallel. disables when you have splits [default: %default]",default=True)
     parser.add_option("-b", dest="number_of_bins_range", type="str", default='[13,25]', help='number of bins, for example [3,25] [default: %default]')
     parser.add_option("-q", dest="quant_size_range", type="str", default='[0,3.3]', help='number of bins, for example [0,2] [default: %default]')
@@ -241,12 +242,14 @@ if __name__ == '__main__':
     quant_size = np.linspace(eval(u.quant_size_range)[0], eval(u.quant_size_range)[1], number_of_quant_size + 1)[1:]
     number_of_bins = range(eval(u.number_of_bins_range)[0], eval(u.number_of_bins_range)[1], 2)
     snr_values=[10,100,1000]
-    method = ['basic_method', 'modulo_method', 'clipping_method']
     method = ['modulo_method']
     method = ['clipping_method', 'modulo_method']
+    method = ['basic_method', 'modulo_method', 'clipping_method']
     inx = pd.MultiIndex.from_product([quant_size, number_of_bins, method, snr_values], names=['quant_size', 'number_of_bins', 'method', 'snr'])
     print('generated %d simulations' % inx.shape[0])
     df = pd.DataFrame(index=inx).reset_index(drop=False)
+
+    df = pd.concat([df] * u.multiply_simulations, ignore_index=True)
 
     print('running the simulations')
     sim_output=df.progress_apply(lambda x: globals()[x.method](samples=u.samples, quant_size=x.quant_size, number_of_bins=x.number_of_bins, snr=x.snr, A_rows=A_rows),axis=1)

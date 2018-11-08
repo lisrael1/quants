@@ -5,7 +5,9 @@ import itertools
 from optparse import OptionParser
 import pathos.multiprocessing as mp
 from tqdm import tqdm
-import time
+import time, subprocess
+from sys import platform
+
 
 pd.set_option('expand_frame_repr', False)
 '''
@@ -37,6 +39,14 @@ def rand_cov_det_1(dimensions=2):
     cov = np.matrix(np.random.normal(0, 1, [dimensions, dimensions]))
     cov = cov.T * cov
     cov /= np.power(np.linalg.det(cov), 1 / dimensions)  # for 2X2 we use sqrt because we have 2 dimensions and we have a*c-b*d
+    return cov
+
+
+def rand_cov_det_2(dimensions=2,noise_std=0.01):
+    cov = np.matrix(np.random.normal(0, 1, [1, dimensions]))
+    cov = cov.T * cov
+    # cov+=np.matrix(np.diag(np.abs(np.random.normal(0, noise_std, dimensions))))
+    cov+=np.matrix(np.diag([np.random.choice([1/10,1/100,1/1000])]*dimensions))
     return cov
 
 
@@ -82,7 +92,7 @@ def to_codebook(df, quantizer_size, number_of_bins=False):
     :param number_of_bins: for example, if you want 4 levels 2 bits, with bin size of 0.2, modulo size will be 0.2*4 because 4 level have 3 gaps and
             you add another one for the margins
             0 is for endless quantizer without modulo
-    :return:
+    :return: we add offset of half modulo_size so you should clip or modulo from 0 to modulo_size
     '''
     if number_of_bins:
         modulo_size = int(number_of_bins) * quantizer_size
@@ -114,14 +124,14 @@ def expected_mse_from_quantization(quant_size):
     return quant_size ** 2 / 12
 
 
-def mse_from_naive_method(samples, quant_size, number_of_bins, std_threshold=3, A_rows=None): # TODO maybe we can return nan when we have more than given mse instead of std_threadold. or maybe the TX always transmite so the std checker is after the cutting
+def naive_method(samples, quant_size, number_of_bins, std_threshold=3, A_rows=None): # TODO maybe we can return nan when we have more than given mse instead of std_threadold. or maybe the TX always transmite so the std checker is after the cutting
     '''
     for quants with cutting high values to max quant value
     example:
         quant_size = 0.2
         cov = rand_cov_det_1()
         data = random_data(cov, 1000)
-        mse = mse_from_naive_method(data, quant_size, 100)
+        mse = naive_method(data, quant_size, 100)
         print('mse = %g' % mse)
         print('uniform mse should be %g' % (quant_size ** 2 / 12)) # when all data is inside the module, you should get mse like uniform mse
     :param data:
@@ -130,7 +140,9 @@ def mse_from_naive_method(samples, quant_size, number_of_bins, std_threshold=3, 
     :return:
     '''
     number_of_bins = int(number_of_bins)
-    original = pd.DataFrame(random_data(rand_cov_det_1(),samples).values.flatten())
+    cov=rand_cov_det_2()
+    pearson=cov[0,1]/np.sqrt(cov[0,0]*cov[1,1])
+    original = pd.DataFrame(random_data(cov,samples).values.flatten())
     q = to_codebook(original, quant_size, number_of_bins)
 
     '''now cutting the edges:'''
@@ -140,17 +152,17 @@ def mse_from_naive_method(samples, quant_size, number_of_bins, std_threshold=3, 
         return float(q.std()),original.values.flatten().var()
         # return np.nan
     o = from_codebook(q, quant_size, number_of_bins)
-    return float(q.std()),(o - original).values.flatten().var()
+    return float(q.std()),(o - original).values.flatten().var(),((o-original).abs().values.flatten()>quant_size).astype(int).mean(),pearson
 
 
-def mse_from_basic_method(samples,quant_size,number_of_bins=False, A_rows=None):
+def basic_method(samples,quant_size,number_of_bins=False, A_rows=None):
     '''
     for endless quants without modulo
     example:
         quant_size=0.02
         cov=rand_cov_det_1()
         data=random_data(cov,1000)
-        mse=mse_from_basic_method(data,quant_size)
+        mse=basic_method(data,quant_size)
         print('mse = %g' % mse)
         print('uniform mse should be %g'%(quant_size**2/12))
 
@@ -158,13 +170,13 @@ def mse_from_basic_method(samples,quant_size,number_of_bins=False, A_rows=None):
     :param quant_size:
     :return:
     '''
-    original = random_data(rand_cov_det_1(),samples)#data.copy()
+    original = random_data(rand_cov_det_2(),samples)#data.copy()
     q = to_codebook(original, quant_size, 0)
     o = from_codebook(q, quant_size, 0)
-    return 0,(o - original).values.flatten().var()
+    return 0,(o - original).values.flatten().var(),((o-original).abs().values.flatten()>quant_size).astype(int).mean()
 
 
-def mse_from_modulo_method(samples, quant_size, number_of_bins, std_threshold=3, A_rows=None):
+def modulo_method(samples, quant_size, number_of_bins, std_threshold=3, A_rows=None):
     '''
     for modulo method
     example:
@@ -172,7 +184,7 @@ def mse_from_modulo_method(samples, quant_size, number_of_bins, std_threshold=3,
         number_of_bins = 1001
         cov = rand_cov_det_1()
         data = random_data(cov, 1000)
-        mse = mse_from_modulo_method(data, quant_size, number_of_bins)
+        mse = modulo_method(data, quant_size, number_of_bins)
         print('mse = %g' % mse)
         print('uniform mse should be %g' % (quant_size ** 2 / 12))
     :param data:
@@ -180,7 +192,9 @@ def mse_from_modulo_method(samples, quant_size, number_of_bins, std_threshold=3,
     :param number_of_bins:
     :return:
     '''
-    original = random_data(rand_cov_det_1(),samples) #data.copy()
+    cov=rand_cov_det_2()
+    pearson=cov[0,1]/np.sqrt(cov[0,0]*cov[1,1])
+    original = random_data(cov,samples) #data.copy()
     q = to_codebook(original, quant_size, 0)
     # q = to_codebook(original, quant_size, number_of_bins)
     # m1 = q % number_of_bins
@@ -206,11 +220,17 @@ def mse_from_modulo_method(samples, quant_size, number_of_bins, std_threshold=3,
     o = from_codebook(r3, quant_size, 0)
     # o = from_codebook(r, quant_size, number_of_bins)
     # visualize_data_defore_after(original, o)
-    return best_std.max(),(o - original).values.flatten().var()
+    return best_std.max(),(o - original).values.flatten().var(),((o-original).abs().values.flatten()>quant_size).astype(int).mean(),pearson
+
 
 if __name__ == '__main__':
     start = time.time()
-    parser = OptionParser()
+    help_text='''
+    examples:
+        seq 0 40 |xargs -I ^ echo python3 "2.\ run\ simulation\ cases.py" --number_of_splits 40 --number_of_split ^ \&
+        sbatch --mem=1800m -c1 --time=0:50:0 --array=0-399 --wrap "python3 2.\ run\ simulation\ cases.py --number_of_splits \$SLURM_ARRAY_TASK_COUNT --number_of_split \$SLURM_ARRAY_TASK_ID"
+    '''
+    parser = OptionParser(usage=help_text, version="%prog 1.0 beta")
     parser.add_option("-n", "", dest="samples", type="int", default=100, help='number of dots X2 because you have x and y. for example 1000. you better use 5 [default: %default]')
     parser.add_option("--number_of_splits", dest="number_of_splits", type="int", default=1, help='you have 1k cases, and you want to run them with x splits [default: %default]')
     parser.add_option("--number_of_split", dest="number_of_split", type="int", default=0, help='the split number from all splits [default: %default]')
@@ -230,13 +250,27 @@ if __name__ == '__main__':
     A_rows=get_all_a_rows(u.A_max_num)
 
     '''420,000 rows took me 1645 sec'''
-    df = pd.read_csv('simulation_cases.csv',index_col=[0])
-    #taking part of the simulation for this split
-    df=df.iloc[np.array_split(df.index.values,u.number_of_splits)[u.number_of_split]]
+    if "win" in platform:
+        df = pd.read_csv('simulation_cases.csv.gz',index_col=[0]).reset_index(drop=True)
+        print('taking part of the simulation for this split')
+        df=df.iloc[np.array_split(df.index.values,u.number_of_splits)[u.number_of_split]]
+    else:
+        print('checking file length')
+        process = subprocess.Popen("pigz -dc simulation_cases.csv.gz|wc -l", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        lines = int(process.stdout.read().strip())
+        c = np.arange(lines - 1)
+        print('splitting file index')
+        b = np.array_split(c, u.number_of_splits)[u.number_of_split]
+        print('reading file')
+        df = pd.read_csv('simulation_cases.csv.gz', index_col=[0], nrows=len(b),skiprows=np.arange(1, b[0]+1)).reset_index(drop=True)
+
+    df.replace('mse_from_','',regex=True,inplace=True)
     print('done reading simulation cases')
 
     df['sampled_std']=None
     df['mse']=None
+    df['error_per']=None
+    df['pearson']=None
 
     if 0:
         '''removing non interesting cases'''
@@ -253,12 +287,12 @@ if __name__ == '__main__':
         print('number of cpus: %d' % num_of_cpu)
         p = mp.Pool(num_of_cpu)
         args = [dict(df=df.iloc[inx], A_rows=A_rows, samples=u.samples) for inx in np.array_split(range(df.shape[0]), num_of_cpu)]
-        df[['sampled_std','mse']] = pd.concat(p.map(lambda y: y['df'].apply(lambda x:pd.Series(globals()[x.method](samples=y['samples'] ,quant_size=x.quant_size, std_threshold=x.std_threshold,number_of_bins=x.number_of_bins,A_rows=y['A_rows']),index=['sampled_std','mse']),axis=1),args))
+        df[['sampled_std','mse','error_per','pearson']] = pd.concat(p.map(lambda y: y['df'].apply(lambda x:pd.Series(globals()[x.method](samples=y['samples'] ,quant_size=x.quant_size, std_threshold=x.std_threshold,number_of_bins=x.number_of_bins,A_rows=y['A_rows']),index=['sampled_std','mse','error_per','pearson']),axis=1),args))
     else:
         for inx in tqdm(np.array_split(range(df.shape[0]),100)):
-            df.loc[inx+df.index.values[0],['sampled_std','mse']]=df.iloc[inx].apply(lambda x:pd.Series(globals()[x.method](samples=u.samples ,quant_size=x.quant_size,number_of_bins=x.number_of_bins, std_threshold=x.std_threshold,A_rows=A_rows),index=['sampled_std','mse']),axis=1)
+            df.loc[inx+df.index.values[0],['sampled_std','mse','error_per','pearson']]=df.iloc[inx].apply(lambda x:pd.Series(globals()[x.method](samples=u.samples ,quant_size=x.quant_size,number_of_bins=x.number_of_bins, std_threshold=x.std_threshold,A_rows=A_rows),index=['sampled_std','mse','error_per','pearson']),axis=1)
     print(df.head())
-    df.to_csv('resutls_%08d.csv'%u.number_of_split)
+    df.to_csv('resutls_%08d.csv.gz'%u.number_of_split,compression='gzip')
     # df.dropna(how='any',inplace=True)
     # res=df.pivot_table(values='mse',columns=['number_of_bins','method'],index=['quant_size'],aggfunc=[np.mean,np.median])
     # res.to_csv('7.2 resutls.csv')

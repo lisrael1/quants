@@ -138,16 +138,18 @@ def clipping_method(samples, quant_size, number_of_bins, std_threshold=None, A_r
     number_of_bins = int(number_of_bins)
     cov=rand_cov_det(snr=snr)
     pearson=cov[0,1]/np.sqrt(cov[0,0]*cov[1,1])
-    original = pd.DataFrame(random_data(cov,samples).values.flatten())
+    original = pd.DataFrame(random_data(cov,samples).values)#.flatten())
     q = to_codebook(original, quant_size, 0)
 
     '''now cutting the edges:'''
     q=np.clip(q,np.ceil(-number_of_bins/2),np.floor(number_of_bins/2)).astype(int)
     if std_threshold and (q.std()>std_threshold).astype(int).sum()>0:
+        return 'deprecated'
         return float(q.std()),original.values.flatten().var()
-        # return np.nan
     o = from_codebook(q, quant_size, 0)
-    return float(q.std()),(o - original).values.flatten().var(),((o-original).abs().values.flatten()>quant_size).astype(int).mean(),pearson
+    # return float(q.std()),(o - original).values.flatten().var(),((o-original).abs().values.flatten()>quant_size).astype(int).mean(),pearson
+    res=dict(sampled_std_1=q.min(), sampled_std_2=q.max(), mse=(o - original).values.flatten().var(), error_per=((o-original).abs().values.flatten()>quant_size).astype(int).mean(), pearson=pearson)
+    return res
 
 
 def basic_method(samples,quant_size, number_of_bins=False, A_rows=None, snr=1000):
@@ -168,7 +170,9 @@ def basic_method(samples,quant_size, number_of_bins=False, A_rows=None, snr=1000
     original = random_data(rand_cov_det(snr=snr),samples)#data.copy()
     q = to_codebook(original, quant_size, 0)
     o = from_codebook(q, quant_size, 0)
-    return 0,(o - original).values.flatten().var(),((o-original).abs().values.flatten()>quant_size).astype(int).mean(),0
+    # return 0,(o - original).values.flatten().var(),((o-original).abs().values.flatten()>quant_size).astype(int).mean(),0
+    res=dict(sampled_std_1=0, sampled_std_2=0, mse=(o - original).values.flatten().var(), error_per=((o-original).abs().values.flatten()>quant_size).astype(int).mean(), pearson=0)
+    return res
 
 
 def modulo_method(samples, quant_size, number_of_bins, std_threshold=None, A_rows=None, snr=1000):
@@ -216,21 +220,22 @@ def modulo_method(samples, quant_size, number_of_bins, std_threshold=None, A_row
     o = from_codebook(r3, quant_size, 0)
     # o = from_codebook(r, quant_size, number_of_bins)
     # visualize_data_defore_after(original, o)
-    return best_std.max(),(o - original).values.flatten().var(),((o-original).abs().values.flatten()>quant_size).astype(int).mean(),pearson
+    res=dict(sampled_std_1=best_std.min(), sampled_std_2=best_std.max(), mse=(o - original).values.flatten().var(), error_per=((o-original).abs().values.flatten()>quant_size).astype(int).mean(), pearson=pearson)
+    return res
 
 
 if __name__ == '__main__':
     start = time.time()
     help_text='''
     examples:
-        seq 0 40 |xargs -I ^ echo python3 "1.\ run\ simulation\ cases.py" -s ^ \&
+        seq 0 40 |xargs -I ^ echo python3 "%prog" -s ^ \&
         sbatch --mem=1800m -c1 --time=0:50:0 --array=0-399 --wrap 'python3 %prog -s ${SLURM_JOB_ID}_${SLURM_ARRAY_TASK_ID}'
     '''
     parser = OptionParser(usage=help_text, version="%prog 1.0 beta")
     parser.add_option("-n", dest="samples", type="int", default=100, help='number of dots X2 because you have x and y. for example 1000. you better use 5 [default: %default]')
     parser.add_option("-s", dest="split_id", type="str", default='0', help='the split unique id so it will not override old output [default: %default]')
-    parser.add_option("-a", dest="A_max_num", type="int", default=10,help='A max number for example for 2 you can get [[-2,1],[2,0]]. for number 10, you will get 189,776 options at A. at 5 you will have 13608. . you better use 10 [default: %default]')
-    parser.add_option("-m", dest="multiply_simulations", type="int", default=15,help='multiply those simulations n times [default: %default]')
+    parser.add_option("-a", dest="A_max_num", type="int", default=15,help='A max number for example for 2 you can get [[-2,1],[2,0]]. for number 10, you will get 189,776 options at A. at 5 you will have 13608. . you better use 10 [default: %default]')
+    parser.add_option("-m", dest="multiply_simulations", type="int", default=1,help='multiply those simulations n times [default: %default]')
     parser.add_option("-p", dest="run_serial", action='store_false', help="dont run parallel. disables when you have splits [default: %default]",default=True)
     parser.add_option("-b", dest="number_of_bins_range", type="str", default='[13,25]', help='number of bins, for example [3,25] [default: %default]')
     parser.add_option("-q", dest="quant_size_range", type="str", default='[0,3.3]', help='number of bins, for example [0,2] [default: %default]')
@@ -253,7 +258,8 @@ if __name__ == '__main__':
 
     print('running the simulations')
     sim_output=df.progress_apply(lambda x: globals()[x.method](samples=u.samples, quant_size=x.quant_size, number_of_bins=x.number_of_bins, snr=x.snr, A_rows=A_rows),axis=1)
-    sim_output=sim_output.apply(lambda x: pd.Series(x, index=['sampled_std', 'mse', 'error_per', 'pearson']))
+    # sim_output=sim_output.apply(lambda x: pd.Series(x, index=['sampled_std', 'mse', 'error_per', 'pearson']))
+    sim_output=sim_output.apply(pd.Series)
     df=df.join(sim_output)
 
     print(df.head())

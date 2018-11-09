@@ -224,12 +224,12 @@ if __name__ == '__main__':
     help_text='''
     examples:
         seq 0 40 |xargs -I ^ echo python3 "1.\ run\ simulation\ cases.py" -s ^ \&
-        sbatch --mem=1800m -c1 --time=0:50:0 --array=0-399 --wrap 'python3 %prog -s ${SLURM_ARRAY_TASK_ID}_${SLURM_JOB_ID}'
+        sbatch --mem=1800m -c1 --time=0:50:0 --array=0-399 --wrap 'python3 %prog -s ${SLURM_JOB_ID}_${SLURM_ARRAY_TASK_ID}'
     '''
     parser = OptionParser(usage=help_text, version="%prog 1.0 beta")
     parser.add_option("-n", dest="samples", type="int", default=100, help='number of dots X2 because you have x and y. for example 1000. you better use 5 [default: %default]')
     parser.add_option("-s", dest="split_id", type="str", default='0', help='the split unique id so it will not override old output [default: %default]')
-    parser.add_option("-a", dest="A_max_num", type="int", default=15,help='A max number for example for 2 you can get [[-2,1],[2,0]]. for number 10, you will get 189,776 options at A. at 5 you will have 13608. . you better use 10 [default: %default]')
+    parser.add_option("-a", dest="A_max_num", type="int", default=10,help='A max number for example for 2 you can get [[-2,1],[2,0]]. for number 10, you will get 189,776 options at A. at 5 you will have 13608. . you better use 10 [default: %default]')
     parser.add_option("-m", dest="multiply_simulations", type="int", default=15,help='multiply those simulations n times [default: %default]')
     parser.add_option("-p", dest="run_serial", action='store_false', help="dont run parallel. disables when you have splits [default: %default]",default=True)
     parser.add_option("-b", dest="number_of_bins_range", type="str", default='[13,25]', help='number of bins, for example [3,25] [default: %default]')

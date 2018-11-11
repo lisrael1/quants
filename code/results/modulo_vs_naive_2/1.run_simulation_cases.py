@@ -237,15 +237,14 @@ if __name__ == '__main__':
     parser.add_option("-a", dest="A_max_num", type="int", default=15,help='A max number for example for 2 you can get [[-2,1],[2,0]]. for number 10, you will get 189,776 options at A. at 5 you will have 13608. . you better use 10 [default: %default]')
     parser.add_option("-m", dest="multiply_simulations", type="int", default=1,help='multiply those simulations n times [default: %default]')
     parser.add_option("-p", dest="run_serial", action='store_false', help="dont run parallel. disables when you have splits [default: %default]",default=True)
-    parser.add_option("-b", dest="number_of_bins_range", type="str", default='[13,25]', help='number of bins, for example [3,25] [default: %default]')
-    parser.add_option("-q", dest="quant_size_range", type="str", default='[0,3.3]', help='number of bins, for example [0,2] [default: %default]')
-    number_of_quant_size = 50
+    parser.add_option("-b", dest="number_of_bins_list", type="str", default='[5,17,19,101]', help='number of bins, for example [3,,13,25] [default: %default]')
+    parser.add_option("-q", dest="quant_size_linspace_params", type="str", default='[0,3.3,15]', help='quant size np.linspace args, for example [0,3.3,10] will be np.linspace(*[0,3.3,10] ) [default: %default]')
     (u, args) = parser.parse_args()
 
     A_rows=get_all_a_rows(u.A_max_num)
 
-    quant_size = np.linspace(eval(u.quant_size_range)[0], eval(u.quant_size_range)[1], number_of_quant_size + 1)[1:]
-    number_of_bins = range(eval(u.number_of_bins_range)[0], eval(u.number_of_bins_range)[1], 2)
+    quant_size = np.linspace(*eval(u.quant_size_linspace_params))[1:]
+    number_of_bins = eval(u.number_of_bins_list)
     snr_values=[10,100,1000]
     method = ['modulo_method']
     method = ['clipping_method', 'modulo_method']

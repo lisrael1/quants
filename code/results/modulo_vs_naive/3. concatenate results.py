@@ -1,12 +1,15 @@
 '''
 you can use instead:
-    pigz -dck *.gz $q/results/modulo_vs_naive_2/*.gz|grep -v quant|pigz>/tmp/lior_tmp.csv.gz
-    cat ./results_del_00000000.csv.gz /tmp/lior_tmp.csv.gz >/tmp/lior_tmp2.csv.gz
+    time pigz -dck /cs/grad/lisrael1/safe/run/*.gz /cs/grad/lisrael1/Desktop/quants/code/results/modulo_vs_naive_2/*.gz|grep -v quant|pigz>/tmp/lior_tmp.csv.gz&
+    #will take about 50 sec for 1K files
+    pigz -dck /cs/grad/lisrael1/safe/run/*.gz|head -n 1 |pigz >/tmp/tmp_lior_header.csv
+    cat /tmp/tmp_lior_header.csv /tmp/lior_tmp.csv.gz >/tmp/lior_tmp2.csv.gz
     split -n l/2 -d /tmp/lior_tmp2.csv.gz /tmp/lior_
     cp /tmp/lior_00 ~/www/final_results.csv.gz
     #download...
     cp /tmp/lior_01 ~/www/final_results.csv.gz
-    #download...
+    #download
+        http://www.cs.huji.ac.il/~lisrael1/final_results.csv.gz
 '''
 import pandas as pd
 import glob

@@ -28,10 +28,15 @@ if 0: # if you dont want to concatenate the results, you can read them one by on
     for file in files:
         print('now reading file %s'%file)
         df=pd.concat([df,pd.read_csv(file,index_col=[0])])
+    output_dir=""
 else:
     file=r"C:\Users\lisrael1\Documents\myThings\lior_docs\HU\thesis\quants\code\results\modulo_vs_naive_2\results_del_0.csv.gz"
+    file=r"C:\Users\lisrael1\Documents\myThings\lior_docs\HU\thesis\quants\code\results\modulo_vs_naive_2\results_del_0.csv.gz"
     file=r"C:\Users\lisrael1\Documents\myThings\lior_docs\HU\thesis\quants\code\results\modulo_vs_naive_2\final_results.csv.gz"
-    df=pd.read_csv(file, index_col=[0], nrows=100000)
+    output_dir=file.replace('\\','/').rsplit('/',1)[0]+'/'
+    if len(output_dir)==1:
+        output_dir=''
+    df=pd.read_csv(file, index_col=[0])#,nrows=10000)
 
 df['modulo_size']=df.number_of_bins*df.quant_size
 print('done reading csv')
@@ -51,7 +56,7 @@ if 0:
     a=a.rename(columns={0:'quant_size'})
     a.pivot_table(index='number_of_bins',columns='method',values='total_modulo_size').plot()
 # exit()
-name='mse and error rate per number of bins'
+name='%smse and error rate per number of bins per %s'%(output_dir,x_axis)
 resolution.to_excel(name+'.xlsx')
 fig=resolution.figure(xTitle=x_axis, yTitle='mean mse', title='mean mse vs modulo size per method and number of bins')
 fig=remove_nans_from_plot(fig)

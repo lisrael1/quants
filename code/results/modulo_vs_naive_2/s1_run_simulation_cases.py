@@ -17,12 +17,19 @@ this script is: - TODO update this...
 
 def get_all_a_rows(a_max_num):
     comb = list(range(-a_max_num, a_max_num + 1))
+    if 0:
+        print('{s} ERROR - remove independent rows! {s}'.format(s='*'*10))
+        comb = [comb, comb]
+        all_rows = list(itertools.product(*comb))
+        all_rows.remove((0, 0))
+        return np.mat(all_rows)
     '''we dont want 0,0. we want only 0,1 not 0,-1 not 0,2 etc.'''
     comb.remove(0)
     comb = [comb, comb]
     all_rows = list(itertools.product(*comb))
     '''we removed all starting with 0, but we want 0,1. we dont want 0,2 because we already have 0,1'''
     all_rows += [(0, 1)]
+    all_rows += [(1, 0)]
     all_rows = pd.DataFrame(all_rows, columns=['a', 'b'])
     '''now removing dependencies by normalizing all first numbers to 1 and removing duplicates'''
     all_rows['normal_b'] = all_rows.b / all_rows.a
@@ -35,7 +42,7 @@ def get_all_a_rows(a_max_num):
     return np.mat(all_rows[['a', 'b']].values)
 
 
-def rand_cov_det(dimensions=2, snr=1000):
+def rand_cov(dimensions=2, snr=1000):
     cov = np.matrix(np.random.normal(0, 1, [1, dimensions]))
     cov = cov.T * cov
     cov+=np.matrix(np.diag([1/snr]*dimensions))
@@ -125,7 +132,7 @@ def clipping_method(samples, quant_size, number_of_bins, std_threshold=None, A_r
     for quants with cutting high values to max quant value
     example:
         quant_size = 0.2
-        cov = rand_cov_det_1()
+        cov = rand_cov_1()
         data = random_data(cov, 1000)
         mse = clipping_method(data, quant_size, 100)
         print('mse = %g' % mse)
@@ -136,7 +143,7 @@ def clipping_method(samples, quant_size, number_of_bins, std_threshold=None, A_r
     :return:
     '''
     number_of_bins = int(number_of_bins)
-    cov=rand_cov_det(snr=snr)
+    cov=rand_cov(snr=snr)
     pearson=cov[0,1]/np.sqrt(cov[0,0]*cov[1,1])
     original = pd.DataFrame(random_data(cov,samples).values)#.flatten())
     q = to_codebook(original, quant_size, 0)
@@ -157,7 +164,7 @@ def basic_method(samples, quant_size, number_of_bins=False, A_rows=None, snr=100
     for endless quants without modulo
     example:
         quant_size=0.02
-        cov=rand_cov_det_1()
+        cov=rand_cov_1()
         data=random_data(cov,1000)
         mse=basic_method(data,quant_size)
         print('mse = %g' % mse)
@@ -167,7 +174,7 @@ def basic_method(samples, quant_size, number_of_bins=False, A_rows=None, snr=100
     :param quant_size:
     :return:
     '''
-    cov=rand_cov_det(snr=snr)
+    cov=rand_cov(snr=snr)
     original = random_data(cov, samples)
     q = to_codebook(original, quant_size, 0)
     o = from_codebook(q, quant_size, 0)
@@ -186,7 +193,7 @@ def modulo_method(samples, quant_size, number_of_bins, std_threshold=None, A_row
     example:
         quant_size = 0.01
         number_of_bins = 1001
-        cov = rand_cov_det_1()
+        cov = rand_cov_1()
         data = random_data(cov, 1000)
         mse = modulo_method(data, quant_size, number_of_bins)
         print('mse = %g' % mse)
@@ -196,7 +203,7 @@ def modulo_method(samples, quant_size, number_of_bins, std_threshold=None, A_row
     :param number_of_bins:
     :return:
     '''
-    cov=rand_cov_det(snr=snr)
+    cov=rand_cov(snr=snr)
     pearson=cov[0,1]/np.sqrt(cov[0,0]*cov[1,1])
     original = random_data(cov,samples) #data.copy()
     q = to_codebook(original, quant_size, 0)

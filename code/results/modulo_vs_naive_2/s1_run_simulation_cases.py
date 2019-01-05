@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 import itertools
 from optparse import OptionParser
-from tqdm import tqdm
 import time, subprocess
 from sys import platform
 from tqdm import tqdm
@@ -18,7 +17,7 @@ this script is: - TODO update this...
 def get_all_a_rows(a_max_num):
     comb = list(range(-a_max_num, a_max_num + 1))
     if 0:
-        print('{s} ERROR - remove independent rows! {s}'.format(s='*'*10))
+        print('{s} ERROR - remove dependent rows! {s}'.format(s='*'*10))
         comb = [comb, comb]
         all_rows = list(itertools.product(*comb))
         all_rows.remove((0, 0))

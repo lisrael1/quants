@@ -67,9 +67,10 @@ if __name__ == '__main__':
     print(df.head())
     print(df.describe())
     df.to_csv('results_del_%s.csv.gz'%u.split_id,compression='gzip')
-    print('%d uniques A that the script found'%df.A.dropna().astype(str).nunique())
-    print(df.A.dropna().astype(str).value_counts())
+    if 0:
+        print('%d uniques A that the script found'%df.A.dropna().astype(str).nunique())
+        print(df.A.dropna().astype(str).value_counts())
 
-    fig = df.pivot_table(index='quant_size', columns=['method', 'number_of_bins'], values='rmse').figure(yTitle='rmse', xTitle='quant size')
-    py.offline.plot(fig)
+        fig = df.pivot_table(index='quant_size', columns=['method', 'number_of_bins'], values='rmse').figure(yTitle='rmse', xTitle='quant size')
+        py.offline.plot(fig)
 

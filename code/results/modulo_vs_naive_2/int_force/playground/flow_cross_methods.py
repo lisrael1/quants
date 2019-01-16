@@ -31,6 +31,7 @@ if __name__ == '__main__':
     parser.add_option("-q", dest="quant_size_linspace_params", type="str", default='[0,3.3,150]', help='quant size np.linspace args, for example [0,3.3,10] will be np.linspace(*[0,3.3,10] ) [default: %default]')
     parser.add_option("--a_matrix", dest="A", type="str", default='', help='A Matrix, for example [[1,0],[-2,1]] [default: %default]')
     parser.add_option("--methods", dest="methods", type="str", default='''['clipping_method', 'modulo_method', 'ml_method']''', help='''[default: %default]''')
+    parser.add_option("--snr", dest="snr", type="str", default='[10,100,1000]', help='[default: %default]')
 
     # parser.add_option("--methods", dest="methods", type="str", default='''['ml_method']''', help='''[default: %default]''')
     # parser.add_option("-m", dest="multiply_simulations", type="int", default=10,help='multiply those simulations n times [default: %default]')
@@ -49,8 +50,7 @@ if __name__ == '__main__':
 
     quant_size = np.linspace(*eval(u.quant_size_linspace_params))[1:]
     number_of_bins = eval(u.number_of_bins_list)
-    snr_values=[None]
-    snr_values=[10,100,1000]
+    snr_values=eval(u.snr)
     method=eval(u.methods)
     inx = pd.MultiIndex.from_product([quant_size, number_of_bins, method, snr_values], names=['quant_size', 'number_of_bins', 'method', 'snr'])
     print('generated %d simulations' % inx.shape[0])

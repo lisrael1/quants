@@ -10,7 +10,6 @@ from scipy.stats import multivariate_normal
 import pylab as plt
 
 
-
 def modulo_method(samples, quant_size, number_of_bins, A=None, snr=1000, dont_look_for_A=True):
     '''
     for modulo method
@@ -37,6 +36,7 @@ def modulo_method(samples, quant_size, number_of_bins, A=None, snr=1000, dont_lo
              cov = str(cov.tolist()))
     return res
 
+
 def ml_map(cov, number_of_bins, mod_size, number_of_modulos=7, plots=False, debug=False):
     bin_size=mod_size/number_of_bins
     rv = multivariate_normal([0, 0], cov)
@@ -50,20 +50,24 @@ def ml_map(cov, number_of_bins, mod_size, number_of_modulos=7, plots=False, debu
     df['y_low']=df.y_center-bin_size/2
     df['x_high']=df.x_center+bin_size/2
     df['y_high']=df.y_center+bin_size/2
-    print('doing cdf')
+    # print('doing cdf')
     df['high_cdf']=rv.cdf(df[['x_high', 'y_high']].values)
     df['low_cdf']=rv.cdf(df[['x_low', 'y_low']].values)
     df['left_cdf']=rv.cdf(df[['x_low', 'y_high']].values)
     df['down_cdf']=rv.cdf(df[['x_high', 'y_low']].values)
-    print('done cdf')
+    # print('done cdf')
     df['bin_cdf']=df.high_cdf-df.left_cdf-df.down_cdf+df.low_cdf
     modulo_group=df.groupby(['x_modulo_shifts', 'y_modulo_shifts']).size().reset_index().reset_index().drop(0, axis=1).rename(columns=dict(index='modulo_group_number'))
     df=pd.merge(df, modulo_group, on=['x_modulo_shifts', 'y_modulo_shifts'], how='left')
 
     probability_shifts = df.pivot_table(index=['x_modulo_shifts', 'y_modulo_shifts', 'modulo_group_number'], columns=['x_mod', 'y_mod'], values='bin_cdf').idxmax().unstack()
-    probability_map=probability_shifts.applymap(lambda x:x[2])
-    x_shift=probability_shifts.applymap(lambda x:x[0])
-    y_shift=probability_shifts.applymap(lambda x:x[1])
+    try:
+        probability_map=probability_shifts.applymap(lambda x:x[2])
+        x_shift=probability_shifts.applymap(lambda x:x[0])
+        y_shift=probability_shifts.applymap(lambda x:x[1])
+    except:
+        print('unknown error. for some reason instead of dictionary, we have float at the content. maybe its when we have only 1 sample?. return')
+        return dict()
     probability_map_max = df.pivot_table(index='modulo_group_number', columns=['x_mod', 'y_mod'], values='bin_cdf').max().unstack()
     if df.pivot_table(index='modulo_group_number', columns=['x_mod', 'y_mod'], values='bin_cdf').count().unstack().std().std():
         print('WARINING - probably modulo didnt worked correctly')
@@ -96,8 +100,7 @@ def ml_map(cov, number_of_bins, mod_size, number_of_modulos=7, plots=False, debu
             probability_map=df.pivot_table(index='modulo_group_number', columns=['x_mod', 'y_mod'], values='bin_cdf').idxmax().sort_values().to_frame('modulo_group_number').astype(str).reset_index()
             fig=probability_map.figure(kind='scatter', x='x_mod', y='y_mod', categories='modulo_group_number')
             py.offline.plot(fig)
-    ml=x_shift.stack().to_frame('x_shift')
-    ml=ml.join(y_shift.stack().to_frame('y_shift'))
+    ml=x_shift.stack().to_frame('x_shift').join(y_shift.stack().to_frame('y_shift'))
     return ml
 
 

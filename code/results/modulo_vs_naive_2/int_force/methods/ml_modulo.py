@@ -37,8 +37,117 @@ def modulo_method(samples, quant_size, number_of_bins, A=None, snr=1000, dont_lo
              cov = str(cov.tolist()))
     return res
 
+def ml_map(cov, number_of_bins, mod_size, number_of_modulos=7, plots=False, debug=False):
+    bin_size=mod_size/number_of_bins
+    rv = multivariate_normal([0, 0], cov)
+    bin_edges=np.linspace(-number_of_modulos*mod_size/2, number_of_modulos*mod_size/2, number_of_modulos*number_of_bins+1, endpoint=True)
+    bin_centers=(bin_edges[1:]+bin_edges[:-1])/2
+    df=pd.DataFrame(list(itertools.product(*[bin_centers] * 2)), columns='x_center,y_center'.split(','))
+    df=df.join(int_force.methods.methods.sign_mod(df, mod_size).rename(columns=dict(x_center='x_mod', y_center='y_mod'))).round(12)
+    df['x_modulo_shifts']=(df.x_center-df.x_mod)/mod_size
+    df['y_modulo_shifts']=(df.y_center-df.y_mod)/mod_size
+    df['x_low']=df.x_center-bin_size/2
+    df['y_low']=df.y_center-bin_size/2
+    df['x_high']=df.x_center+bin_size/2
+    df['y_high']=df.y_center+bin_size/2
+    print('doing cdf')
+    df['high_cdf']=rv.cdf(df[['x_high', 'y_high']].values)
+    df['low_cdf']=rv.cdf(df[['x_low', 'y_low']].values)
+    df['left_cdf']=rv.cdf(df[['x_low', 'y_high']].values)
+    df['down_cdf']=rv.cdf(df[['x_high', 'y_low']].values)
+    print('done cdf')
+    df['bin_cdf']=df.high_cdf-df.left_cdf-df.down_cdf+df.low_cdf
+    modulo_group=df.groupby(['x_modulo_shifts', 'y_modulo_shifts']).size().reset_index().reset_index().drop(0, axis=1).rename(columns=dict(index='modulo_group_number'))
+    df=pd.merge(df, modulo_group, on=['x_modulo_shifts', 'y_modulo_shifts'], how='left')
+
+    probability_shifts = df.pivot_table(index=['x_modulo_shifts', 'y_modulo_shifts', 'modulo_group_number'], columns=['x_mod', 'y_mod'], values='bin_cdf').idxmax().unstack()
+    probability_map=probability_shifts.applymap(lambda x:x[2])
+    x_shift=probability_shifts.applymap(lambda x:x[0])
+    y_shift=probability_shifts.applymap(lambda x:x[1])
+    probability_map_max = df.pivot_table(index='modulo_group_number', columns=['x_mod', 'y_mod'], values='bin_cdf').max().unstack()
+    if df.pivot_table(index='modulo_group_number', columns=['x_mod', 'y_mod'], values='bin_cdf').count().unstack().std().std():
+        print('WARINING - probably modulo didnt worked correctly')
+
+    if debug:
+        print('group_occurrence')
+        group_occurrence = 100 * probability_map.stack().value_counts() / probability_map.size
+        group_occurrence = group_occurrence.to_frame('percentages').reset_index().rename(columns=dict(index='modulo_group_number'))
+        group_occurrence = pd.merge(modulo_group, group_occurrence, on='modulo_group_number', how='right').sort_values('percentages', ascending=False)
+        print(group_occurrence)
+
+    if plots:
+        import plotly as py
+        import cufflinks
+        if debug:
+            if 0:
+                original_heatmap=df[['x_center','y_center','bin_cdf']][(df.x_center==df.x_mod)&(df.y_center==df.y_mod)].set_index(['x_center','y_center']).unstack()
+            else:
+                original_heatmap=df[['x_center','y_center','bin_cdf']].set_index(['x_center','y_center']).unstack()
+            original_heatmap.columns=original_heatmap.columns.get_level_values(1)
+            fig = original_heatmap.figure(kind='heatmap', colorscale='Reds')
+            # fig = original_heatmap.figure(kind='surface', colorscale='Reds')
+            py.offline.plot(fig, filename='original_heatmap.html')
+        if 1:
+            fig=probability_map.figure(kind='heatmap', colorscale='Reds')
+            py.offline.plot(fig, filename='probability_map.html')
+            fig = probability_map_max.figure(kind='heatmap', colorscale='Reds')
+            py.offline.plot(fig, filename='probability_map_max.html')
+        else:
+            probability_map=df.pivot_table(index='modulo_group_number', columns=['x_mod', 'y_mod'], values='bin_cdf').idxmax().sort_values().to_frame('modulo_group_number').astype(str).reset_index()
+            fig=probability_map.figure(kind='scatter', x='x_mod', y='y_mod', categories='modulo_group_number')
+            py.offline.plot(fig)
+    ml=x_shift.stack().to_frame('x_shift')
+    ml=ml.join(y_shift.stack().to_frame('y_shift'))
+    return ml
+
 
 def ml_modulo_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=None, cov=None, debug=False):
+    mod_size = number_of_bins * quant_size
+    if type(cov) == type(None):
+        cov = int_force.rand_data.rand_data.rand_cov(snr=snr)
+    pearson = cov[0, 1] / np.sqrt(cov[0, 0] * cov[1, 1])
+
+    original_data = int_force.rand_data.rand_data.random_data(cov, samples)  # data.copy()
+    shifts=int_force.methods.ml_modulo.ml_map(cov, number_of_bins, mod_size, number_of_modulos=9, plots=False)
+
+    data=int_force.rand_data.rand_data.random_data(cov, 1000)
+    tmp=int_force.methods.methods.sign_mod(data, mod_size)
+    recovered=int_force.methods.methods.to_codebook(tmp, mod_size/number_of_bins)
+    recovered=int_force.methods.methods.from_codebook(recovered, mod_size/number_of_bins)
+    shifts.index.names=['X','Y']
+    shifts=shifts.reset_index(drop=False)
+    shifts=shifts.sort_values(['X', 'Y']).round(8)
+    recovered=recovered.sort_values(['X', 'Y']).round(8)
+    recovered=pd.merge(recovered, shifts, on=['X', 'Y'], how='left')
+    recovered['new_x']=recovered.X+recovered.x_shift*mod_size
+    recovered['new_y']=recovered.Y+recovered.y_shift*mod_size
+    recovered=recovered[['new_x', 'new_y']]
+
+    recovered.columns=[['recovered']*2, ['X', 'Y']]
+    tmp.columns=[['after']*2, ['X', 'Y']]
+    data.columns=[['before']*2, ['X', 'Y']]
+
+    data=data.join(tmp).join(recovered)
+
+    error = data.before - data.recovered
+    mse = error.pow(2).values.mean()
+    rmse = mse ** 0.5
+
+    if 0:
+        plot_data=data.stack(0).reset_index(drop=False)
+        import plotly as py
+        import cufflinks
+        fig=plot_data.figure(kind='scatter', x='X', y='Y', categories='level_1', size=4)
+        py.offline.plot(fig, auto_open=True, filename='data.html')
+    res = dict(rmse=rmse,
+               error_per=0,
+               pearson=pearson,
+               A=np.nan,
+               cov=str(cov.tolist()))
+    return res
+
+
+def ml_modulo_method_without_quantization_on_pdf(samples, number_of_bins, quant_size, snr, A_rows=None, A=None, cov=None, debug=False):
     modulo_size = number_of_bins * quant_size
     if type(cov)==type(None):
         cov = int_force.rand_data.rand_data.rand_cov(snr=snr)

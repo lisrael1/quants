@@ -17,6 +17,7 @@ def __get_all_a_rows(a_max_num):
     :param a_max_num: the max number that you can find at the A matrix
     :return:
     '''
+    print('generating a rows')
     comb = list(range(-a_max_num, a_max_num + 1))
     '''we dont want 0,0. we want only 0,1 not 0,-1 not 0,2 etc.'''
     comb.remove(0)
@@ -33,7 +34,7 @@ def __get_all_a_rows(a_max_num):
     all_rows.drop_duplicates(subset='normal_b', keep='first', inplace=True)
     '''now just set them as list of matrix'''
     all_rows_in_list = [np.mat(i).reshape(1, 2) for i in all_rows[['a', 'b']].values]
-    # print("we have %0d rows for A" % len(all_rows))
+    print("we have %0d rows for A" % len(all_rows))
     return np.mat(all_rows[['a', 'b']].values)
 
 

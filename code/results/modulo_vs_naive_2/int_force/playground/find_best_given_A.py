@@ -19,5 +19,5 @@ if __name__ == '__main__':
     number_of_bins=17
     # int_force.methods.modulo.modulo_method(samples, quant_size, number_of_bins, std_threshold=None, A_rows=None, snr=1000)
     a_rows=int_force.A_mat.A_rows.get_all_a_rows(10)
-    A=int_force.A_mat.A_rows.find_best_A(a_rows, data, True)
+    A=int_force.A_mat.A_rows.find_best_A(data, a_rows, True)
     print(A)

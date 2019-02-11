@@ -86,7 +86,7 @@ def visualize_input_output(cov, samples, number_of_bins, quant_size, A=None, A2=
     '''finding best rows by sampled std'''
     if type(A)==type(None):
         A_rows=int_force.A_mat.A_rows.all_A_rows(10)
-        A = int_force.A_mat.A_rows.find_best_A(A_rows, m1)
+        A = int_force.A_mat.A_rows.find_best_A(inputs=m1, a_rows=A_rows)
     output=modulo_flow(original, quant_size, number_of_bins, A=A)[plot_place]
 
     plots=original.copy()
@@ -98,6 +98,14 @@ def visualize_input_output(cov, samples, number_of_bins, quant_size, A=None, A2=
         output2 = modulo_flow(original, quant_size, number_of_bins, A=A2)[plot_place]
         plots = pd.concat([plots, output2.copy()], sort=True).fillna('outputs2')
         title+=', rmse on 2 input A = {:.4f}'.format((output - output2).pow(2).values.mean() ** 0.5)
+
+    '''setting max value as zoom place'''
+    import itertools
+    max_num=plots[['X', 'Y']].abs().max().max()
+    max_nums = list(itertools.product(*[[max_num, -max_num]] * 2))
+    max_nums=pd.DataFrame(max_nums, columns=['X', 'Y'])
+    max_nums['place']='edges'
+    plots=plots.append(max_nums).reset_index()
     fig = plots.figure(kind='scatter', x='X', y='Y', categories='place', size=7, opacity=0.2, title=title)
     py.offline.plot(fig)
 

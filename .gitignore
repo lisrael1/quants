@@ -4,6 +4,8 @@ temp/
 all_data.csv
 slurm-*out
 all.csv
+*.csv
+*.gz
 output.pdf
 *.html
 debug.log

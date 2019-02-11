@@ -15,7 +15,7 @@ def to_codebook(df, quantizer_size, number_of_bins=False):
         df=pd.DataFrame([0.6,1,-0.3,-0.29,0.31,0.55])
         a=to_codebook(df,0.2,)
     :param df:
-    :param quantizer_size:
+    :param quantizer_size: single bin size
     :param number_of_bins: for example, if you want 4 levels 2 bits, with bin size of 0.2, modulo size will be 0.2*4 because 4 level have 3 gaps and
             you add another one for the margins
             0 is for endless quantizer without modulo

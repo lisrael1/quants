@@ -51,11 +51,12 @@ if __name__ == '__main__':
     clipping_method=int_force.methods.clipping.clipping_method
 
     quant_size = np.linspace(*eval(u.quant_size_linspace_params))[1:]
+    method=eval(u.methods)
     if "win" in platform:
         quant_size=quant_size[::15]
+        method='ml_modulo'
     number_of_bins = eval(u.number_of_bins_list)
     snr_values=eval(u.snr)
-    method=eval(u.methods)
     inx = pd.MultiIndex.from_product([quant_size, number_of_bins, method, snr_values], names=['quant_size', 'number_of_bins', 'method', 'snr'])
     print('generated %d simulations' % inx.shape[0])
     df = pd.DataFrame(index=inx).reset_index(drop=False)

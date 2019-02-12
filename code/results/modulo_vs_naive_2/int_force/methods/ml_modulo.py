@@ -66,6 +66,8 @@ def ml_map(cov, number_of_bins, mod_size, number_of_modulos=7, plots=False, debu
         x_shift=probability_shifts.applymap(lambda x:x[0])
         y_shift=probability_shifts.applymap(lambda x:x[1])
     except:
+        print(probability_shifts)
+        print(probability_shifts.nunique())
         print('unknown error. for some reason instead of dictionary, we have float at the content. maybe its when we have only 1 sample?. return')
         return dict()
     probability_map_max = df.pivot_table(index='modulo_group_number', columns=['x_mod', 'y_mod'], values='bin_cdf').max().unstack()

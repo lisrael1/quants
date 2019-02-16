@@ -22,6 +22,8 @@ def main_eigenvector_angle(cov):
     main_vect=eig_vecs[0].tolist()[0]
     angle1 = np.angle(complex(main_vect[1], main_vect[0]), deg=True)
     angle2=np.degrees(np.arctan(main_vect[0]/main_vect[1]))
+    print(angle1)
+    print(angle2)
     return angle1, angle2
 
 

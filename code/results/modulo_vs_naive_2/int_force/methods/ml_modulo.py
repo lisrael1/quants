@@ -1,13 +1,6 @@
-import numpy as np
-import pandas as pd
 import sys
 sys.path.append('../../')
 import int_force
-import plotly as py
-import cufflinks
-import itertools
-from scipy.stats import multivariate_normal
-import pylab as plt
 
 
 def modulo_method(samples, quant_size, number_of_bins, A=None, snr=1000, dont_look_for_A=True):
@@ -26,6 +19,9 @@ def modulo_method(samples, quant_size, number_of_bins, A=None, snr=1000, dont_lo
     :param number_of_bins:
     :return:
     '''
+    import numpy as np
+    import pandas as pd
+
     cov=int_force.rand_data.rand_data.rand_cov(snr=snr)
     pearson=cov[0,1]/np.sqrt(cov[0,0]*cov[1,1])
     input_data = int_force.rand_data.rand_data.random_data(cov,samples) #data.copy()
@@ -38,6 +34,11 @@ def modulo_method(samples, quant_size, number_of_bins, A=None, snr=1000, dont_lo
 
 
 def ml_map(cov, number_of_bins, mod_size, number_of_modulos=7, plots=False, debug=False):
+    import numpy as np
+    import pandas as pd
+    import itertools
+    from scipy.stats import multivariate_normal
+
     bin_size=mod_size/number_of_bins
     rv = multivariate_normal([0, 0], cov)
     bin_edges=np.linspace(-number_of_modulos*mod_size/2, number_of_modulos*mod_size/2, number_of_modulos*number_of_bins+1, endpoint=True)
@@ -107,6 +108,9 @@ def ml_map(cov, number_of_bins, mod_size, number_of_modulos=7, plots=False, debu
 
 
 def ml_modulo_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=None, cov=None, debug=False):
+    import numpy as np
+    import pandas as pd
+
     mod_size = number_of_bins * quant_size
     if type(cov) == type(None):
         cov = int_force.rand_data.rand_data.rand_cov(snr=snr)
@@ -153,6 +157,13 @@ def ml_modulo_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=No
 
 
 def ml_modulo_method_without_quantization_on_pdf(samples, number_of_bins, quant_size, snr, A_rows=None, A=None, cov=None, debug=False):
+    import numpy as np
+    import pandas as pd
+    import plotly as py
+    import cufflinks
+    import itertools
+    from scipy.stats import multivariate_normal
+
     modulo_size = number_of_bins * quant_size
     if type(cov)==type(None):
         cov = int_force.rand_data.rand_data.rand_cov(snr=snr)
@@ -216,7 +227,65 @@ def ml_modulo_method_without_quantization_on_pdf(samples, number_of_bins, quant_
     return res
 
 
+def calc_sinogram(x, y, bins=100):
+    import numpy as np
+    import pandas as pd
+    import warnings
+    from skimage.transform import radon, rescale, iradon, iradon_sart, hough_line
+    from scipy import signal
+
+    H, xedges, yedges = np.histogram2d(x, y, bins=bins)
+    H = H[::-1].T
+    theta = np.linspace(0., 180., max(H.shape), endpoint=False)
+    if 1:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            sinogram = radon(H, theta=theta, circle=True)
+        # sinogram=pd.DataFrame(sinogram, columns=np.linspace(0,180,sinogram.shape[0], endpoint=True)).stack().idxmax()[1]
+        sinogram = pd.DataFrame(sinogram, columns=np.linspace(-90, 90, sinogram.shape[0], endpoint=False)).rename_axis('angle', axis=1).rename_axis('offset', axis=0)  # angle is from the horizon, you will get from -90 to 90
+    else:  # hough gives very noisy output
+        out, angles, d = hough_line(H, theta=theta)
+        sinogram = pd.DataFrame(out, columns=angles, index=d).rename_axis('angle', axis=1).rename_axis('offset', axis=0)  # angle is from the horizon, you will get from -90 to 90
+
+    # this will tell us the angle. we can also use idxmax on the sinogram,
+    # but the best is to find the angle that has the highest std
+    # we cannot take the angle sum, because they all summed to big numbers
+    radon_estimated_angle = sinogram.std().idxmax()
+
+    # lets remove the peaks at 0 and 90 degrease
+    # max_peaking = signal.find_peaks(sinogram.std(), distance=sinogram.shape[1]//100)[0]
+    max_peaking = signal.find_peaks(sinogram.std(), distance=4)[0]
+    # print(max_peaking)
+    max_peaking=sinogram.std().iloc[max_peaking]
+    max_peaking=max_peaking[~max_peaking.index.isin([-90, 0, -45, 90, 45])]  # we multiply the pattern to the left right up and down so obviously we tend to get those angles
+    radon_estimated_angle=max_peaking.idxmax()
+
+    if 0:
+        empty_sinogram = sinogram.copy().astype(int)*0
+        empty_sinogram.loc[sinogram.index.to_series().median(), radon_estimated_angle]=1
+        empty_sinogram=empty_sinogram.fillna(0)
+        line_image=iradon(empty_sinogram.values, circle=True)# , interpolation='linear')
+        line_image.max()
+        line_image.min()
+        line_image.mean()
+        abc=pd.DataFrame(line_image)
+        # line_image=(line_image > line_image.mean()) * 255
+        # line_image = iradon_sart(sinogram.values, theta=theta)
+        plt.close()
+        plt.imshow(line_image, cmap=plt.cm.Greys_r)
+        fig=abc.figure(kind='heatmap', colorscale='Greys', title='radon inverse - real world')
+        fig=empty_sinogram.figure(kind='heatmap', colorscale='Greys', title='radon inverse - real world')
+        py.offline.plot(fig)
+
+    # print('sinogram %g' % radon_estimated_angle)  # trying to get all max numbers. you cannot do sum because all angles summed to the same values
+    # this will tell us how much the image is just lines or just noise
+    # below 3 is low correlation. and you have up to 3.5 to some cases that are at the middle
+    # print('overall sinogram std %g' % sinogram.std().std())
+    return dict(image=H, sinogram=sinogram, angle_by_std=radon_estimated_angle, angle_by_idxmax=sinogram.stack().idxmax()[1], overall_sinogram_std=sinogram.std().std())
+
+
 if __name__ == '__main__':
+    import numpy as np
 
     samples, number_of_bins, quant_size=300, 19, 1.971141
     cov=np.mat([[1.252697487948626, 1.3951208577696566], [1.3951208577696566, 1.5559781209306283]])

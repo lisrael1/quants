@@ -4,11 +4,42 @@ import plotly as py
 import cufflinks
 from sklearn.cluster import DBSCAN
 import pylab as plt
-from skimage.transform import radon, rescale
-import warnings
+
+import itertools
+
+# TODO
+# how many samples do we need? 20? 50? 100
+# ways to un modulo:
+#       plot line and do on it modulo and see each line where it came from
+#       you have the slop so calculate where the next line should start
+#       on the sinogram mark the places at the right angle and make them thick, so they will cover all dots at the sampled data
+#       take the parts from the modulo image, and move each line until it find the right place. you have 9 option, and you should not repeat place
+# we will try:
+#       just put the same modulo pattern at all big picture and remove the un relevant places
+#
+
+
+def main_eigenvector_angle(cov):
+    '''
+        giving wrong angle!
+    :param cov:
+    :return:
+    '''
+    e = np.linalg.eig(cov)  # vectors are vertical
+    right_sort = np.argsort(np.abs(e[0]))[::-1]  # they are not sorted!!!
+    eig_vals = e[0][right_sort]
+    eig_vecs = e[1][:, right_sort]
+    main_vect = eig_vecs[:, 0].T.tolist()[0]
+    angle1 = np.angle(complex(main_vect[1], main_vect[0]), deg=True)
+    angle2 = np.degrees(np.arctan(main_vect[0] / main_vect[1]))
+    print(angle1)
+    print(angle2)
+    print(90 - angle2)
+    return angle1, angle2
+
 
 if __name__ == '__main__':
-    for i in range(100):
+    for i in range(10):
         print('*'*150)
         import sys
         sys.path.append('../../')
@@ -20,58 +51,61 @@ if __name__ == '__main__':
         cov=np.mat([[1, 1],[1, 1.2]])
         cov=np.mat([[0.53749846, 0.35644121],[0.35644121, 0.23651739]])
         cov=int_force.rand_data.rand_data.rand_cov(snr=10000)
-        # print(cov)
 
-        data=int_force.rand_data.rand_data.random_data(cov, 1000)
-        samples=1000
+        # main_eigenvector_angle(cov)
+
+        samples=50
+        data=int_force.rand_data.rand_data.random_data(cov, samples)
         quant_size=0.1
         number_of_bins=17
-        mod_size=2.5
+        mod_size=1.8
         tmp=int_force.methods.methods.sign_mod(data, mod_size)
         tmp.columns=[['after']*2,tmp.columns.values]
         data.columns=[['before']*2,data.columns.values]
         data=data.join(tmp)
-        clustering = DBSCAN(eps=0.1).fit(data.after.values)
-        data['after','label']=clustering.labels_
-        data.head()
+        # clustering = DBSCAN(eps=0.1).fit(data.after.values)
+        # data['after','label']=clustering.labels_
+        # data.head()
 
-        H, xedges, yedges = np.histogram2d(data.after.X, data.after.Y, bins=100)
-        H = H[::-1].T
-        theta = np.linspace(0., 180., max(H.shape), endpoint=False)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            sinogram = radon(H, theta=theta, circle=True)
-        # radon_angle=pd.DataFrame(sinogram, columns=np.linspace(0,180,sinogram.shape[0], endpoint=True)).stack().idxmax()[1]
-        radon_angle=pd.DataFrame(sinogram, columns=np.linspace(-90, 90, sinogram.shape[0], endpoint=False)).rename_axis('angle', axis=1).rename_axis('offset', axis=0)  # angle is from the horizon, you will get from -90 to 90
-        # this will tell us the angle. we can also use idxmax on the sinogram,
-        # but the best is to find the angle that has the highest std
-        # we cannot take the angle sum, because they all summed to big numbers
-        radon_estimated_angle=radon_angle.std().idxmax()
-        print('radon_angle %g'%radon_angle.stack().idxmax()[1])  # by single max number
-        print('radon_angle %g'%radon_estimated_angle)  # trying to get all max numbers. you cannot do sum because all angles summed to the same values
-        # this will tell us how much the image is just lines or just noise
-        # below 3 is low correlation. and you have up to 3.5 to some cases that are at the middle
-        print('overall sinogram std %g'%radon_angle.std().std())
+        a_lot_of_data = int_force.rand_data.rand_data.random_data(cov, 10000)
+        a_lot_of_data = int_force.methods.methods.sign_mod(a_lot_of_data, mod_size)
 
         # if you want to see specific cases, you can use this:
-        # if radon_angle.std().std()>3.5 or radon_angle.std().std()<3:
-        # if radon_angle.std().std()>3.5:
+        # if sinogram_by_multi_samples.std().std()>3.5 or sinogram_by_multi_samples.std().std()<3:
+        # if sinogram_by_multi_samples.std().std()>3.5:
         if 0:
             continue
-        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(12*1.5, 4.5*1.5))
-        ax1.set_title("Original")
-        ax1.imshow(H, cmap=plt.cm.Greys_r)
-        ax2.set_title("Radon transform\n(Sinogram)")
-        ax2.set_xlabel("Projection angle (deg)")
-        ax2.set_ylabel("Projection position (pixels)")
-        ax2.imshow(sinogram, cmap=plt.cm.Greys_r, extent=(-90, 90, 0, sinogram.shape[0]), aspect='auto')
 
-        radon_angle[radon_estimated_angle].plot(ax=ax3, title='estimated angle %g'%radon_estimated_angle)
+        datas=[]
+        datas+=[data.after]
+        datas+=[a_lot_of_data]
+        datas+=[int_force.rand_data.rand_data.all_data_origin_options(data.after, mod_size, 5)]
+        datas+=[int_force.rand_data.rand_data.all_data_origin_options(a_lot_of_data, mod_size, 5)]
 
+        fig, ax = plt.subplots(len(datas), 4, figsize=(12*2.1, 4.5*2.1))#, subplot_kw ={'aspect': 1.5})#, sharex=False)
+        # fig, ax = plt.subplots(len(datas), 4)
+        fig.suptitle("finding image or multi gaussian rotation")
+
+        for row in range(ax.shape[0]):
+            sinogram_dict=int_force.methods.ml_modulo.calc_sinogram(datas[row].X.values, datas[row].Y.values, bins=600)
+            ax[row, 0].set_title("data")
+            ax[row, 0].imshow(sinogram_dict['image'], cmap=plt.cm.Greys_r)
+            # ax[row, 0].imshow(sinogram_dict['line'],  cmap=plt.cm.Greys_r)
+
+            ax[row, 1].set_title("sinogram")
+            ax[row, 1].imshow(sinogram_dict['sinogram'], cmap=plt.cm.Greys_r)
+
+            sinogram_dict['sinogram'][sinogram_dict['angle_by_std']].plot(ax=ax[row, 2], title='estimated angle %g' % sinogram_dict['angle_by_std'])  # , figsize=[20, 20]
+
+            sinogram_dict['sinogram'].std().plot(ax=ax[row, 3], title='angles std')
+
+        # fig.tight_layout(pad=0,w_pad=1,h_pad=1)
         fig.tight_layout()
+        fig.subplots_adjust(top=0.85)  # for leaving space for the overall title. you can also do fig.tight_layout(rect=[0, 0.03, 1, 0.95])
 
-        data=data.stack(0).reset_index(drop=False)
-        fig=data.figure(kind='scatter', x='X', y='Y', categories='level_1', size=4, text='label')
-        py.offline.plot(fig, auto_open=False)
+        if 0:
+            data=data.stack(0).reset_index(drop=False)
+            fig=data.figure(kind='scatter', x='X', y='Y', categories='level_1', size=4, text='label')
+            py.offline.plot(fig, auto_open=False)
 
         plt.show()

@@ -54,7 +54,7 @@ if __name__ == '__main__':
     method=eval(u.methods)
     if "win" in platform:
         quant_size=quant_size[::15]
-        method='ml_modulo'
+        # method=['ml_method']
     number_of_bins = eval(u.number_of_bins_list)
     snr_values=eval(u.snr)
     inx = pd.MultiIndex.from_product([quant_size, number_of_bins, method, snr_values], names=['quant_size', 'number_of_bins', 'method', 'snr'])

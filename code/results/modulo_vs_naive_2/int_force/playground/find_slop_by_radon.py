@@ -1,3 +1,8 @@
+import sys
+sys.path.append('../../')
+sys.path.append(r'C:\Users\lisrael1\Documents\myThings\lior_docs\HU\thesis\quants\code\results\modulo_vs_naive_2/')
+import int_force
+
 import numpy as np
 import pandas as pd
 import plotly as py
@@ -41,10 +46,6 @@ def main_eigenvector_angle(cov):
 if __name__ == '__main__':
     for i in range(10):
         print('*'*150)
-        import sys
-        sys.path.append('../../')
-        sys.path.append(r'C:\Users\lisrael1\Documents\myThings\lior_docs\HU\thesis\quants\code\results\modulo_vs_naive_2/')
-        import int_force
         # from int_force.rand_data import rand_data
 
         cov=np.mat([[0, 0],[0, 1]])

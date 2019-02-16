@@ -1,22 +1,16 @@
 import numpy as np
 import pandas as pd
-import plotly as py
-import cufflinks
-from sklearn.cluster import DBSCAN
-import pylab as plt
-from skimage.transform import radon, rescale, iradon, iradon_sart, hough_line
-import warnings
-from scipy import signal
-import itertools
+# import plotly as py
+# import cufflinks
+import sys
+sys.path.append('../../')
+sys.path.append(r'C:\Users\lisrael1\Documents\myThings\lior_docs\HU\thesis\quants\code\results\modulo_vs_naive_2/')
+import int_force
 
 
 if __name__ == '__main__':
     for i in range(1):
         print('*'*150)
-        import sys
-        sys.path.append('../../')
-        sys.path.append(r'C:\Users\lisrael1\Documents\myThings\lior_docs\HU\thesis\quants\code\results\modulo_vs_naive_2/')
-        import int_force
         # from int_force.rand_data import rand_data
 
         cov=np.mat([[0, 0],[0, 1]])

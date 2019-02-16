@@ -3,8 +3,6 @@ import pandas as pd
 import sys
 sys.path.append('../../')
 import int_force
-import plotly as py
-import cufflinks
 
 
 def modulo_flow(input_data, quant_size, number_of_bins, A=None):

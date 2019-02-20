@@ -227,14 +227,16 @@ def ml_modulo_method_without_quantization_on_pdf(samples, number_of_bins, quant_
     return res
 
 
-def calc_sinogram(x, y, bins=100):
+def calc_sinogram(x, y, bins=300):
     import numpy as np
     import pandas as pd
     import warnings
-    from skimage.transform import radon, rescale, iradon, iradon_sart, hough_line
+    from skimage.transform import radon  # , rescale, iradon, iradon_sart, hough_line
     from scipy import signal
 
-    H, xedges, yedges = np.histogram2d(x, y, bins=bins)
+    max_num=max(max(x),max(y))
+    bins=np.linspace(-max_num, max_num, bins, endpoint=True)
+    H, xedges, yedges = np.histogram2d(x, y, bins=[bins]*2)  # in order to estimate the angle, we need the space to be square
     H = H[::-1].T
     theta = np.linspace(0., 180., max(H.shape), endpoint=False)
     if 1:
@@ -260,6 +262,8 @@ def calc_sinogram(x, y, bins=100):
     max_peaking=max_peaking[~max_peaking.index.isin([-90, 0, -45, 90, 45])]  # we multiply the pattern to the left right up and down so obviously we tend to get those angles
     radon_estimated_angle=max_peaking.idxmax()
 
+    slop=np.tan(np.deg2rad(radon_estimated_angle))
+
     if 0:
         empty_sinogram = sinogram.copy().astype(int)*0
         empty_sinogram.loc[sinogram.index.to_series().median(), radon_estimated_angle]=1
@@ -281,7 +285,13 @@ def calc_sinogram(x, y, bins=100):
     # this will tell us how much the image is just lines or just noise
     # below 3 is low correlation. and you have up to 3.5 to some cases that are at the middle
     # print('overall sinogram std %g' % sinogram.std().std())
-    return dict(image=H, sinogram=sinogram, angle_by_std=radon_estimated_angle, angle_by_idxmax=sinogram.stack().idxmax()[1], overall_sinogram_std=sinogram.std().std())
+    return dict(image=H, sinogram=sinogram,
+                angle_by_std=radon_estimated_angle,
+                angle_by_idxmax=sinogram.stack().idxmax()[1],
+                overall_sinogram_std=sinogram.std().std(),
+                slop=slop,
+                y_avg=y.mean(),
+                x_avg=x.mean())
 
 
 if __name__ == '__main__':

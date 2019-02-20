@@ -45,7 +45,16 @@ def stack_specific_columns(df, list_of_columns_to_keep):
     return df
 
 
-def all_data_origin_options(data, modulo_size, number_of_shift_per_direction):
+def all_data_origin_options(data_db, modulo_size, number_of_shift_per_direction, debug=False):
+    '''
+
+    :param data: df with x and y columns
+    :param modulo_size:
+    :param number_of_shift_per_direction: for example, 1 is adding 1 time the modulo to the right and 1 times to the left,
+            and the same with up and down, so we get total of 9 time the modulo.
+            so each point duplicated 9 times, and we need to find the best option from all those 9
+    :return:
+    '''
     import itertools
     # modulo_edges=np.arange(-multiple_x, multiple_x)*modulo_size+mod_size/2  # max number should be multiple_x*modulo_size-modulo_size/2 because the middle modulo is half left to 0 and half right to 0
     modulo_shifts = np.arange(-number_of_shift_per_direction, number_of_shift_per_direction + 1) * modulo_size
@@ -54,8 +63,14 @@ def all_data_origin_options(data, modulo_size, number_of_shift_per_direction):
 
     a = modulo_shifts.stack()
     a.index = a.index.to_frame().iloc[:, 1].values
-    a = data.join(a.to_frame().T).ffill()
+    if debug and 0:
+        import pylab as plt
+        plt.figure()
+        data_db.set_index('X').Y.plot(style='.', title='bla')
+    a = data_db.join(a.to_frame().T).ffill()
     a = stack_specific_columns(a, list('XY'))
     a['out_x'] = a.X + a.x_center
     a['out_y'] = a.Y + a.y_center
-    return a[['out_x', 'out_y']].rename(columns=dict(out_x='X', out_y='Y'))
+    a=a.rename(columns=dict(X='x_at_mod', Y='y_at_mod', out_x='X', out_y='Y'))
+
+    return a

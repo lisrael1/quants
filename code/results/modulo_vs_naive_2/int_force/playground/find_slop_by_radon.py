@@ -80,8 +80,8 @@ if __name__ == '__main__':
         datas=[]
         datas+=[data.after]
         datas+=[a_lot_of_data]
-        datas+=[int_force.rand_data.rand_data.all_data_origin_options(data.after, mod_size, 5)]
-        datas+=[int_force.rand_data.rand_data.all_data_origin_options(a_lot_of_data, mod_size, 5)]
+        datas+=[int_force.rand_data.rand_data.all_data_origin_options(data.after, mod_size, 5)[list('XY')]]
+        datas+=[int_force.rand_data.rand_data.all_data_origin_options(a_lot_of_data, mod_size, 5)[list('XY')]]
 
         fig, ax = plt.subplots(len(datas), 4, figsize=(12*2.1, 4.5*2.1))#, subplot_kw ={'aspect': 1.5})#, sharex=False)
         # fig, ax = plt.subplots(len(datas), 4)

@@ -108,6 +108,22 @@ def ml_map(cov, number_of_bins, mod_size, number_of_modulos=7, plots=False, debu
 
 
 def ml_modulo_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=None, cov=None, debug=False):
+    pass
+
+
+def ml_modulo_method_by_pdf_on_all_quant_options(samples, number_of_bins, quant_size, snr, A_rows=None, A=None, cov=None, debug=False):
+    '''
+        the problem is that for each sample, we calulate the pdf for all this sample options, like shifting it left 2 modulo size, and up 1 modulo size, and we have a lot of options
+    :param samples:
+    :param number_of_bins:
+    :param quant_size:
+    :param snr:
+    :param A_rows:
+    :param A:
+    :param cov:
+    :param debug:
+    :return:
+    '''
     import numpy as np
     import pandas as pd
 

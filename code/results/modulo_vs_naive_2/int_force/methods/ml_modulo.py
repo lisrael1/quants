@@ -108,12 +108,122 @@ def ml_map(cov, number_of_bins, mod_size, number_of_modulos=7, plots=False, debu
 
 
 def ml_modulo_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=None, cov=None, debug=False):
-    pass
+    '''
+        doesnt need to know the data covariance.
+        it find the slop by sinogram, putting replica of the data next to each other,
+        doing rotating by this slop, and taking the ones that are the most closest to y=0
+    :param samples:
+    :param number_of_bins:
+    :param quant_size:
+    :param snr:
+    :param A_rows:
+    :param A:
+    :param cov:
+    :param debug:
+    :return:
+    '''
+    import pandas as pd
+    import numpy as np
+
+    mod_size=number_of_bins*quant_size
+
+    cov = int_force.rand_data.rand_data.rand_cov(snr=snr)
+    pearson=cov[0,1]/np.sqrt(cov[0,0]*cov[1,1])
+    data = int_force.rand_data.rand_data.random_data(cov, samples)
+
+    '''modulo and quantization'''
+    tmp = int_force.methods.methods.sign_mod(data, mod_size)
+    tmp = int_force.methods.methods.to_codebook(tmp, quant_size, 0)
+    tmp = int_force.methods.methods.from_codebook(tmp, quant_size, 0)
+    tmp.columns = [['after'] * 2, tmp.columns.values]
+    data.columns = [['before'] * 2, data.columns.values]
+    data = data.join(tmp)
+    del tmp
+
+    'doing sinogram'
+    hist_bins = 300
+    sinogram_dict = int_force.methods.ml_modulo.calc_sinogram(data.after.X.values, data.after.Y.values, bins=hist_bins)
+    df = int_force.rand_data.rand_data.all_data_origin_options(data.after, mod_size, number_of_shift_per_direction=2, debug=debug)
+
+    'finding closest'
+    rad = np.deg2rad(-sinogram_dict['angle_by_std'])
+    rotation_matrix = np.matrix([[np.cos(rad), -np.sin(rad)], [np.sin(rad), np.cos(rad)]])
+    tmp = pd.DataFrame((rotation_matrix * np.mat(df[['X', 'Y']].values).T).T)
+    tmp -= tmp.mean()
+    tmp.columns = ['x_after_rotation', 'y_after_rotation']
+    df = df.join(tmp)
+    del tmp
+
+    df['major_distance'] = df.y_after_rotation.abs()  # after rotation, y is the distance from the main line
+    df['minor_distance'] = df.x_after_rotation.abs()  # in case he
+
+    df['axis_root_distance'] = np.hypot(df.X.values, df.Y.values)
+
+    idx = df.groupby(['x_at_mod', 'y_at_mod']).major_distance.idxmin()
+    tmp = df.loc[idx]
+    tmp_first_level = tmp.columns.to_series().replace(['x_at_mod', 'y_at_mod', 'x_center', 'y_center'], 'remove').replace(list('XY'), 'recovered').replace(['y_per_x_ratio', 'distance', 'axis_root_distance', 'closest_to_slop'], 'stat').values
+    tmp.columns = [tmp_first_level, tmp.columns.values]
+    data = pd.merge(tmp, data, left_on=[('remove', 'x_at_mod'), ('remove', 'y_at_mod')], right_on=[('after', 'X'), ('after', 'Y')], how='inner').T.sort_index().T.drop('remove', axis=1)
+    del tmp
+    mse = (data.recovered - data.before).pow(2).values.mean()
+    if debug:
+        import pylab as plt
+
+        # checking if rotation worked
+        fig = plt.figure()
+        fig.suptitle('rotating multi modulo for finding best match to angle %g' % sinogram_dict['angle_by_std'])
+        df.set_index('X').Y.plot(style='.', grid=True, label='original')
+        df.set_index('x_after_rotation').y_after_rotation.plot(style='.', grid=True, label='after rotate to 0')
+        plt.plot([0, 5], [0, 5 * np.tan(np.deg2rad(sinogram_dict['angle_by_std']))])
+        plt.plot([-mod_size / 2, -mod_size / 2, mod_size / 2, mod_size / 2, -mod_size / 2], [-mod_size / 2, mod_size / 2, mod_size / 2, -mod_size / 2, -mod_size / 2])  # plotting the modulo frame
+        fig.legend()
+
+        print(data)
+        print('sinogram data')
+        fig, ax = plt.subplots(1, 4, figsize=(12 * 2.1, 4.5 * 2.1))  # , subplot_kw ={'aspect': 1.5})#, sharex=False)
+        ax[0].set_title("data")
+        ax[0].imshow(sinogram_dict['image'], cmap=plt.cm.Greys_r)
+        ax[0].plot([hist_bins // 2 - hist_bins * sinogram_dict['x_avg'], hist_bins // 2 + 100 - hist_bins * sinogram_dict['x_avg']], [hist_bins // 2 - hist_bins * sinogram_dict['y_avg'], hist_bins // 2 - hist_bins * sinogram_dict['y_avg'] - 100 * sinogram_dict['slop']])
+
+        ax[1].set_title("sinogram")
+        ax[1].imshow(sinogram_dict['sinogram'], cmap=plt.cm.Greys_r)
+
+        sinogram_dict['sinogram'][sinogram_dict['angle_by_std']].plot(ax=ax[2], title='sinogram values at angle')  # , figsize=[20, 20]
+
+        sinogram_dict['sinogram'].std().plot(ax=ax[3], title='estimated angle %g' % sinogram_dict['angle_by_std'])
+
+        fig.tight_layout()
+        fig.subplots_adjust(top=0.85)
+        print('original and recovered data')
+        if 1:
+            fig = plt.figure()
+            fig.suptitle('angle %g, MSE %g' % (sinogram_dict['angle_by_std'], mse))
+            data.recovered.set_index('X').Y.plot(style='.', alpha=0.1)
+            data.before.set_index('X').Y.plot(style='.', alpha=0.1)
+            if mse > 1e-7 or 1:
+                plt.show()
+            else:
+                plt.close('all')
+        else:
+            import plotly as py
+            import cufflinks
+            fig = data[['before', 'recovered']].stack(0).reset_index(drop=False).figure(kind='scatter', x='X', y='Y', categories='level_1', size=4)
+            py.offline.plot(fig)
+    res=dict(rmse=mse ** 0.5,
+             error_per=0,
+             pearson=pearson,
+             A=None,
+             cov = str(cov.tolist()))
+    return res
 
 
 def ml_modulo_method_by_pdf_on_all_quant_options(samples, number_of_bins, quant_size, snr, A_rows=None, A=None, cov=None, debug=False):
     '''
-        the problem is that for each sample, we calulate the pdf for all this sample options, like shifting it left 2 modulo size, and up 1 modulo size, and we have a lot of options
+        the problem is that for each sample, we calculate the pdf for all this sample options,
+        like shifting it left 2 modulo size, and up 1 modulo size, and we have a lot of options
+        for each sample, we take the pdf of the whole pixel, not just the point itself
+        so if you have a lot of samples, this method is very slow,
+        but i need to find a faster method for cdf. the one here is slow
     :param samples:
     :param number_of_bins:
     :param quant_size:

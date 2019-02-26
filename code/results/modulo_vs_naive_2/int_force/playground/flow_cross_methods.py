@@ -32,7 +32,7 @@ if __name__ == '__main__':
     parser.add_option("-b", dest="number_of_bins_list", type="str", default='[5,17,19,101]', help='number of bins, for example [3,,13,25] [default: %default]')
     parser.add_option("-q", dest="quant_size_linspace_params", type="str", default='[0,3.3,150]', help='quant size np.linspace args, for example [0,3.3,10] will be np.linspace(*[0,3.3,10] ) [default: %default]')
     parser.add_option("--a_matrix", dest="A", type="str", default='', help='A Matrix, for example [[1,0],[-2,1]] [default: %default]')
-    parser.add_option("--methods", dest="methods", type="str", default='''['clipping_method', 'modulo_method', 'ml_method']''', help='''[default: %default]''')
+    parser.add_option("--methods", dest="methods", type="str", default='''['clipping_method', 'modulo_method', 'ml_map_method', 'ml_radon_method']''', help='''[default: %default]''')
     parser.add_option("--snr", dest="snr", type="str", default='[10,100,1000]', help='[default: %default]')
 
     # parser.add_option("--methods", dest="methods", type="str", default='''['ml_method']''', help='''[default: %default]''')
@@ -47,8 +47,9 @@ if __name__ == '__main__':
     else:
         A=None
     modulo_method=int_force.methods.modulo.modulo_method
-    ml_method=int_force.methods.ml_modulo.ml_modulo_method
+    ml_radon_method=int_force.methods.ml_modulo.ml_radon_method
     clipping_method=int_force.methods.clipping.clipping_method
+    ml_map_method=int_force.methods.ml_modulo.ml_map_method
 
     quant_size = np.linspace(*eval(u.quant_size_linspace_params))[1:]
     method=eval(u.methods)

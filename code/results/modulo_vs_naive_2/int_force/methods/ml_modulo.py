@@ -3,30 +3,47 @@ sys.path.append('../../')
 import int_force
 
 
-def modulo_method(samples, quant_size, number_of_bins, A=None, snr=1000, dont_look_for_A=True):
-    '''
-    for modulo method
-    example:
-        quant_size = 0.01
-        number_of_bins = 1001
-        cov = rand_cov_1()
-        data = random_data(cov, 1000)
-        mse = modulo_method(data, quant_size, number_of_bins)
-        print('mse = %g' % mse)
-        print('uniform mse should be %g' % (quant_size ** 2 / 12))
-    :param data:
-    :param quant_size:
-    :param number_of_bins:
-    :return:
-    '''
+def ml_map_method(samples, quant_size, number_of_bins, A=None, snr=1000, dont_look_for_A=True, plot=False):
     import numpy as np
     import pandas as pd
+    number_of_modulos=3
 
-    cov=int_force.rand_data.rand_data.rand_cov(snr=snr)
+    cov = int_force.rand_data.rand_data.rand_cov(snr=snr)
     pearson=cov[0,1]/np.sqrt(cov[0,0]*cov[1,1])
-    input_data = int_force.rand_data.rand_data.random_data(cov,samples) #data.copy()
-    res=dict(rmse=(o - input_data).pow(2).values.mean() ** 0.5,
-             error_per=((o-input_data).abs().values.flatten()>quant_size).astype(int).mean(),
+
+    mod_size = quant_size*number_of_bins
+
+    data = int_force.rand_data.rand_data.random_data(cov, samples)
+    tmp = int_force.methods.methods.sign_mod(data, mod_size)
+    recovered = int_force.methods.methods.to_codebook(tmp, mod_size / number_of_bins)
+    recovered = int_force.methods.methods.from_codebook(recovered, mod_size / number_of_bins)
+    shifts = int_force.methods.ml_modulo.ml_map(cov, number_of_bins, mod_size, number_of_modulos=number_of_modulos, plots=plot)
+    shifts.index.names = ['X', 'Y']
+    shifts = shifts.reset_index(drop=False)
+    recovered = pd.merge(recovered.round(8), shifts.round(8), on=['X', 'Y'], how='left')
+    recovered['new_x'] = recovered.X + recovered.x_shift * mod_size
+    recovered['new_y'] = recovered.Y + recovered.y_shift * mod_size
+    recovered = recovered[['new_x', 'new_y']]
+
+    recovered.columns = [['recovered'] * 2, ['X', 'Y']]
+    tmp.columns = [['after'] * 2, ['X', 'Y']]
+    data.columns = [['before'] * 2, ['X', 'Y']]
+
+    data = data.join(tmp).join(recovered)
+
+    tmp=data.before-data.recovered
+    tmp.columns = [['error'] * 2, ['X', 'Y']]
+    data = data.join(tmp)
+
+    if plot:
+        import plotly as py
+        import cufflinks
+        data_plot = data.stack(0).reset_index(drop=False)
+        fig = data_plot.figure(kind='scatter', x='X', y='Y', categories='level_1', size=4)
+        py.offline.plot(fig, auto_open=True, filename='data.html')
+
+    res=dict(rmse=(data.recovered - data.before).pow(2).values.mean() ** 0.5,
+             error_per=((data.recovered - data.before).abs().values.flatten()>quant_size).astype(int).mean(),
              pearson=pearson,
              A=A,
              cov = str(cov.tolist()))
@@ -34,33 +51,119 @@ def modulo_method(samples, quant_size, number_of_bins, A=None, snr=1000, dont_lo
 
 
 def ml_map(cov, number_of_bins, mod_size, number_of_modulos=7, plots=False, debug=False):
+    '''
+
+    :param cov:
+    :param number_of_bins:
+    :param mod_size:
+    :param number_of_modulos: number of multiply for each side. at 2 we will get multiply of 5X5
+    :param plots:
+    :param debug:
+    :return:
+    '''
     import numpy as np
     import pandas as pd
     import itertools
     from scipy.stats import multivariate_normal
 
+    pd.set_option("display.max_columns", 1000)  # don’t put … instead of multi columns
+    pd.set_option('expand_frame_repr', False)  # for not wrapping columns if you have many
+    pd.set_option("display.max_rows", 30)
+    pd.set_option('display.max_colwidth', 1000)
+
+    rounding=10
+    '''first generating the map with all the pixels, then each pixel will get it's cdf'''
     bin_size=mod_size/number_of_bins
-    rv = multivariate_normal([0, 0], cov)
-    bin_edges=np.linspace(-number_of_modulos*mod_size/2, number_of_modulos*mod_size/2, number_of_modulos*number_of_bins+1, endpoint=True)
+    bin_edges=np.linspace(-(number_of_modulos+0.5)*mod_size, (number_of_modulos+0.5)*mod_size, (2*number_of_modulos+1)*number_of_bins+1, endpoint=True)
+    # bin_edges=np.round(bin_edges, rounding)
     bin_centers=(bin_edges[1:]+bin_edges[:-1])/2
     df=pd.DataFrame(list(itertools.product(*[bin_centers] * 2)), columns='x_center,y_center'.split(','))
-    df=df.join(int_force.methods.methods.sign_mod(df, mod_size).rename(columns=dict(x_center='x_mod', y_center='y_mod'))).round(12)
-    df['x_modulo_shifts']=(df.x_center-df.x_mod)/mod_size
-    df['y_modulo_shifts']=(df.y_center-df.y_mod)/mod_size
+    df=df.join(int_force.methods.methods.sign_mod(df, mod_size).rename(columns=dict(x_center='x_mod', y_center='y_mod')))
+    df['x_modulo_shifts']=round((df.x_center-df.x_mod)/mod_size)  # x_center is the original data, before modulo, and x_mod is after. we want to see how much modulo shifting we had
+    df['y_modulo_shifts']=round((df.y_center-df.y_mod)/mod_size)
     df['x_low']=df.x_center-bin_size/2
     df['y_low']=df.y_center-bin_size/2
     df['x_high']=df.x_center+bin_size/2
     df['y_high']=df.y_center+bin_size/2
-    # print('doing cdf')
-    df['high_cdf']=rv.cdf(df[['x_high', 'y_high']].values)
-    df['low_cdf']=rv.cdf(df[['x_low', 'y_low']].values)
-    df['left_cdf']=rv.cdf(df[['x_low', 'y_high']].values)
-    df['down_cdf']=rv.cdf(df[['x_high', 'y_low']].values)
-    # print('done cdf')
-    df['bin_cdf']=df.high_cdf-df.left_cdf-df.down_cdf+df.low_cdf
+    df=df.round(rounding)
+    '''now df has pixels with center and edges for each'''
+    if plots:
+        print('doing cdf')
+    if 1:
+        rv = multivariate_normal([0, 0], cov)
+        if 1:
+            if plots: print('starting product')
+            cdf=pd.DataFrame(list(itertools.product(*[df[['x_high','x_low']].stack().unique().tolist()] * 2)), columns=list('xy')).round(rounding)  # we do all the unique stuff instead of taking bin_edges because we have floating point issue
+            if plots: print('done product')
+            '''now calcuating cdf per pixel. each pixel has shared edges with it's neighbors so we will do the cdf offline and then merge it back'''
+            if 0:  # cannot do this because at the rigth upper the cdf will be 1 and the pdf 0...
+                cdf['cdf']=0  # for saving cdf calculation, that is slower... we will only calculate cdf on ones that their pdf is high
+                cdf['pdf']=multivariate_normal.pdf(cdf[['x', 'y']].values, mean=[0, 0], cov=cov)
+                cdf['pdf']=1
+                cdf.loc[cdf.pdf>1e-10, 'cdf']=rv.cdf(cdf[cdf.pdf>1e-10][['x', 'y']].values)
+                if plots:
+                    print('doing cdf on {cdf:,} from total of {total:,} rows'.format(cdf=cdf[cdf.pdf>1e-10].shape[0], total=cdf.shape[0]))
+                cdf=cdf.drop('pdf', axis=1)
+            cdf['cdf']=rv.cdf(cdf[['x', 'y']].values)
+
+            if plots: print('starting merging results')
+            if 0:  # merging is slow, we better use join
+                df['high_cdf'] = pd.merge(df[['x_high', 'y_high']].round(rounding), cdf.round(rounding), left_on=['x_high', 'y_high'], right_on=list('xy'), how='left').cdf.values
+                df['low_cdf'] = pd.merge(df[['x_low', 'y_low']].round(rounding), cdf.round(rounding), left_on=['x_low', 'y_low'], right_on=list('xy'), how='left').cdf.values
+                df['left_cdf'] = pd.merge(df[['x_low', 'y_high']].round(rounding), cdf.round(rounding), left_on=['x_low', 'y_high'], right_on=list('xy'), how='left').cdf.values
+                df['down_cdf'] = pd.merge(df[['x_high', 'y_low']].round(rounding), cdf.round(rounding), left_on=['x_high', 'y_low'], right_on=list('xy'), how='left').cdf.values
+            else:
+                def merging(left, right):
+                    '''
+                        pd.merge is slow, you better use join
+                        and dont do sort_index. it takes time more than it helps join
+                        right should be bigger than left, becaues left is only upper lower etc.
+                    :param left:
+                    :param right:
+                    :return:
+                    '''
+                    col = list('xy')
+                    left.columns = col
+                    left.set_index(col, inplace=True)
+                    if 0:
+                        m=left.index.to_frame().reset_index(drop=True).merge(right.index.to_frame().reset_index(drop=True), on=list('xy'), indicator=True, how='outer', suffixes=['','_'])
+                        if not m[m._merge=='left'].sort_values(by=['x','y']).empty:
+                            print(m[m._merge=='left'].sort_values(by=['x','y']))
+                            print(m._merge.value_counts())
+                            # print(left.join(right, how='outer').loc[left.join(right, how='outer').isna().cdf.values])
+                            # print(pd.concat([left.index.to_frame(),right.index.to_frame()]).drop_duplicates(keep=False).reset_index(drop=True).sort_values(by=['x','y']))
+                    merged=left.join(right, how='left').cdf
+                    if merged.isna().sum():
+                        print('we have nan at the merged step')
+                    return merged.values
+
+                cdf=cdf.set_index(list('xy'))
+                df['high_cdf'] = merging(df[['x_high', 'y_high']], cdf)
+                df['low_cdf'] =  merging(df[['x_low',  'y_low' ]], cdf)
+                df['left_cdf'] = merging(df[['x_low',  'y_high']], cdf)
+                df['down_cdf'] = merging(df[['x_high', 'y_low' ]], cdf)
+            if df.applymap(np.isnan).sum().sum():
+                print('WARNING - we have nan values after merging cdf values, and it should be!')
+                print('found {nans:,} nans from total of {total:,} cells'.format(nans=df.applymap(np.isnan).sum().sum(), total=df.size))
+            if plots: print('done merging results')
+        else:  # more time, because we calculate the same dot 4 times
+            df['high_cdf']=rv.cdf(df[['x_high', 'y_high']].values)
+            df['low_cdf']=rv.cdf(df[['x_low', 'y_low']].values)
+            df['left_cdf']=rv.cdf(df[['x_low', 'y_high']].values)
+            df['down_cdf']=rv.cdf(df[['x_high', 'y_low']].values)
+        df['bin_cdf']=df.high_cdf-df.left_cdf-df.down_cdf+df.low_cdf
+    else:  # at bins >10 it's slower because it's not vector operation
+        from scipy.stats import mvn
+        df['bin_cdf']=df.apply(lambda row:mvn.mvnun(row[['x_low','y_low']].values,row[['x_high','y_high']].values,[0,0],cov.tolist())[0], axis=1)
+    if plots: print('done cdf')
+    if plots: print('''giving each modulo shift, a unique group number''')
     modulo_group=df.groupby(['x_modulo_shifts', 'y_modulo_shifts']).size().reset_index().reset_index().drop(0, axis=1).rename(columns=dict(index='modulo_group_number'))
     df=pd.merge(df, modulo_group, on=['x_modulo_shifts', 'y_modulo_shifts'], how='left')
+    if df.modulo_group_number.value_counts().sort_values().std()!=0:
+        print('WARNING - each modulo group should have %d instances, and instead we have:'%(bin_size**2))
+        print(df.modulo_group_number.value_counts().sort_values().describe())
 
+    if plots: print('''finding best group at the main modulo''')
     probability_shifts = df.pivot_table(index=['x_modulo_shifts', 'y_modulo_shifts', 'modulo_group_number'], columns=['x_mod', 'y_mod'], values='bin_cdf').idxmax().unstack()
     try:
         probability_map=probability_shifts.applymap(lambda x:x[2])
@@ -71,10 +174,13 @@ def ml_map(cov, number_of_bins, mod_size, number_of_modulos=7, plots=False, debu
         print(probability_shifts.nunique())
         print('unknown error. for some reason instead of dictionary, we have float at the content. maybe its when we have only 1 sample?. return')
         return dict()
-    probability_map_max = df.pivot_table(index='modulo_group_number', columns=['x_mod', 'y_mod'], values='bin_cdf').max().unstack()
-    if df.pivot_table(index='modulo_group_number', columns=['x_mod', 'y_mod'], values='bin_cdf').count().unstack().std().std():
-        print('WARINING - probably modulo didnt worked correctly')
-
+    pvt=df.pivot_table(index='modulo_group_number', columns=['x_mod', 'y_mod'], values='bin_cdf')
+    probability_map_max = pvt.max().unstack()
+    if pvt.count().unstack().std().std():
+        print('WARNING - probably ml modulo didnt worked correctly')
+        # df.modulo_group_number.value_counts().sort_values()
+    if pvt.applymap(np.isnan).sum().sum():
+        print('WARNING - you have nan cells after the pivot, it means that each group has its own x_mod value, which cannot be, unless you have float precision issue')
     if debug:
         print('group_occurrence')
         group_occurrence = 100 * probability_map.stack().value_counts() / probability_map.size
@@ -83,6 +189,7 @@ def ml_map(cov, number_of_bins, mod_size, number_of_modulos=7, plots=False, debu
         print(group_occurrence)
 
     if plots:
+        print('starting plotting')
         import plotly as py
         import cufflinks
         if debug:
@@ -107,7 +214,7 @@ def ml_map(cov, number_of_bins, mod_size, number_of_modulos=7, plots=False, debu
     return ml
 
 
-def ml_modulo_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=None, cov=None, debug=False):
+def ml_radon_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=None, cov=None, debug=False):
     '''
         doesnt need to know the data covariance.
         it find the slop by sinogram, putting replica of the data next to each other,

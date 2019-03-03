@@ -214,7 +214,7 @@ def ml_map(cov, number_of_bins, mod_size, number_of_modulos=7, plots=False, debu
     return ml
 
 
-def ml_radon_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=None, cov=None, debug=False):
+def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=None, cov=None, debug=False):
     '''
         doesnt need to know the data covariance.
         it find the slop by sinogram, putting replica of the data next to each other,

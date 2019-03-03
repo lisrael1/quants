@@ -34,8 +34,9 @@ if __name__ == '__main__':
 	pivot=df.pivot_table(columns=['snr','number_of_bins','method'], index='quant_size', values='rmse')
 	pivot.to_csv('pivot.csv')
 	
-	fig=pivot.figure()
+	fig=pivot.figure(xTitle='quant_size', yTitle='rmse', title='rmse per quant sizee, by snr, number of binds and methods')
 	py.offline.plot(fig, auto_open=False)
+	exit()
 	
 	
 	

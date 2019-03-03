@@ -30,7 +30,7 @@ if __name__ == '__main__':
         cov=np.mat([[0.53749846, 0.35644121],[0.35644121, 0.23651739]])
         cov=int_force.rand_data.rand_data.rand_cov(snr=10000)
 
-        number_of_bins=17
+        number_of_bins=401
         mod_size=1.8
         samples=1000
         quant_size=mod_size/number_of_bins

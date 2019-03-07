@@ -177,7 +177,7 @@ def ml_map(cov, number_of_bins, mod_size, number_of_modulos=7, plots=False, debu
     pvt=df.pivot_table(index='modulo_group_number', columns=['x_mod', 'y_mod'], values='bin_cdf')
     probability_map_max = pvt.max().unstack()
     if pvt.count().unstack().std().std():
-        print('WARNING - probably ml modulo didnt worked correctly')
+        print('WARNING - probably map modulo didnt worked correctly')
         # df.modulo_group_number.value_counts().sort_values()
     if pvt.applymap(np.isnan).sum().sum():
         print('WARNING - you have nan cells after the pivot, it means that each group has its own x_mod value, which cannot be, unless you have float precision issue')

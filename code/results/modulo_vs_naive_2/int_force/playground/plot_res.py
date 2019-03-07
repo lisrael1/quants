@@ -40,7 +40,7 @@ if __name__ == '__main__':
 	fig = pivot['std'].figure(xTitle='quant_size', yTitle='rmse', title='rmse per quant sizee, by snr, number of binds and methods')
 	py.offline.plot(fig, filename='std per quant size snr number of bins and method.html', auto_open=False)
 
-exit()
+	exit()
 	
 	
 	

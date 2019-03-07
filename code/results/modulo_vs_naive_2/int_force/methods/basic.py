@@ -24,9 +24,11 @@ def basic_method(samples, quant_size, number_of_bins=False, A_rows=None, snr=100
     original = int_force.rand_data.rand_data.random_data(cov, samples)
     q = int_force.methods.methods.to_codebook(original, quant_size, 0)
     o = int_force.methods.methods.from_codebook(q, quant_size, 0)
+    mse=(o - original).values.flatten().var()
     res=dict(sampled_std_1=0,
              sampled_std_2=0,
-             mse=(o - original).values.flatten().var(),
+             mse=mse,
+             rmse=np.sqrt(mse),
              error_per=((o-original).abs().values.flatten()>quant_size).astype(int).mean(),
              pearson=0,
              cov=str(cov.tolist()))

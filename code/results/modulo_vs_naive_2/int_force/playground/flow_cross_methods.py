@@ -58,8 +58,9 @@ if __name__ == '__main__':
     snr_values=eval(u.snr)
     if "win" in platform:
         quant_size=quant_size[::15]
+        quant_size=[0.15]
         # method=['sinogram_method']
-        number_of_bins = [101]
+        number_of_bins = [51]
         snr_values=[1000]
     inx = pd.MultiIndex.from_product([quant_size, number_of_bins, method, snr_values], names=['quant_size', 'number_of_bins', 'method', 'snr'])
     print('generated %d simulations' % inx.shape[0])

@@ -26,17 +26,21 @@ if __name__ == '__main__':
 		if 1:
 		    alls+=[tmp]
 	print('now doint concatenation')
-	df=pd.concat(alls,ignore_index=True)	 
+	df=pd.concat(alls, ignore_index=True)
 	#df.loc[df.rmse.isna(),'rmse']=df.loc[df.rmse.isna()].mse**0.5
 	#df.head()
 	
 	print('doing pivot')
-	pivot=df.pivot_table(columns=['snr','number_of_bins','method'], index='quant_size', values='rmse')
+	pivot=df.pivot_table(columns=['snr','number_of_bins','method'], index='quant_size', values='rmse', aggfunc=['mean', 'std'])
 	pivot.to_csv('pivot.csv')
 	
-	fig=pivot.figure(xTitle='quant_size', yTitle='rmse', title='rmse per quant sizee, by snr, number of binds and methods')
-	py.offline.plot(fig, auto_open=False)
-	exit()
+	fig=pivot['mean'].figure(xTitle='quant_size', yTitle='rmse', title='rmse per quant sizee, by snr, number of binds and methods')
+	py.offline.plot(fig, filename='rmse per quant size snr number of bins and method.html', auto_open=False)
+
+	fig = pivot['std'].figure(xTitle='quant_size', yTitle='rmse', title='rmse per quant sizee, by snr, number of binds and methods')
+	py.offline.plot(fig, filename='std per quant size snr number of bins and method.html', auto_open=False)
+
+exit()
 	
 	
 	

@@ -310,9 +310,7 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
     data = pd.merge(tmp, data, left_on=[('remove', 'x_at_mod'), ('remove', 'y_at_mod')], right_on=[('after', 'X'), ('after', 'Y')], how='right').T.sort_index().T.drop('remove', axis=1)
     del tmp
     mse = (data.recovered - data.before).pow(2).values.mean()
-    if mse**0.5>0.1:
-        debug=True
-    if debug:
+    if debug and mse**0.5>0.1:
         import pylab as plt
 
         # checking if rotation worked

@@ -33,13 +33,16 @@ if __name__ == '__main__':
 	print('doing pivot')
 	pivot=df.pivot_table(columns=['snr','number_of_bins','method'], index='quant_size', values='rmse', aggfunc=['mean', 'std'])
 	pivot.to_csv('pivot.csv')
-	
+
+	print('plot rmse')
 	fig=pivot['mean'].figure(xTitle='quant_size', yTitle='rmse', title='rmse per quant sizee, by snr, number of binds and methods')
 	py.offline.plot(fig, filename='rmse per quant size snr number of bins and method.html', auto_open=False)
 
+	print('plot std')
 	fig = pivot['std'].figure(xTitle='quant_size', yTitle='rmse', title='std per quant sizee, by snr, number of binds and methods')
 	py.offline.plot(fig, filename='std per quant size snr number of bins and method.html', auto_open=False)
 
+	print('plot dist')
 	df['legend'] = df.method + ":" + df.snr.astype(str) + ':' + df.number_of_bins.astype(str)
 	if 1:
 		fig = df[df.legend.str.endswith(':10000:101')].sample(10000).figure(kind='scatter', x='quant_size', y='rmse', categories='legend', size=4, opacity=0.2, title='all samples per quant sizee, by snr, number of binds and methods')

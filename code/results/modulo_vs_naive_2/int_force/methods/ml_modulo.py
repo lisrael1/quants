@@ -255,20 +255,26 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
 
     'doing sinogram'
     hist_bins = 300
-    sinogram_dict = int_force.methods.ml_modulo.calc_sinogram(data.after.X.values, data.after.Y.values, bins=hist_bins)
-    number_of_shift_per_direction=1  # TODO i think we can lower this to 1. the covariance doesnt have 2 cyclic loop
-    # angles_that_wraps_into_itself=[0, 45, 90]  # if we have data at 0|45|90 degrees, we will take the data as is without doing un modulo
+    number_of_shift_per_direction=2  # TODO i think we can lower this to 1. the covariance doesnt have 2 cyclic loop
     angles_that_wraps_into_itself=[0, 45, 90, 26.565, 63.435]  # if we have data at 0|45|90 degrees, we will take the data as is without doing un modulo
-    if number_of_shift_per_direction==2:
-        angles_that_wraps_into_itself+=[18.434, 71.565]
     angle_close_to_wrap=1  # TODO angle_close_to_wrap here depend on the snr. if we have big snr, we can do little number, and if low, we need bigger than angle_close_to_wrap
+    if number_of_shift_per_direction==2:
+        angles_that_wraps_into_itself+=[18.434, 33.69, 56.309, 71.565]  # arctan(3/2 or 1/3 or 2/3 or 3)
+
+    if snr>1e6:  # at high snr, the folding modulo is less likely to happen, so we can ignore this
+        # angles_that_wraps_into_itself=[]
+        angle_close_to_wrap=0.5
+        hist_bins = 600
+
+    sinogram_dict = int_force.methods.ml_modulo.calc_sinogram(data.after.X.values, data.after.Y.values, bins=hist_bins)
+    # angles_that_wraps_into_itself=[0, 45, 90]  # if we have data at 0|45|90 degrees, we will take the data as is without doing un modulo
     df = int_force.rand_data.rand_data.all_data_origin_options(data.after, mod_size, number_of_shift_per_direction=number_of_shift_per_direction, debug=debug)
 
     'finding closest'
     rad = np.deg2rad(-sinogram_dict['angle_by_std'])
     rotation_matrix = np.matrix([[np.cos(rad), -np.sin(rad)], [np.sin(rad), np.cos(rad)]])
     tmp = pd.DataFrame((rotation_matrix * np.mat(df[['X', 'Y']].values).T).T)
-    tmp -= tmp.mean()
+    # tmp -= tmp.mean()
     tmp.columns = ['x_after_rotation', 'y_after_rotation']
     df = df.join(tmp)
     del tmp
@@ -278,7 +284,7 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
 
     df['axis_root_distance'] = np.hypot(df.X.values, df.Y.values)
 
-    if 0:
+    if 1:
         def group_min(group):
             # smallest = group.nsmallest(10, 'major_distance')
             # smallest=smallest[smallest.major_distance<3*smallest.major_distance.iloc[0]]
@@ -287,7 +293,8 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
             #     idx = smallest.major_distance.idxmin()
             # else:
             #     idx = smallest.minor_distance.idxmin()
-            smallest=group[group.major_distance<3*group.major_distance.min()]
+            # smallest=group[group.major_distance<3*group.major_distance.min()]
+            smallest=group[group.major_distance<10*quant_size]
             idx = smallest.minor_distance.idxmin()
             return group.loc[idx]
         # tmp = df.drop_duplicates(['x_center', 'y_center'], keep='first').groupby(['x_at_mod', 'y_at_mod']).apply(group_min)
@@ -303,8 +310,8 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
     data = pd.merge(tmp, data, left_on=[('remove', 'x_at_mod'), ('remove', 'y_at_mod')], right_on=[('after', 'X'), ('after', 'Y')], how='right').T.sort_index().T.drop('remove', axis=1)
     del tmp
     mse = (data.recovered - data.before).pow(2).values.mean()
-    # if mse**0.5>0.1:
-    #     debug=True
+    if mse**0.5>0.1:
+        debug=True
     if debug:
         import pylab as plt
 
@@ -353,6 +360,7 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
              error_per=0,
              pearson=pearson,
              A=None,
+             # angle=sinogram_dict['angle_by_std'],
              cov = str(cov.tolist()))
     return res
 
@@ -562,17 +570,21 @@ def calc_sinogram(x, y, bins=300):
 
 if __name__ == '__main__':
     import numpy as np
+    import pandas as pd
 
     samples, number_of_bins, quant_size=300, 19, 1.971141
     cov=np.mat([[1.252697487948626, 1.3951208577696566], [1.3951208577696566, 1.5559781209306283]])
 
-    samples, number_of_bins, quant_size=1000, 101, 0.05
+    samples, number_of_bins, quant_size=1000, 511, 0.01
     cov=np.mat([[1, 0.9], [0.9, 1]])
     cov=None
-    snr=100000
-
+    snr=1000001
+    results=pd.DataFrame()
     for i in range(100):
-        rmse=sinogram_method(samples, number_of_bins, quant_size, snr, cov=cov, debug=False)['rmse']
-        print(rmse)
+        res=sinogram_method(samples, number_of_bins, quant_size, snr, cov=cov, debug=False)#['rmse']
+        results=results.append(pd.Series(res), ignore_index=True)
+        # print('rmse %g, angle %g' % (res['rmse'], res['angle']))
+        print('rmse %g' % (res['rmse']))
     # quant_size/=10 # so we can see some errors
-    rmse=sinogram_method(samples, number_of_bins, quant_size, snr, cov=cov, debug=True)
+    print(results.describe())
+    # rmse=sinogram_method(samples, number_of_bins, quant_size, snr, cov=cov, debug=True)

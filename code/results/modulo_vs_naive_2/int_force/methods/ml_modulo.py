@@ -294,8 +294,12 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
             # else:
             #     idx = smallest.minor_distance.idxmin()
             # smallest=group[group.major_distance<3*group.major_distance.min()]
-            smallest=group[group.major_distance<10*quant_size]
-            idx = smallest.minor_distance.idxmin()
+            # smallest=group[group.major_distance<10*quant_size]
+            smallest=group[group.major_distance<0.1]
+            if smallest.empty:
+                idx=group.major_distance.idxmin()
+            else:
+                idx = smallest.minor_distance.idxmin()
             return group.loc[idx]
         # tmp = df.drop_duplicates(['x_center', 'y_center'], keep='first').groupby(['x_at_mod', 'y_at_mod']).apply(group_min)
         tmp = df.groupby(['x_at_mod', 'y_at_mod']).apply(group_min).reset_index(drop=True)

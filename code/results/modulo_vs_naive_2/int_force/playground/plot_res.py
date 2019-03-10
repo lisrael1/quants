@@ -37,8 +37,16 @@ if __name__ == '__main__':
 	fig=pivot['mean'].figure(xTitle='quant_size', yTitle='rmse', title='rmse per quant sizee, by snr, number of binds and methods')
 	py.offline.plot(fig, filename='rmse per quant size snr number of bins and method.html', auto_open=False)
 
-	fig = pivot['std'].figure(xTitle='quant_size', yTitle='rmse', title='rmse per quant sizee, by snr, number of binds and methods')
+	fig = pivot['std'].figure(xTitle='quant_size', yTitle='rmse', title='std per quant sizee, by snr, number of binds and methods')
 	py.offline.plot(fig, filename='std per quant size snr number of bins and method.html', auto_open=False)
+
+	df['legend'] = df.method + ":" + df.snr.astype(str) + ':' + df.number_of_bins.astype(str)
+	if 1:
+		fig = df[df.legend.str.endswith(':10000:101')].sample(10000).figure(kind='scatter', x='quant_size', y='rmse', categories='legend', size=4, opacity=0.2, title='all samples per quant sizee, by snr, number of binds and methods')
+	else:
+		fig = df.figure(kind='scatter', x='quant_size', y='rmse', categories='legend', size=1, opacity=0.01, title='all samples per quant sizee, by snr, number of binds and methods')
+		for i in range(len(fig['data'])): fig['data'][i]['visible'] = 'legendonly'
+	py.offline.plot(fig, filename='all samples per quant size snr number of bins and method.html', auto_open=False)
 
 	exit()
 	

@@ -25,7 +25,7 @@ if __name__ == '__main__':
         sbatch --mem=1800m -c1 --time=0:50:0 --array=0-199 --wrap 'python3 %prog -s ${SLURM_JOB_ID}_${SLURM_ARRAY_TASK_ID} -q "[0,3,150]" -b "[5,17,19,10001]" -m 15'
     '''
     parser = OptionParser(usage=help_text, version="%prog 1.0 beta")
-    parser.add_option("-n", dest="samples", type="int", default=100, help='number of dots X2 because you have x and y. for example 1000. you better use 5 [default: %default]')
+    parser.add_option("-n", dest="samples", type="int", default=1000, help='number of dots X2 because you have x and y. for example 1000. you better use 5 [default: %default]')
     parser.add_option("-s", dest="split_id", type="str", default='0', help='the split unique id so it will not override old output [default: %default]')
     parser.add_option("-a", dest="A_max_num", type="int", default=10,help='A max number for example for 2 you can get [[-2,1],[2,0]]. for number 10, you will get 189,776 options at A. at 5 you will have 13608. . you better use 10 [default: %default]')
     parser.add_option("-m", dest="multiply_simulations", type="int", default=1, help='multiply those simulations n times [default: %default]')

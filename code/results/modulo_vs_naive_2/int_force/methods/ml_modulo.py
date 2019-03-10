@@ -230,11 +230,17 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
     :return:
     '''
     import pandas as pd
+    pd.set_option("display.max_columns", 1000)  # don’t put … instead of multi columns
+    pd.set_option('expand_frame_repr', False)  # for not wrapping columns if you have many
+    pd.set_option("display.max_rows", 100)
+    pd.set_option('display.max_colwidth', 1000)
+
     import numpy as np
 
     mod_size=number_of_bins*quant_size
 
-    cov = int_force.rand_data.rand_data.rand_cov(snr=snr)
+    if type(cov)==type(None):
+        cov = int_force.rand_data.rand_data.rand_cov(snr=snr)
     pearson=cov[0,1]/np.sqrt(cov[0,0]*cov[1,1])
     data = int_force.rand_data.rand_data.random_data(cov, samples)
 
@@ -250,7 +256,13 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
     'doing sinogram'
     hist_bins = 300
     sinogram_dict = int_force.methods.ml_modulo.calc_sinogram(data.after.X.values, data.after.Y.values, bins=hist_bins)
-    df = int_force.rand_data.rand_data.all_data_origin_options(data.after, mod_size, number_of_shift_per_direction=2, debug=debug)
+    number_of_shift_per_direction=1  # TODO i think we can lower this to 1. the covariance doesnt have 2 cyclic loop
+    # angles_that_wraps_into_itself=[0, 45, 90]  # if we have data at 0|45|90 degrees, we will take the data as is without doing un modulo
+    angles_that_wraps_into_itself=[0, 45, 90, 26.565, 63.435]  # if we have data at 0|45|90 degrees, we will take the data as is without doing un modulo
+    if number_of_shift_per_direction==2:
+        angles_that_wraps_into_itself+=[18.434, 71.565]
+    angle_close_to_wrap=1  # TODO angle_close_to_wrap here depend on the snr. if we have big snr, we can do little number, and if low, we need bigger than angle_close_to_wrap
+    df = int_force.rand_data.rand_data.all_data_origin_options(data.after, mod_size, number_of_shift_per_direction=number_of_shift_per_direction, debug=debug)
 
     'finding closest'
     rad = np.deg2rad(-sinogram_dict['angle_by_std'])
@@ -266,13 +278,33 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
 
     df['axis_root_distance'] = np.hypot(df.X.values, df.Y.values)
 
-    idx = df.groupby(['x_at_mod', 'y_at_mod']).major_distance.idxmin()
-    tmp = df.loc[idx]
-    tmp_first_level = tmp.columns.to_series().replace(['x_at_mod', 'y_at_mod', 'x_center', 'y_center'], 'remove').replace(list('XY'), 'recovered').replace(['y_per_x_ratio', 'distance', 'axis_root_distance', 'closest_to_slop'], 'stat').values
-    tmp.columns = [tmp_first_level, tmp.columns.values]
-    data = pd.merge(tmp, data, left_on=[('remove', 'x_at_mod'), ('remove', 'y_at_mod')], right_on=[('after', 'X'), ('after', 'Y')], how='inner').T.sort_index().T.drop('remove', axis=1)
+    if 0:
+        def group_min(group):
+            # smallest = group.nsmallest(10, 'major_distance')
+            # smallest=smallest[smallest.major_distance<3*smallest.major_distance.iloc[0]]
+            # if smallest.major_distance.ptp() > 3 * quant_size:
+            # if smallest.shape[0]==1:
+            #     idx = smallest.major_distance.idxmin()
+            # else:
+            #     idx = smallest.minor_distance.idxmin()
+            smallest=group[group.major_distance<3*group.major_distance.min()]
+            idx = smallest.minor_distance.idxmin()
+            return group.loc[idx]
+        # tmp = df.drop_duplicates(['x_center', 'y_center'], keep='first').groupby(['x_at_mod', 'y_at_mod']).apply(group_min)
+        tmp = df.groupby(['x_at_mod', 'y_at_mod']).apply(group_min).reset_index(drop=True)
+    else:
+        if sum(np.abs(np.array(angles_that_wraps_into_itself) - abs(sinogram_dict['angle_by_std'])) < angle_close_to_wrap):
+            idx=df.groupby(['x_at_mod', 'y_at_mod']).axis_root_distance.idxmin()  # take the original data
+        else:
+            idx = df.groupby(['x_at_mod', 'y_at_mod']).major_distance.idxmin()
+        tmp = df.loc[idx]
+    tmp_first_level_column = tmp.columns.to_series().replace(['x_at_mod', 'y_at_mod', 'x_center', 'y_center'], 'remove').replace(list('XY'), 'recovered').replace(['y_per_x_ratio', 'distance', 'axis_root_distance', 'closest_to_slop'], 'stat').values
+    tmp.columns = [tmp_first_level_column, tmp.columns.values]
+    data = pd.merge(tmp, data, left_on=[('remove', 'x_at_mod'), ('remove', 'y_at_mod')], right_on=[('after', 'X'), ('after', 'Y')], how='right').T.sort_index().T.drop('remove', axis=1)
     del tmp
     mse = (data.recovered - data.before).pow(2).values.mean()
+    if mse**0.5>0.1:
+        debug=True
     if debug:
         import pylab as plt
 
@@ -285,15 +317,15 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
         plt.plot([-mod_size / 2, -mod_size / 2, mod_size / 2, mod_size / 2, -mod_size / 2], [-mod_size / 2, mod_size / 2, mod_size / 2, -mod_size / 2, -mod_size / 2])  # plotting the modulo frame
         fig.legend()
 
-        print(data)
-        print('sinogram data')
+        # print(data)
+        # sinogram data
         fig, ax = plt.subplots(1, 4, figsize=(12 * 2.1, 4.5 * 2.1))  # , subplot_kw ={'aspect': 1.5})#, sharex=False)
         ax[0].set_title("data")
         ax[0].imshow(sinogram_dict['image'], cmap=plt.cm.Greys_r)
         ax[0].plot([hist_bins // 2 - hist_bins * sinogram_dict['x_avg'], hist_bins // 2 + 100 - hist_bins * sinogram_dict['x_avg']], [hist_bins // 2 - hist_bins * sinogram_dict['y_avg'], hist_bins // 2 - hist_bins * sinogram_dict['y_avg'] - 100 * sinogram_dict['slop']])
 
         ax[1].set_title("sinogram")
-        ax[1].imshow(sinogram_dict['sinogram'], cmap=plt.cm.Greys_r)
+        ax[1].imshow(sinogram_dict['sinogram'], cmap=plt.cm.Greys_r, extent=(-90, 90, 0, hist_bins))
 
         sinogram_dict['sinogram'][sinogram_dict['angle_by_std']].plot(ax=ax[2], title='sinogram values at angle')  # , figsize=[20, 20]
 
@@ -301,12 +333,13 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
 
         fig.tight_layout()
         fig.subplots_adjust(top=0.85)
-        print('original and recovered data')
+        # original and recovered data
         if 1:
             fig = plt.figure()
             fig.suptitle('angle %g, MSE %g' % (sinogram_dict['angle_by_std'], mse))
-            data.recovered.set_index('X').Y.plot(style='.', alpha=0.1)
-            data.before.set_index('X').Y.plot(style='.', alpha=0.1)
+            data.recovered.set_index('X').Y.plot(style='.', alpha=0.1, label='recovered')
+            data.before.set_index('X').Y.plot(style='.', alpha=0.1, label='original')
+            fig.legend()
             if mse > 1e-7 or 1:
                 plt.show()
             else:
@@ -533,12 +566,13 @@ if __name__ == '__main__':
     samples, number_of_bins, quant_size=300, 19, 1.971141
     cov=np.mat([[1.252697487948626, 1.3951208577696566], [1.3951208577696566, 1.5559781209306283]])
 
-    samples, number_of_bins, quant_size=300, 19, 0.785235
+    samples, number_of_bins, quant_size=1000, 101, 0.05
+    cov=np.mat([[1, 0.9], [0.9, 1]])
     cov=None
-    snr=1000
+    snr=100000
 
-    for i in range(10):
-        rmse=ml_modulo_method(samples, number_of_bins, quant_size, snr, cov=cov, debug=False)['rmse']
+    for i in range(100):
+        rmse=sinogram_method(samples, number_of_bins, quant_size, snr, cov=cov, debug=False)['rmse']
         print(rmse)
     # quant_size/=10 # so we can see some errors
-    rmse=ml_modulo_method(samples, number_of_bins, quant_size, snr, cov=cov, debug=True)
+    rmse=sinogram_method(samples, number_of_bins, quant_size, snr, cov=cov, debug=True)

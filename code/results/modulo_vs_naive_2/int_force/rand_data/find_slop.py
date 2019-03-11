@@ -39,12 +39,13 @@ def get_cov_ev(cov, plot=False):
         plt.show()
     return df, angle
 
-
-if __name__ == '__main__':
+def compare_sinogram_and_eigen_vector():
     import sys
     sys.path.append('../../')
     sys.path.append(r'C:\Users\lisrael1\Documents\myThings\lior_docs\HU\thesis\quants\code\results\modulo_vs_naive_2/')
     import int_force
+    from sys import platform
+    from tqdm import tqdm
 
     import numpy as np
     import pandas as pd
@@ -56,8 +57,7 @@ if __name__ == '__main__':
     # import warnings
 
     df=pd.DataFrame()
-    for i in range(100):
-        print('*'*150)
+    for _ in tqdm(range(100)):
         samples=1000
 
         cov=np.mat([[0, 0],[0, 1]])
@@ -66,15 +66,22 @@ if __name__ == '__main__':
         cov=int_force.rand_data.rand_data.rand_cov(snr=10000)
         data = int_force.rand_data.rand_data.random_data(cov, samples)
 
-        hist_bins=300
+        hist_bins=600
         sinogram_dict = int_force.methods.ml_modulo.calc_sinogram(data.X.values, data.Y.values, bins=hist_bins)
 
-        # print(cov)
-        get_cov_ev(cov, False)
-        df=df.append(pd.Series(dict(sinogram=sinogram_dict['angle_by_std'], ev=get_cov_ev(cov, False)[1])), ignore_index=True)
-        df['error']=df.ev-df.sinogram
-        if df['error'].abs().values[-1]>5:
-            print('hi')
-    print(df[df.error.abs()>5])
-    print(df.describe())
+        res=pd.DataFrame(dict(sinogram=sinogram_dict['angle_by_std'], ev=get_cov_ev(cov, False)[1]), index=[1])
+        res.to_csv(r'angles.csv', header=None, index=None, mode='a')
+        if "win" in platform:
+            # print('*' * 150)
+            # print(cov)
+            df = df.append(pd.Series(dict(sinogram=sinogram_dict['angle_by_std'], ev=get_cov_ev(cov, False)[1])), ignore_index=True)
+            df['error']=df.ev-df.sinogram
+            if df['error'].abs().values[-1]>5:
+                print('hi')
+    if "win" in platform:
+        print(df[df.error.abs()>5])
+        print(df.describe())
 
+
+if __name__ == '__main__':
+    compare_sinogram_and_eigen_vector()

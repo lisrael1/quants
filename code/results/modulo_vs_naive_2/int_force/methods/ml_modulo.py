@@ -521,9 +521,10 @@ def calc_sinogram(x, y, hist_bins=300, plot=False):
     # we cannot take the angle sum, because they all summed to big numbers
     radon_estimated_angle = sinogram.std().idxmax()
 
-    # lets remove the peaks at 0 and 90 degrease
     # max_peaking = signal.find_peaks(sinogram.std(), distance=sinogram.shape[1]//100)[0]
-    max_peaking = signal.find_peaks(sinogram.std(), distance=4)[0]
+    max_peaking = signal.find_peaks(sinogram.std(), distance=4)[0].tolist()  # we want to find peaks so all values next to the peak will dropped
+    max_peaking+=[0,sinogram.shape[0]-1]  # adding also the edges because they are not count as peaks
+    max_peaking=np.array(max_peaking)
     # print(max_peaking)
     max_peaking=sinogram.std().iloc[max_peaking]
     # max_peaking=max_peaking[~max_peaking.index.isin([-90, 0, -45, 90, 45])]  # we multiply the pattern to the left right up and down so obviously we tend to get those angles
@@ -555,6 +556,7 @@ def calc_sinogram(x, y, hist_bins=300, plot=False):
         fig.tight_layout()
         fig.subplots_adjust(top=0.85)
         plt.show()
+        print('closing picture')
     if 0:
         empty_sinogram = sinogram.copy().astype(int)*0
         empty_sinogram.loc[sinogram.index.to_series().median(), radon_estimated_angle]=1

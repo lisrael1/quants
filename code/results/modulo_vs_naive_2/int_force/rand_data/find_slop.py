@@ -72,11 +72,7 @@ def compare_sinogram_and_eigen_vector():
         data = int_force.rand_data.rand_data.random_data(cov, samples)
 
         hist_bins=600
-        plot=False
-        if "win" in platform:
-            plot=True
-            plot=False
-        sinogram_dict = int_force.methods.ml_modulo.calc_sinogram(data.X.values, data.Y.values, hist_bins=hist_bins, plot=plot)
+        sinogram_dict = int_force.methods.ml_modulo.calc_sinogram(data.X.values, data.Y.values, hist_bins=hist_bins, plot=False)
 
         res=pd.DataFrame(dict(sinogram=sinogram_dict['angle_by_std'], ev=get_cov_ev(cov, False)[1]), index=[1])
         res.to_csv(r'angles.csv', header=None, index=None, mode='a')
@@ -91,6 +87,7 @@ def compare_sinogram_and_eigen_vector():
             if df['error'].abs().values[-1]>5:
                 print('hi')
                 get_cov_ev(cov, True)
+                int_force.methods.ml_modulo.calc_sinogram(data.X.values, data.Y.values, hist_bins=hist_bins, plot=True)
     if "win" in platform:
         print(df[df.error.abs()>5])
         print(df.describe())

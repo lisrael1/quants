@@ -252,6 +252,10 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
     data.columns = [['before'] * 2, data.columns.values]
     data = data.join(tmp)
     del tmp
+    if snr > 1e6 and number_of_bins>1000:
+        high_resolution_sim=True
+    else:
+        high_resolution_sim=False
 
     'doing sinogram'
     hist_bins = 300
@@ -261,7 +265,7 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
     if number_of_shift_per_direction==2:
         angles_that_wraps_into_itself+=[18.434, 33.69, 56.309, 71.565]  # arctan(3/2 or 1/3 or 2/3 or 3)
 
-    if snr>1e6:  # at high snr, the folding modulo is less likely to happen, so we can ignore this
+    if high_resolution_sim:  # at high snr, the folding modulo is less likely to happen, so we can ignore this
         # angles_that_wraps_into_itself=[]
         angle_close_to_wrap=0.5
         hist_bins = 600
@@ -270,6 +274,7 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
     # angles_that_wraps_into_itself=[0, 45, 90]  # if we have data at 0|45|90 degrees, we will take the data as is without doing un modulo
     df = int_force.rand_data.rand_data.all_data_origin_options(data.after, mod_size, number_of_shift_per_direction=number_of_shift_per_direction, debug=debug)
 
+    cov_angle=int_force.rand_data.find_slop.get_cov_ev(cov)[1]
     'finding closest'
     rad = np.deg2rad(-sinogram_dict['angle_by_std'])
     rotation_matrix = np.matrix([[np.cos(rad), -np.sin(rad)], [np.sin(rad), np.cos(rad)]])
@@ -284,7 +289,8 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
 
     df['axis_root_distance'] = np.hypot(df.X.values, df.Y.values)
 
-    if 1:
+    # we have 2 ways - or to check if we have angle with problems, or to check if we have multiple options that are close to the x axis and then take the closest to y axis
+    if high_resolution_sim:
         def group_min(group):
             # smallest = group.nsmallest(10, 'major_distance')
             # smallest=smallest[smallest.major_distance<3*smallest.major_distance.iloc[0]]
@@ -362,7 +368,8 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
              error_per=0,
              pearson=pearson,
              A=None,
-             # angle=sinogram_dict['angle_by_std'],
+             angle=sinogram_dict['angle_by_std'],
+             cov_ev_anlge=cov_angle,
              cov = str(cov.tolist()))
     return res
 
@@ -575,9 +582,7 @@ if __name__ == '__main__':
     import pandas as pd
 
     samples, number_of_bins, quant_size=300, 19, 1.971141
-    cov=np.mat([[1.252697487948626, 1.3951208577696566], [1.3951208577696566, 1.5559781209306283]])
-
-    samples, number_of_bins, quant_size=1000, 511, 0.01
+    samples, number_of_bins, quant_size=1000, 1024, 0.01
     cov=np.mat([[1, 0.9], [0.9, 1]])
     cov=None
     snr=1000001

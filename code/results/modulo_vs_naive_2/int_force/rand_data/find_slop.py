@@ -39,6 +39,7 @@ def get_cov_ev(cov, plot=False):
         plt.show()
     return df, angle
 
+
 def compare_sinogram_and_eigen_vector():
     import sys
     sys.path.append('../../')
@@ -57,17 +58,25 @@ def compare_sinogram_and_eigen_vector():
     # import warnings
 
     df=pd.DataFrame()
-    for _ in tqdm(range(100)):
+    for _ in tqdm(range(1000)):
         samples=1000
 
         cov=np.mat([[0, 0],[0, 1]])
         cov=np.mat([[1, 1],[1, 1.2]])
         cov=np.mat([[0.53749846, 0.35644121],[0.35644121, 0.23651739]])
         cov=int_force.rand_data.rand_data.rand_cov(snr=10000)
+        if "win" in platform:
+            ang=get_cov_ev(cov, False)[1]
+            if ang>-87 and ang<87:
+                continue
         data = int_force.rand_data.rand_data.random_data(cov, samples)
 
         hist_bins=600
-        sinogram_dict = int_force.methods.ml_modulo.calc_sinogram(data.X.values, data.Y.values, bins=hist_bins)
+        plot=False
+        if "win" in platform:
+            plot=True
+            plot=False
+        sinogram_dict = int_force.methods.ml_modulo.calc_sinogram(data.X.values, data.Y.values, hist_bins=hist_bins, plot=plot)
 
         res=pd.DataFrame(dict(sinogram=sinogram_dict['angle_by_std'], ev=get_cov_ev(cov, False)[1]), index=[1])
         res.to_csv(r'angles.csv', header=None, index=None, mode='a')
@@ -76,8 +85,12 @@ def compare_sinogram_and_eigen_vector():
             # print(cov)
             df = df.append(pd.Series(dict(sinogram=sinogram_dict['angle_by_std'], ev=get_cov_ev(cov, False)[1])), ignore_index=True)
             df['error']=df.ev-df.sinogram
+            print()
+            print()
+            print(df.tail(1))
             if df['error'].abs().values[-1]>5:
                 print('hi')
+                get_cov_ev(cov, True)
     if "win" in platform:
         print(df[df.error.abs()>5])
         print(df.describe())

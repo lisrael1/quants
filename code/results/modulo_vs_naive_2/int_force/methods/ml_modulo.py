@@ -270,7 +270,7 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
         angle_close_to_wrap=0.5
         hist_bins = 600
 
-    sinogram_dict = int_force.methods.ml_modulo.calc_sinogram(data.after.X.values, data.after.Y.values, bins=hist_bins)
+    sinogram_dict = int_force.methods.ml_modulo.calc_sinogram(data.after.X.values, data.after.Y.values, hist_bins=hist_bins, plot=debug)
     # angles_that_wraps_into_itself=[0, 45, 90]  # if we have data at 0|45|90 degrees, we will take the data as is without doing un modulo
     df = int_force.rand_data.rand_data.all_data_origin_options(data.after, mod_size, number_of_shift_per_direction=number_of_shift_per_direction, debug=debug)
 
@@ -320,7 +320,7 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
     data = pd.merge(tmp, data, left_on=[('remove', 'x_at_mod'), ('remove', 'y_at_mod')], right_on=[('after', 'X'), ('after', 'Y')], how='right').T.sort_index().T.drop('remove', axis=1)
     del tmp
     mse = (data.recovered - data.before).pow(2).values.mean()
-    if debug and mse**0.5>0.1:
+    if debug:
         import pylab as plt
 
         # checking if rotation worked
@@ -332,22 +332,6 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
         plt.plot([-mod_size / 2, -mod_size / 2, mod_size / 2, mod_size / 2, -mod_size / 2], [-mod_size / 2, mod_size / 2, mod_size / 2, -mod_size / 2, -mod_size / 2])  # plotting the modulo frame
         fig.legend()
 
-        # print(data)
-        # sinogram data
-        fig, ax = plt.subplots(1, 4, figsize=(12 * 2.1, 4.5 * 2.1))  # , subplot_kw ={'aspect': 1.5})#, sharex=False)
-        ax[0].set_title("data")
-        ax[0].imshow(sinogram_dict['image'], cmap=plt.cm.Greys_r)
-        ax[0].plot([hist_bins // 2 - hist_bins * sinogram_dict['x_avg'], hist_bins // 2 + 100 - hist_bins * sinogram_dict['x_avg']], [hist_bins // 2 - hist_bins * sinogram_dict['y_avg'], hist_bins // 2 - hist_bins * sinogram_dict['y_avg'] - 100 * sinogram_dict['slop']])
-
-        ax[1].set_title("sinogram")
-        ax[1].imshow(sinogram_dict['sinogram'], cmap=plt.cm.Greys_r, extent=(-90, 90, 0, hist_bins))
-
-        sinogram_dict['sinogram'][sinogram_dict['angle_by_std']].plot(ax=ax[2], title='sinogram values at angle')  # , figsize=[20, 20]
-
-        sinogram_dict['sinogram'].std().plot(ax=ax[3], title='estimated angle %g' % sinogram_dict['angle_by_std'])
-
-        fig.tight_layout()
-        fig.subplots_adjust(top=0.85)
         # original and recovered data
         if 1:
             fig = plt.figure()
@@ -510,7 +494,7 @@ def ml_modulo_method_without_quantization_on_pdf(samples, number_of_bins, quant_
     return res
 
 
-def calc_sinogram(x, y, bins=300):
+def calc_sinogram(x, y, hist_bins=300, plot=False):
     import numpy as np
     import pandas as pd
     import warnings
@@ -518,7 +502,7 @@ def calc_sinogram(x, y, bins=300):
     from scipy import signal
 
     max_num=max(max(x),max(y))
-    bins=np.linspace(-max_num, max_num, bins, endpoint=True)
+    bins=np.linspace(-max_num, max_num, hist_bins, endpoint=True)
     H, xedges, yedges = np.histogram2d(x, y, bins=[bins]*2)  # in order to estimate the angle, we need the space to be square
     H = H[::-1].T
     theta = np.linspace(0., 180., max(H.shape), endpoint=False)
@@ -542,11 +526,35 @@ def calc_sinogram(x, y, bins=300):
     max_peaking = signal.find_peaks(sinogram.std(), distance=4)[0]
     # print(max_peaking)
     max_peaking=sinogram.std().iloc[max_peaking]
-    max_peaking=max_peaking[~max_peaking.index.isin([-90, 0, -45, 90, 45])]  # we multiply the pattern to the left right up and down so obviously we tend to get those angles
+    # max_peaking=max_peaking[~max_peaking.index.isin([-90, 0, -45, 90, 45])]  # we multiply the pattern to the left right up and down so obviously we tend to get those angles
     radon_estimated_angle=max_peaking.idxmax()
 
     slop=np.tan(np.deg2rad(radon_estimated_angle))
+    sinogram_dict=dict(image=H,
+                sinogram=sinogram,
+                angle_by_std=radon_estimated_angle,
+                angle_by_idxmax=sinogram.stack().idxmax()[1],
+                overall_sinogram_std=sinogram.std().std(),
+                slop=slop,
+                y_avg=y.mean(),
+                x_avg=x.mean())
+    if plot:
+        import pylab as plt
+        fig, ax = plt.subplots(1, 4, figsize=(12 * 2.1, 4.5 * 2.1))  # , subplot_kw ={'aspect': 1.5})#, sharex=False)
+        ax[0].set_title("data")
+        ax[0].imshow(sinogram_dict['image'], cmap=plt.cm.Greys_r)
+        ax[0].plot([hist_bins // 2 - hist_bins * sinogram_dict['x_avg'], hist_bins // 2 + 100 - hist_bins * sinogram_dict['x_avg']], [hist_bins // 2 - hist_bins * sinogram_dict['y_avg'], hist_bins // 2 - hist_bins * sinogram_dict['y_avg'] - 100 * sinogram_dict['slop']])
 
+        ax[1].set_title("sinogram")
+        ax[1].imshow(sinogram_dict['sinogram'], cmap=plt.cm.Greys_r, extent=(-90, 90, 0, hist_bins))
+
+        sinogram_dict['sinogram'][sinogram_dict['angle_by_std']].plot(ax=ax[2], title='sinogram values at angle')  # , figsize=[20, 20]
+
+        sinogram_dict['sinogram'].std().plot(ax=ax[3], title='estimated angle %g' % sinogram_dict['angle_by_std'])
+
+        fig.tight_layout()
+        fig.subplots_adjust(top=0.85)
+        plt.show()
     if 0:
         empty_sinogram = sinogram.copy().astype(int)*0
         empty_sinogram.loc[sinogram.index.to_series().median(), radon_estimated_angle]=1
@@ -568,13 +576,7 @@ def calc_sinogram(x, y, bins=300):
     # this will tell us how much the image is just lines or just noise
     # below 3 is low correlation. and you have up to 3.5 to some cases that are at the middle
     # print('overall sinogram std %g' % sinogram.std().std())
-    return dict(image=H, sinogram=sinogram,
-                angle_by_std=radon_estimated_angle,
-                angle_by_idxmax=sinogram.stack().idxmax()[1],
-                overall_sinogram_std=sinogram.std().std(),
-                slop=slop,
-                y_avg=y.mean(),
-                x_avg=x.mean())
+    return sinogram_dict
 
 
 if __name__ == '__main__':
@@ -588,7 +590,7 @@ if __name__ == '__main__':
     snr=1000001
     results=pd.DataFrame()
     for i in range(100):
-        res=sinogram_method(samples, number_of_bins, quant_size, snr, cov=cov, debug=False)#['rmse']
+        res=sinogram_method(samples, number_of_bins, quant_size, snr, cov=cov, debug=False)
         results=results.append(pd.Series(res), ignore_index=True)
         # print('rmse %g, angle %g' % (res['rmse'], res['angle']))
         print('rmse %g' % (res['rmse']))

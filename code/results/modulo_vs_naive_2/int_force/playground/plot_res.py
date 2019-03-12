@@ -50,10 +50,10 @@ if __name__ == '__main__':
 		from tqdm import tqdm
 		tqdm.pandas()
 		df['angle'] = df[df.method=='sinogram_method'].sample(100000).progress_apply(lambda row: int_force.rand_data.find_slop.get_cov_ev(eval(row['cov']))[1], axis=1)
-	fig=df[~df.angle.isna()].set_index('angle').rmse.figure(kind='scatter', mode='markers', size=4, opacity=0.1, title='rmse per angle')
+	fig=df[~df.angle.isna()].set_index('angle').rmse.sample(50000).figure(kind='scatter', mode='markers', size=4, opacity=0.1, title='rmse per angle')
 	py.offline.plot(fig, filename='rmse per angle.html', auto_open=False)
 
-	def redo_hist_on_hist(hist, number_of_bins = 50):
+	def redo_hist_on_hist(hist, number_of_bins = 150):
 		'''
 
 		:param hist: must by df
@@ -70,14 +70,26 @@ if __name__ == '__main__':
 	fig = hist.figure(kind='scatter', title='rmse per angle')
 	py.offline.plot(fig, filename='rmse per angle hist.html', auto_open=False)
 
+	print('plot angle error')
+	if 'angle' in df.columns:
+		df['angle_error']=df.angle-df.cov_ev_anlge
+		fig=df.set_index('cov_ev_anlge').angle_error.dropna().sample(5000).figure(kind='scatter', mode='markers', size=4, title='angle error per angle')
+		py.offline.plot(fig, filename='angle error per angle.html', auto_open=False)
+		
+		fig=df.dropna(subset=['angle']).set_index('cov_ev_anlge').rmse.sample(5000).figure(kind='scatter', mode='markers', size=4, title='rmse per angle')
+		py.offline.plot(fig, filename='rmse per angle.html', auto_open=False)
+
 	print('plot dist')
 	df['legend'] = df.method + ":" + df.snr.astype(str) + ':' + df.number_of_bins.astype(str)
 	if 1:
-		fig = df[df.legend.str.endswith(':10000:101')].sample(10000).figure(kind='scatter', x='quant_size', y='rmse', categories='legend', size=4, opacity=0.2, title='all samples per quant sizee, by snr, number of binds and methods')
+		fig = df[df.legend.str.endswith(':10000:101')]
+		if not fig.empty:
+			fig = fig.sample(10000).figure(kind='scatter', x='quant_size', y='rmse', categories='legend', size=4, opacity=0.2, title='all samples per quant sizee, by snr, number of binds and methods')
+			py.offline.plot(fig, filename='all samples per quant size snr number of bins and method.html', auto_open=False)
 	else:
 		fig = df.figure(kind='scatter', x='quant_size', y='rmse', categories='legend', size=1, opacity=0.01, title='all samples per quant sizee, by snr, number of binds and methods')
 		for i in range(len(fig['data'])): fig['data'][i]['visible'] = 'legendonly'
-	py.offline.plot(fig, filename='all samples per quant size snr number of bins and method.html', auto_open=False)
+		py.offline.plot(fig, filename='all samples per quant size snr number of bins and method.html', auto_open=False)
 
 	exit()
 	

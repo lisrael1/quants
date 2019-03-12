@@ -1,0 +1,1 @@
+sbatch --mem=1800m -c1 --time=23:50:0 --array=0-499 --wrap 'python3 flow_cross_methods.py -s ${SLURM_JOB_ID}_${SLURM_ARRAY_TASK_ID} --methods="[\"sinogram_method\"]" -q "[0,0.025,150]" -b "[1024,5001]" --snr="[1000001,10000000]" -m 2'

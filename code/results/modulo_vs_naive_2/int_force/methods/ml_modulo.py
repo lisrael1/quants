@@ -258,7 +258,7 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
         high_resolution_sim=False
 
     'doing sinogram'
-    hist_bins = 300
+    hist_bins = 600  # it's better than 300, although slower
     number_of_shift_per_direction=2  # TODO i think we can lower this to 1. the covariance doesnt have 2 cyclic loop
     angles_that_wraps_into_itself=[0, 45, 90, 26.565, 63.435]  # if we have data at 0|45|90 degrees, we will take the data as is without doing un modulo
     angle_close_to_wrap=1  # TODO angle_close_to_wrap here depend on the snr. if we have big snr, we can do little number, and if low, we need bigger than angle_close_to_wrap

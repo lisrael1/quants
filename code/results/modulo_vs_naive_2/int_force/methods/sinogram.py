@@ -59,7 +59,10 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
         angle_close_to_wrap=0.5
         hist_bins = 600
 
-    sinogram_dict = int_force.methods.ml_modulo.calc_sinogram(data.after.X.values, data.after.Y.values, hist_bins=hist_bins, plot=debug)
+    print('setting the bins to 300')
+    hist_bins = 300
+
+    sinogram_dict = int_force.methods.sinogram.calc_sinogram(data.after.X.values, data.after.Y.values, hist_bins=hist_bins, plot=debug)
     # angles_that_wraps_into_itself=[0, 45, 90]  # if we have data at 0|45|90 degrees, we will take the data as is without doing un modulo
     df = int_force.rand_data.rand_data.all_data_origin_options(data.after, mod_size, number_of_shift_per_direction=number_of_shift_per_direction, debug=debug)
 
@@ -170,7 +173,8 @@ def calc_sinogram(x, y, hist_bins=300, plot=False):
         sinogram = pd.DataFrame(out, columns=angles, index=d).rename_axis('angle', axis=1).rename_axis('offset', axis=0)  # angle is from the horizon, you will get from -90 to 90
 
     # this will tell us the angle. we can also use idxmax on the sinogram,
-    # but the best is to find the angle that has the highest std
+    # but the best is to find the angle that has the highest std,
+    # becaues max is by single line and std is by all lines
     # we cannot take the angle sum, because they all summed to big numbers
     radon_estimated_angle = sinogram.std().idxmax()
 
@@ -193,23 +197,8 @@ def calc_sinogram(x, y, hist_bins=300, plot=False):
                 y_avg=y.mean(),
                 x_avg=x.mean())
     if plot:
-        import pylab as plt
-        fig, ax = plt.subplots(1, 4, figsize=(12 * 2.1, 4.5 * 2.1))  # , subplot_kw ={'aspect': 1.5})#, sharex=False)
-        ax[0].set_title("data")
-        ax[0].imshow(sinogram_dict['image'], cmap=plt.cm.Greys_r)
-        ax[0].plot([hist_bins // 2 - hist_bins * sinogram_dict['x_avg'], hist_bins // 2 + 100 - hist_bins * sinogram_dict['x_avg']], [hist_bins // 2 - hist_bins * sinogram_dict['y_avg'], hist_bins // 2 - hist_bins * sinogram_dict['y_avg'] - 100 * sinogram_dict['slop']])
+        plot_sinogram(sinogram_dict['image'], sinogram_dict['sinogram'], sinogram_dict['angle_by_std'], slop=sinogram_dict['slop'])
 
-        ax[1].set_title("sinogram")
-        ax[1].imshow(sinogram_dict['sinogram'], cmap=plt.cm.Greys_r, extent=(-90, 90, 0, hist_bins))
-
-        sinogram_dict['sinogram'][sinogram_dict['angle_by_std']].plot(ax=ax[2], title='sinogram values at angle')  # , figsize=[20, 20]
-
-        sinogram_dict['sinogram'].std().plot(ax=ax[3], title='estimated angle %g' % sinogram_dict['angle_by_std'])
-
-        fig.tight_layout()
-        fig.subplots_adjust(top=0.85)
-        # plt.show()
-        print('closing picture')
     if 0:
         empty_sinogram = sinogram.copy().astype(int)*0
         empty_sinogram.loc[sinogram.index.to_series().median(), radon_estimated_angle]=1
@@ -234,7 +223,29 @@ def calc_sinogram(x, y, hist_bins=300, plot=False):
     return sinogram_dict
 
 
-if __name__ == '__main__':
+def plot_sinogram(image, sinogram, angle_by_std, slop):
+    import pylab as plt
+    hist_bins=(image.shape[0]+1)  # image should be square
+    fig, ax = plt.subplots(1, 4, figsize=(12 * 2.1, 4.5 * 2.1))  # , subplot_kw ={'aspect': 1.5})#, sharex=False)
+    ax[0].set_title("data")
+    ax[0].imshow(image, cmap=plt.cm.Greys_r)
+    image_middle=hist_bins // 2
+    ax[0].plot([image_middle, image_middle+hist_bins/5], [image_middle, image_middle-slop * hist_bins/5])
+
+    ax[1].set_title("sinogram")
+    ax[1].imshow(sinogram, cmap=plt.cm.Greys_r, extent=(-90, 90, 0, hist_bins))
+
+    sinogram[angle_by_std].plot(ax=ax[2], title='sinogram values at angle')  # , figsize=[20, 20]
+
+    sinogram.std().plot(ax=ax[3], title='estimated angle %g' % angle_by_std)
+
+    fig.tight_layout()
+    fig.subplots_adjust(top=0.85)
+    # plt.show()
+    print('closing picture')
+
+
+def _debug_sinogram_method():
     import numpy as np
     import pandas as pd
 
@@ -252,3 +263,65 @@ if __name__ == '__main__':
     # quant_size/=10 # so we can see some errors
     print(results.describe())
     # rmse=sinogram_method(samples, number_of_bins, quant_size, snr, cov=cov, debug=True)
+
+
+def compare_sinogram_and_eigen_vector(quant_size=False, hist_bins=300, snr=10000, samples=1000):
+    import sys
+    sys.path.append('../../')
+    sys.path.append(r'C:\Users\lisrael1\Documents\myThings\lior_docs\HU\thesis\quants\code\results\modulo_vs_naive_2/')
+    import int_force
+    from sys import platform
+
+    import numpy as np
+    import pandas as pd
+
+    df=pd.DataFrame()
+    cov=np.mat([[0, 0],[0, 1]])
+    cov=np.mat([[1, 1],[1, 1.2]])
+    cov=np.mat([[0.53749846, 0.35644121],[0.35644121, 0.23651739]])
+    cov=int_force.rand_data.rand_data.rand_cov(snr=snr)
+    if "win" in platform and 0:
+        ang=int_force.rand_data.find_slop.get_cov_ev(cov, False)[1]
+        if ang>-87 and ang<87:
+            return
+    data = int_force.rand_data.rand_data.random_data(cov, samples)
+    if quant_size:
+        data = int_force.methods.methods.to_codebook(data, quant_size, 0)
+        data = int_force.methods.methods.from_codebook(data, quant_size, 0)
+
+    sinogram_dict = int_force.methods.sinogram.calc_sinogram(data.X.values, data.Y.values, hist_bins=hist_bins, plot=False)
+
+    res=pd.DataFrame(dict(sinogram=sinogram_dict['angle_by_std'], ev=int_force.rand_data.find_slop.get_cov_ev(cov, False)[1]), index=[1])
+    res['error'] = (res.ev - res.sinogram).abs() % 45
+    if "win" in platform and 0:
+        res.to_csv(r'angles.csv', header=None, index=None, mode='a')
+        # print('*' * 150)
+        # print(cov)
+        df = df.append(pd.Series(dict(sinogram=sinogram_dict['angle_by_std'], ev=int_force.rand_data.find_slop.get_cov_ev(cov, False)[1])), ignore_index=True)
+        df['error']=(df.ev-df.sinogram).abs() % 45
+        print()
+        print()
+        print(df.tail(1))
+        if df['error'].abs().values[-1]>5:
+            print('hi')
+            int_force.rand_data.find_slop.get_cov_ev(cov, True)
+            int_force.methods.sinogram.calc_sinogram(data.X.values, data.Y.values, hist_bins=hist_bins, plot=True)
+        print(df[df.error.abs()>5])
+        print(df.describe())
+    return res.iloc[0].round(4).to_dict()#.error.values[0]
+
+
+if __name__ == '__main__':
+    from tqdm import tqdm
+    import pandas as pd
+    import numpy as np
+    tqdm.pandas()
+
+    a = [[10,100,1000,10000], [100, 300, 50, 600], [100, 1000, 10000]]
+    inx = pd.MultiIndex.from_product(a, names=['samples', 'hist_bins', 'snr'])
+    df = pd.DataFrame(index=inx).reset_index(drop=False)
+    df=pd.concat([df]*20, ignore_index=True)
+    df=df.join(df.progress_apply(lambda row: compare_sinogram_and_eigen_vector(**row.to_dict()), axis=1).apply(pd.Series))
+    df.to_csv('angle_error_by_sinogram.csv', header=None, mode='a')
+    print(df.head())
+

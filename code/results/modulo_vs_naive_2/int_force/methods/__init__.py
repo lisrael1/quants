@@ -4,6 +4,7 @@
 #   __import__(module)
 
 from . import ml_modulo
+from . import sinogram
 from . import methods
 from . import clipping
 from . import modulo

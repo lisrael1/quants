@@ -47,7 +47,7 @@ if __name__ == '__main__':
     else:
         A=None
     modulo_method=int_force.methods.modulo.modulo_method
-    sinogram_method=int_force.methods.ml_modulo.sinogram_method
+    sinogram_method=int_force.methods.sinogram.sinogram_method
     clipping_method=int_force.methods.clipping.clipping_method
     ml_map_method=int_force.methods.ml_modulo.ml_map_method
     basic_method=int_force.methods.basic.basic_method

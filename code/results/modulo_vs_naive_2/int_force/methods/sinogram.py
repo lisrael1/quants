@@ -321,6 +321,7 @@ if __name__ == '__main__':
     inx = pd.MultiIndex.from_product(a, names=['samples', 'hist_bins', 'snr'])
     df = pd.DataFrame(index=inx).reset_index(drop=False)
     df=pd.concat([df]*20, ignore_index=True)
+
     df=df.join(df.progress_apply(lambda row: compare_sinogram_and_eigen_vector(**row.to_dict()), axis=1).apply(pd.Series))
     df.to_csv('angle_error_by_sinogram.csv', header=None, mode='a')
     print(df.head())

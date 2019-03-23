@@ -276,9 +276,9 @@ def compare_sinogram_and_eigen_vector(quant_size=False, hist_bins=300, snr=10000
     import pandas as pd
 
     df=pd.DataFrame()
-    cov=np.mat([[0, 0],[0, 1]])
-    cov=np.mat([[1, 1],[1, 1.2]])
-    cov=np.mat([[0.53749846, 0.35644121],[0.35644121, 0.23651739]])
+    # cov=np.mat([[0, 0],[0, 1]])
+    # cov=np.mat([[1, 1],[1, 1.2]])
+    # cov=np.mat([[0.53749846, 0.35644121],[0.35644121, 0.23651739]])
     cov=int_force.rand_data.rand_data.rand_cov(snr=snr)
     if "win" in platform and 0:
         ang=int_force.rand_data.find_slop.get_cov_ev(cov, False)[1]
@@ -292,6 +292,7 @@ def compare_sinogram_and_eigen_vector(quant_size=False, hist_bins=300, snr=10000
     sinogram_dict = int_force.methods.sinogram.calc_sinogram(data.X.values, data.Y.values, hist_bins=hist_bins, plot=False)
 
     res=pd.DataFrame(dict(sinogram=sinogram_dict['angle_by_std'], ev=int_force.rand_data.find_slop.get_cov_ev(cov, False)[1]), index=[1])
+    res.loc[res.sinogram == -90] = 90  # ev likes positive and sinogram negative...
     res['error'] = (res.ev - res.sinogram).abs() % 45
     if "win" in platform and 0:
         res.to_csv(r'angles.csv', header=None, index=None, mode='a')
@@ -317,12 +318,13 @@ if __name__ == '__main__':
     import numpy as np
     tqdm.pandas()
 
-    a = [[10,100,1000,10000], [100, 300, 50, 600], [100, 1000, 10000]]
+    a = [[10,100,1000,10000], [100, 300], [100, 1000, 10000]]
     inx = pd.MultiIndex.from_product(a, names=['samples', 'hist_bins', 'snr'])
     df = pd.DataFrame(index=inx).reset_index(drop=False)
-    df=pd.concat([df]*20, ignore_index=True)
+    df=pd.concat([df]*10, ignore_index=True)
 
     df=df.join(df.progress_apply(lambda row: compare_sinogram_and_eigen_vector(**row.to_dict()), axis=1).apply(pd.Series))
     df.to_csv('angle_error_by_sinogram.csv', header=None, mode='a')
+    # df.to_csv('angle_error_by_sinogram.csv', mode='w')
     print(df.head())
 

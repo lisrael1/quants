@@ -41,30 +41,12 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
     data.columns = [['before'] * 2, data.columns.values]
     data = data.join(tmp)
     del tmp
-    # high_resolution_sim=True
-    # if snr > 1e6 and number_of_bins>1000:
-    #     high_resolution_sim=True
-    # else:
-    #     high_resolution_sim=False
 
     'doing sinogram'
     number_of_shift_per_direction=2  # TODO i think we can lower this to 1. the covariance doesnt have 2 cyclic loop
     hist_bins = 300
-    # hist_bins = 600  # it's better than 300, although slower
-    # angles_that_wraps_into_itself=[0, 45, 90, 26.565, 63.435]  # if we have data at 0|45|90 degrees, we will take the data as is without doing un modulo
-    # angle_close_to_wrap=1  # TODO angle_close_to_wrap here depend on the snr. if we have big snr, we can do little number, and if low, we need bigger than angle_close_to_wrap
-    # if number_of_shift_per_direction==2:
-    #     angles_that_wraps_into_itself+=[18.434, 33.69, 56.309, 71.565]  # arctan(3/2 or 1/3 or 2/3 or 3)
-
-    # if high_resolution_sim:  # at high snr, the folding modulo is less likely to happen, so we can ignore this
-    #     # angles_that_wraps_into_itself=[]
-    #     angle_close_to_wrap=0.5
-    #     # hist_bins = 600
-
-    # print('setting the bins to 300')
 
     sinogram_dict = int_force.methods.sinogram.calc_sinogram(data.after.X.values, data.after.Y.values, hist_bins=hist_bins, plot=debug)
-    # angles_that_wraps_into_itself=[0, 45, 90]  # if we have data at 0|45|90 degrees, we will take the data as is without doing un modulo
     df = int_force.rand_data.rand_data.all_data_origin_options(data.after, mod_size, number_of_shift_per_direction=number_of_shift_per_direction, debug=debug)
 
     cov_angle=int_force.rand_data.find_slop.get_cov_ev(cov)[1]
@@ -89,33 +71,6 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
         return group.loc[idx]
     tmp = df.groupby(['x_at_mod', 'y_at_mod']).apply(group_min).reset_index(drop=True)
 
-    # # we have 2 ways - or to check if we have angle with problems, or to check if we have multiple options that are close to the x axis and then take the closest to y axis
-    # df['axis_root_distance'] = np.hypot(df.X.values, df.Y.values)
-    # if high_resolution_sim:
-    #     def group_min(group):
-    #         # smallest = group.nsmallest(10, 'major_distance')
-    #         # smallest=smallest[smallest.major_distance<3*smallest.major_distance.iloc[0]]
-    #         # if smallest.major_distance.ptp() > 3 * quant_size:
-    #         # if smallest.shape[0]==1:
-    #         #     idx = smallest.major_distance.idxmin()
-    #         # else:
-    #         #     idx = smallest.minor_distance.idxmin()
-    #         # smallest=group[group.major_distance<3*group.major_distance.min()]
-    #         # smallest=group[group.major_distance<10*quant_size]
-    #         smallest=group[group.major_distance<0.1]
-    #         if smallest.empty:
-    #             idx=group.major_distance.idxmin()
-    #         else:
-    #             idx = smallest.minor_distance.idxmin()
-    #         return group.loc[idx]
-    #     # tmp = df.drop_duplicates(['x_center', 'y_center'], keep='first').groupby(['x_at_mod', 'y_at_mod']).apply(group_min)
-    #     tmp = df.groupby(['x_at_mod', 'y_at_mod']).apply(group_min).reset_index(drop=True)
-    # else:
-    #     if sum(np.abs(np.array(angles_that_wraps_into_itself) - abs(sinogram_dict['angle_by_std'])) < angle_close_to_wrap):
-    #         idx=df.groupby(['x_at_mod', 'y_at_mod']).axis_root_distance.idxmin()  # take the original data
-    #     else:
-    #         idx = df.groupby(['x_at_mod', 'y_at_mod']).major_distance.idxmin()
-    #     tmp = df.loc[idx]
     tmp_first_level_column = tmp.columns.to_series().replace(['x_at_mod', 'y_at_mod', 'x_center', 'y_center'], 'remove').replace(list('XY'), 'recovered').replace(['y_per_x_ratio', 'distance', 'axis_root_distance', 'closest_to_slop'], 'stat').values
     tmp.columns = [tmp_first_level_column, tmp.columns.values]
     data = pd.merge(tmp, data, left_on=[('remove', 'x_at_mod'), ('remove', 'y_at_mod')], right_on=[('after', 'X'), ('after', 'Y')], how='right').T.sort_index().T.drop('remove', axis=1)
@@ -347,4 +302,5 @@ def __debug_angle_error_per_number_of_bins_snr_and_samples():
 
 
 if __name__ == '__main__':
-    __debug_angle_error_per_number_of_bins_snr_and_samples()
+    _debug_sinogram_method()
+    # __debug_angle_error_per_number_of_bins_snr_and_samples()

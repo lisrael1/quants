@@ -3,7 +3,7 @@ sys.path.append('../../')
 import int_force
 
 
-def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=None, cov=None, debug=False):
+def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=None, cov=None, debug=False, plot=False):
     '''
         doesnt need to know the data covariance.
         it find the slop by sinogram, putting replica of the data next to each other,
@@ -43,10 +43,10 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
     del tmp
 
     'doing sinogram'
-    number_of_shift_per_direction=2  # TODO i think we can lower this to 1. the covariance doesnt have 2 cyclic loop
+    number_of_shift_per_direction = 3
     hist_bins = 300
 
-    sinogram_dict = int_force.methods.sinogram.calc_sinogram(data.after.X.values, data.after.Y.values, hist_bins=hist_bins, plot=debug)
+    sinogram_dict = int_force.methods.sinogram.calc_sinogram(data.after.X.values, data.after.Y.values, hist_bins=hist_bins, plot=plot)
     df = int_force.rand_data.rand_data.all_data_origin_options(data.after, mod_size, number_of_shift_per_direction=number_of_shift_per_direction, debug=debug)
 
     cov_angle=int_force.rand_data.find_slop.get_cov_ev(cov)[1]
@@ -63,10 +63,10 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
     df['minor_distance'] = df.x_after_rotation.abs()  # in case he
 
     def group_min(group):
-        smallest = group[group.major_distance < 0.1]
+        smallest = group[group.major_distance < 0.01]  # TODO how to set this number
         if smallest.empty:
             idx = group.major_distance.idxmin()
-        else:
+        else:  # if we have only 1 with small major_distance, we will get it here
             idx = smallest.minor_distance.idxmin()
         return group.loc[idx]
     tmp = df.groupby(['x_at_mod', 'y_at_mod']).apply(group_min).reset_index(drop=True)
@@ -75,10 +75,28 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
     tmp.columns = [tmp_first_level_column, tmp.columns.values]
     data = pd.merge(tmp, data, left_on=[('remove', 'x_at_mod'), ('remove', 'y_at_mod')], right_on=[('after', 'X'), ('after', 'Y')], how='right').T.sort_index().T.drop('remove', axis=1)
     del tmp
-    mse = (data.recovered - data.before).pow(2).values.mean()
-    if debug:
+    error=data.recovered - data.before
+    error.columns = [['error']*2, error.columns.values]
+    data = data.join(error)
+    del error
+    mse = data.error.pow(2).values.mean()
+    rmse=mse ** 0.5
+    if (debug and rmse>(10*quant_size/np.sqrt(12))) or plot:
         import pylab as plt
 
+        print(cov)
+        # print("cov diagonal is %s" % cov.diagonal())
+        print('angle by sinogram %g'%sinogram_dict['angle_by_std'])
+        print('angle by ev %g'%cov_angle)
+        print('mse %g'%mse)
+        print('rmse %g'%rmse)
+        angles_that_wraps_into_itself = [0, 45, 90, 26.565, 63.435] + [18.434, 33.69, 56.309, 71.565]
+        if sum(abs(np.array(angles_that_wraps_into_itself) - abs(cov_angle))<1):
+            print('angle too close to folded angle')
+        print('big errors:')
+        print(data[data.error.max(axis=1)>10*quant_size/np.sqrt(12)])
+
+        int_force.methods.sinogram.calc_sinogram(data.after.X.values, data.after.Y.values, hist_bins=hist_bins, plot=True)
         # checking if rotation worked
         fig = plt.figure()
         fig.suptitle('rotating multi modulo for finding best match to angle %g' % sinogram_dict['angle_by_std'])
@@ -104,7 +122,8 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
             import cufflinks
             fig = data[['before', 'recovered']].stack(0).reset_index(drop=False).figure(kind='scatter', x='X', y='Y', categories='level_1', size=4)
             py.offline.plot(fig)
-    res=dict(rmse=mse ** 0.5,
+        plt.show()
+    res=dict(rmse=rmse,
              error_per=0,
              pearson=pearson,
              A=None,
@@ -128,6 +147,9 @@ def calc_sinogram(x, y, hist_bins=300, quant_size=0, plot=False):
         bins=np.linspace(-max_num, max_num, hist_bins, endpoint=True)
     H, xedges, yedges = np.histogram2d(x, y, bins=[bins]*2)  # in order to estimate the angle, we need the space to be square
     H = H[::-1].T
+    if 0:  # maybe to get more resolution
+        a=np.vstack([H,H])
+        H=np.hstack(([a,a]))
     theta = np.linspace(0., 180., max(H.shape), endpoint=False)
     if 1:
         with warnings.catch_warnings():
@@ -218,7 +240,7 @@ def _debug_sinogram_method():
     import pandas as pd
 
     samples, number_of_bins, quant_size=300, 19, 1.971141
-    samples, number_of_bins, quant_size=1000, 1024, 0.003
+    samples, number_of_bins, quant_size=100, 1024, 0.003
     cov=np.mat([[1, 0.9], [0.9, 1]])
     cov=None
     snr=1000001

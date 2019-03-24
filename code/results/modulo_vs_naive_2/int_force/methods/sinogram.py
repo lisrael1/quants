@@ -47,7 +47,7 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
         high_resolution_sim=False
 
     'doing sinogram'
-    hist_bins = 600  # it's better than 300, although slower
+    # hist_bins = 600  # it's better than 300, although slower
     number_of_shift_per_direction=2  # TODO i think we can lower this to 1. the covariance doesnt have 2 cyclic loop
     angles_that_wraps_into_itself=[0, 45, 90, 26.565, 63.435]  # if we have data at 0|45|90 degrees, we will take the data as is without doing un modulo
     angle_close_to_wrap=1  # TODO angle_close_to_wrap here depend on the snr. if we have big snr, we can do little number, and if low, we need bigger than angle_close_to_wrap
@@ -57,9 +57,9 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
     if high_resolution_sim:  # at high snr, the folding modulo is less likely to happen, so we can ignore this
         # angles_that_wraps_into_itself=[]
         angle_close_to_wrap=0.5
-        hist_bins = 600
+        # hist_bins = 600
 
-    print('setting the bins to 300')
+    # print('setting the bins to 300')
     hist_bins = 300
 
     sinogram_dict = int_force.methods.sinogram.calc_sinogram(data.after.X.values, data.after.Y.values, hist_bins=hist_bins, plot=debug)
@@ -150,7 +150,7 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
     return res
 
 
-def calc_sinogram(x, y, hist_bins=300, plot=False):
+def calc_sinogram(x, y, hist_bins=300, quant_size=0, plot=False):
     import numpy as np
     import pandas as pd
     import warnings
@@ -158,7 +158,10 @@ def calc_sinogram(x, y, hist_bins=300, plot=False):
     from scipy import signal
 
     max_num=max(max(x),max(y))
-    bins=np.linspace(-max_num, max_num, hist_bins, endpoint=True)
+    if quant_size:
+        bins=np.arange(-(max_num/quant_size+1),(max_num/quant_size+1))*quant_size+quant_size*0.5
+    if not quant_size or len(bins)>hist_bins:
+        bins=np.linspace(-max_num, max_num, hist_bins, endpoint=True)
     H, xedges, yedges = np.histogram2d(x, y, bins=[bins]*2)  # in order to estimate the angle, we need the space to be square
     H = H[::-1].T
     theta = np.linspace(0., 180., max(H.shape), endpoint=False)
@@ -189,13 +192,14 @@ def calc_sinogram(x, y, hist_bins=300, plot=False):
 
     slop=np.tan(np.deg2rad(radon_estimated_angle))
     sinogram_dict=dict(image=H,
-                sinogram=sinogram,
-                angle_by_std=radon_estimated_angle,
-                angle_by_idxmax=sinogram.stack().idxmax()[1],
-                overall_sinogram_std=sinogram.std().std(),
-                slop=slop,
-                y_avg=y.mean(),
-                x_avg=x.mean())
+                       sinogram=sinogram,
+                       angle_by_std=radon_estimated_angle,
+                       angle_by_idxmax=sinogram.stack().idxmax()[1],
+                       overall_sinogram_std=sinogram.std().std(),
+                       slop=slop,
+                       y_avg=y.mean(),
+                       x_avg=x.mean(),
+                       actual_bin_size=len(bins))
     if plot:
         plot_sinogram(sinogram_dict['image'], sinogram_dict['sinogram'], sinogram_dict['angle_by_std'], slop=sinogram_dict['slop'])
 
@@ -275,7 +279,6 @@ def compare_sinogram_and_eigen_vector(quant_size=False, hist_bins=300, snr=10000
     import numpy as np
     import pandas as pd
 
-    df=pd.DataFrame()
     # cov=np.mat([[0, 0],[0, 1]])
     # cov=np.mat([[1, 1],[1, 1.2]])
     # cov=np.mat([[0.53749846, 0.35644121],[0.35644121, 0.23651739]])
@@ -284,47 +287,55 @@ def compare_sinogram_and_eigen_vector(quant_size=False, hist_bins=300, snr=10000
         ang=int_force.rand_data.find_slop.get_cov_ev(cov, False)[1]
         if ang>-87 and ang<87:
             return
-    data = int_force.rand_data.rand_data.random_data(cov, samples)
+    data = int_force.rand_data.rand_data.random_data(cov, int(samples))
     if quant_size:
         data = int_force.methods.methods.to_codebook(data, quant_size, 0)
         data = int_force.methods.methods.from_codebook(data, quant_size, 0)
 
-    sinogram_dict = int_force.methods.sinogram.calc_sinogram(data.X.values, data.Y.values, hist_bins=hist_bins, plot=False)
+    sinogram_dict = int_force.methods.sinogram.calc_sinogram(data.X.values, data.Y.values, hist_bins=hist_bins, plot=False, quant_size=quant_size)
 
     res=pd.DataFrame(dict(sinogram=sinogram_dict['angle_by_std'], ev=int_force.rand_data.find_slop.get_cov_ev(cov, False)[1]), index=[1])
     res.loc[res.sinogram == -90] = 90  # ev likes positive and sinogram negative...
     res['error'] = (res.ev - res.sinogram).abs() % 45
-    if "win" in platform and 0:
-        res.to_csv(r'angles.csv', header=None, index=None, mode='a')
+    if "win" in platform and 1:
         # print('*' * 150)
         # print(cov)
-        df = df.append(pd.Series(dict(sinogram=sinogram_dict['angle_by_std'], ev=int_force.rand_data.find_slop.get_cov_ev(cov, False)[1])), ignore_index=True)
-        df['error']=(df.ev-df.sinogram).abs() % 45
-        print()
-        print()
-        print(df.tail(1))
-        if df['error'].abs().values[-1]>5:
+        if res['error'].abs().values[-1] > 15:
+            import pylab as plt
             print('hi')
-            int_force.rand_data.find_slop.get_cov_ev(cov, True)
-            int_force.methods.sinogram.calc_sinogram(data.X.values, data.Y.values, hist_bins=hist_bins, plot=True)
-        print(df[df.error.abs()>5])
-        print(df.describe())
+            print(cov)
+            print("cov det is %g" % np.linalg.det(cov))
+            print("image size is %d" % sinogram_dict['image'].size)  # sometimes i get image at the size of 3X3 so sinogram doesnt have resolution for this. so the real problem is that the cov happen to be small
+            print(res)
+            int_force.methods.sinogram.calc_sinogram(data.X.values, data.Y.values, hist_bins=hist_bins, plot=True, quant_size=quant_size)
+            plt.show()
+            print('hi')
+        # print(res[res.error.abs()>5])
+        # print(res.describe())
     return res.iloc[0].round(4).to_dict()#.error.values[0]
 
 
-if __name__ == '__main__':
+def __debug_angle_error_per_number_of_bins_snr_and_samples():
     from tqdm import tqdm
     import pandas as pd
     import numpy as np
     tqdm.pandas()
 
-    a = [[10,100,1000,10000], [100, 300], [100, 1000, 10000]]
-    inx = pd.MultiIndex.from_product(a, names=['samples', 'hist_bins', 'snr'])
-    df = pd.DataFrame(index=inx).reset_index(drop=False)
-    df=pd.concat([df]*10, ignore_index=True)
+    # a = [[10, 100, 1000, 10000], [100, 300], [100, 1000, 10000], [None]]
+    # a = [[100], [100], [10000], [0.1, 0.01]]
+    # inx = pd.MultiIndex.from_product(a, names=['samples', 'hist_bins', 'snr', 'quant_size'])
+    a = dict(samples=[10, 100, 1000, 10000], hist_bins=[100, 300], snr=[100, 1000, 10000], quant_size=[0])
+    a = dict(samples=[100], hist_bins=[100], snr=[10000], quant_size=[0.2, 0.1, 0.01, 0.0001])
+    inx = pd.MultiIndex.from_product(a.values(), names=a.keys())
 
-    df=df.join(df.progress_apply(lambda row: compare_sinogram_and_eigen_vector(**row.to_dict()), axis=1).apply(pd.Series))
+    df = pd.DataFrame(index=inx).reset_index(drop=False).sample(frac=1)
+    df = pd.concat([df] * 10000, ignore_index=True)
+
+    df = df.join(df.progress_apply(lambda row: compare_sinogram_and_eigen_vector(**row.to_dict()), axis=1).apply(pd.Series))
     df.to_csv('angle_error_by_sinogram.csv', header=None, mode='a')
     # df.to_csv('angle_error_by_sinogram.csv', mode='w')
     print(df.head())
 
+
+if __name__ == '__main__':
+    __debug_angle_error_per_number_of_bins_snr_and_samples()

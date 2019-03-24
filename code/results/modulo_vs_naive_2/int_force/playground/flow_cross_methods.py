@@ -32,7 +32,7 @@ if __name__ == '__main__':
     parser.add_option("-b", dest="number_of_bins_list", type="str", default='[5,17,19,101]', help='number of bins, for example [3,,13,25] [default: %default]')
     parser.add_option("-q", dest="quant_size_linspace_params", type="str", default='[0,3.3,150]', help='quant size np.linspace args, for example [0,3.3,10] will be np.linspace(*[0,3.3,10] ) [default: %default]')
     parser.add_option("--a_matrix", dest="A", type="str", default='', help='A Matrix, for example [[1,0],[-2,1]] [default: %default]')
-    parser.add_option("--methods", dest="methods", type="str", default='''['clipping_method', 'modulo_method', 'ml_map_method', 'sinogram_method', 'basic_method']''', help='''[default: %default]''')
+    parser.add_option("--methods", dest="methods", type="str", default='''['clipping_method', 'int_matrix_method', 'ml_map_method', 'sinogram_method', 'basic_method']''', help='''[default: %default]''')
     parser.add_option("--snr", dest="snr", type="str", default='[10,100,1000]', help='[default: %default]')
 
     # parser.add_option("--methods", dest="methods", type="str", default='''['ml_method']''', help='''[default: %default]''')
@@ -46,7 +46,7 @@ if __name__ == '__main__':
         print(int_force.rand_data.rand_data.rand_cov(snr=None, A=A))
     else:
         A=None
-    modulo_method=int_force.methods.modulo.modulo_method
+    int_matrix_method=int_force.methods.modulo.int_matrix_method
     sinogram_method=int_force.methods.sinogram.sinogram_method
     clipping_method=int_force.methods.clipping.clipping_method
     ml_map_method=int_force.methods.ml_modulo.ml_map_method
@@ -57,6 +57,8 @@ if __name__ == '__main__':
     number_of_bins = eval(u.number_of_bins_list)
     snr_values=eval(u.snr)
     if "win" in platform:
+        method=['clipping_method','sinogram_method']
+    if "win" in platform and 0:
         quant_size=quant_size[::15]
         quant_size=[0.15]
         # method=['sinogram_method']

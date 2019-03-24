@@ -31,7 +31,7 @@ def modulo_flow(input_data, quant_size, number_of_bins, A=None):
     return dict(output_data=output_data, A=A, after_A=r1, after_A_after_mod=r2, after_A_inv=r3)
 
 
-def modulo_method(samples, quant_size, number_of_bins, A=None, snr=1000, dont_look_for_A=True):
+def int_matrix_method(samples, quant_size, number_of_bins, A=None, snr=1000, dont_look_for_A=True):
     '''
     for modulo method
     example:
@@ -39,7 +39,7 @@ def modulo_method(samples, quant_size, number_of_bins, A=None, snr=1000, dont_lo
         number_of_bins = 1001
         cov = rand_cov_1()
         data = random_data(cov, 1000)
-        mse = modulo_method(data, quant_size, number_of_bins)
+        mse = int_matrix_method(data, quant_size, number_of_bins)
         print('mse = %g' % mse)
         print('uniform mse should be %g' % (quant_size ** 2 / 12))
     :param data:

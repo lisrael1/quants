@@ -3,6 +3,22 @@ sys.path.append('../../')
 import int_force
 
 
+def folded_angles(number_of_shift_per_direction):
+    '''
+        if we duplicate the modulo to one left, right up and down, we can get folded wave into the adjacent duplication
+        so wrapped angles are 0, 45, and 90
+        for double duplication for each side, we will get also 63.43, and 26.565 (by arctan(2 and 1/2)
+    :param number_of_shift_per_direction:
+    :return:
+    '''
+    import numpy as np
+    import pandas as pd
+    inx = pd.MultiIndex.from_product([list(range(1, number_of_shift_per_direction + 1))] * 2, names=['x', 'y'])
+    df = pd.DataFrame(index=inx).reset_index(drop=False)  # .astype(int)
+    df['tan'] = df.apply(lambda row: np.rad2deg(np.arctan(row.y / row.x)), axis=1)
+    return df.tan.unique().tolist() + [0, 90]
+
+
 def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=None, cov=None, debug=False, plot=False):
     '''
         doesnt need to know the data covariance.
@@ -31,6 +47,13 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
     if type(cov)==type(None):
         cov = int_force.rand_data.rand_data.rand_cov(snr=snr)
     pearson=cov[0,1]/np.sqrt(cov[0,0]*cov[1,1])
+    cov_angle=int_force.rand_data.find_slop.get_cov_ev(cov)[1]
+    while 0:
+        cov = int_force.rand_data.rand_data.rand_cov(snr=snr)
+        cov_angle = int_force.rand_data.find_slop.get_cov_ev(cov)[1]
+        if abs(cov_angle-63.435)<1:
+            break
+
     data = int_force.rand_data.rand_data.random_data(cov, samples)
 
     '''modulo and quantization'''
@@ -49,7 +72,6 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
     sinogram_dict = int_force.methods.sinogram.calc_sinogram(data.after.X.values, data.after.Y.values, hist_bins=hist_bins, plot=plot)
     df = int_force.rand_data.rand_data.all_data_origin_options(data.after, mod_size, number_of_shift_per_direction=number_of_shift_per_direction, debug=debug)
 
-    cov_angle=int_force.rand_data.find_slop.get_cov_ev(cov)[1]
     'finding closest'
     rad = np.deg2rad(-sinogram_dict['angle_by_std'])
     rotation_matrix = np.matrix([[np.cos(rad), -np.sin(rad)], [np.sin(rad), np.cos(rad)]])
@@ -63,7 +85,9 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
     df['minor_distance'] = df.x_after_rotation.abs()  # in case he
 
     def group_min(group):
-        smallest = group[group.major_distance < 0.01]  # TODO how to set this number
+        # y_max=group.Y.max()
+        # duplicatons_per_side=(np.sqrt(group.shape[0])-1)/2
+        smallest = group[group.major_distance < 0.3]  # TODO how to set this number? for duplicaton of 3 times of the modulo, at folded angels we will get 7 times
         if smallest.empty:
             idx = group.major_distance.idxmin()
         else:  # if we have only 1 with small major_distance, we will get it here
@@ -90,7 +114,7 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
         print('angle by ev %g'%cov_angle)
         print('mse %g'%mse)
         print('rmse %g'%rmse)
-        angles_that_wraps_into_itself = [0, 45, 90, 26.565, 63.435] + [18.434, 33.69, 56.309, 71.565]
+        angles_that_wraps_into_itself = folded_angles(number_of_shift_per_direction)  # [0, 45, 90, 26.565, 63.435] + [18.434, 33.69, 56.309, 71.565]
         if sum(abs(np.array(angles_that_wraps_into_itself) - abs(cov_angle))<1):
             print('angle too close to folded angle')
         print('big errors:')
@@ -240,10 +264,11 @@ def _debug_sinogram_method():
     import pandas as pd
 
     samples, number_of_bins, quant_size=300, 19, 1.971141
-    samples, number_of_bins, quant_size=100, 1024, 0.003
+    samples, number_of_bins, quant_size=100, 100, 0.1
     cov=np.mat([[1, 0.9], [0.9, 1]])
     cov=None
-    snr=1000001
+
+    snr=100000
     results=pd.DataFrame()
     for i in range(100):
         res=sinogram_method(samples, number_of_bins, quant_size, snr, cov=cov, debug=True)

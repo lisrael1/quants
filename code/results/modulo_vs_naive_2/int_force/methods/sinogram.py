@@ -95,7 +95,9 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
         try:
             return group.loc[idx]
         except:
-            print('hi')
+            print('error')
+            print(group)
+            return group.iloc[0]
     tmp = df.groupby(['x_at_mod', 'y_at_mod']).apply(group_min).reset_index(drop=True)
 
     tmp_first_level_column = tmp.columns.to_series().replace(['x_at_mod', 'y_at_mod', 'x_center', 'y_center'], 'remove').replace(list('XY'), 'recovered').replace(['y_per_x_ratio', 'distance', 'axis_root_distance', 'closest_to_slop'], 'stat').values
@@ -123,7 +125,7 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
         print('big errors:')
         print(data[data.error.max(axis=1)>10*quant_size/np.sqrt(12)])
 
-        int_force.methods.sinogram.calc_sinogram(data.after.X.values, data.after.Y.values, hist_bins=hist_bins, plot=True)
+        int_force.methods.sinogram.calc_sinogram(data.after.X.values, data.after.Y.values, hist_bins=hist_bins, plot=True, quant_size=quant_size)
         # checking if rotation worked
         fig = plt.figure()
         fig.suptitle('rotating multi modulo for finding best match to angle %g' % sinogram_dict['angle_by_std'])
@@ -273,7 +275,7 @@ def _debug_sinogram_method():
     import pandas as pd
 
     samples, number_of_bins, quant_size=300, 19, 1.971141
-    samples, number_of_bins, quant_size=100, 20, 0.5
+    samples, number_of_bins, quant_size=100, 21, 0.001
     cov=np.mat([[1, 0.9], [0.9, 1]])
     cov=None
 

@@ -51,7 +51,7 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
     while 0:
         cov = int_force.rand_data.rand_data.rand_cov(snr=snr)
         cov_angle = int_force.rand_data.find_slop.get_cov_ev(cov)[1]
-        if abs(cov_angle-63.435)<1:
+        if not sum(abs(np.array(folded_angles(3))-cov_angle)<2):
             break
 
     data = int_force.rand_data.rand_data.random_data(cov, samples)
@@ -69,7 +69,7 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
     number_of_shift_per_direction = 3
     hist_bins = 300
 
-    sinogram_dict = int_force.methods.sinogram.calc_sinogram(data.after.X.values, data.after.Y.values, hist_bins=hist_bins, plot=plot)
+    sinogram_dict = int_force.methods.sinogram.calc_sinogram(data.after.X.values, data.after.Y.values, hist_bins=hist_bins, plot=plot, quant_size=quant_size)
     df = int_force.rand_data.rand_data.all_data_origin_options(data.after, mod_size, number_of_shift_per_direction=number_of_shift_per_direction, debug=debug)
 
     'finding closest'
@@ -92,7 +92,10 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
             idx = group.major_distance.idxmin()
         else:  # if we have only 1 with small major_distance, we will get it here
             idx = smallest.minor_distance.idxmin()
-        return group.loc[idx]
+        try:
+            return group.loc[idx]
+        except:
+            print('hi')
     tmp = df.groupby(['x_at_mod', 'y_at_mod']).apply(group_min).reset_index(drop=True)
 
     tmp_first_level_column = tmp.columns.to_series().replace(['x_at_mod', 'y_at_mod', 'x_center', 'y_center'], 'remove').replace(list('XY'), 'recovered').replace(['y_per_x_ratio', 'distance', 'axis_root_distance', 'closest_to_slop'], 'stat').values
@@ -126,7 +129,7 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
         fig.suptitle('rotating multi modulo for finding best match to angle %g' % sinogram_dict['angle_by_std'])
         df.set_index('X').Y.plot(style='.', grid=True, label='original')
         df.set_index('x_after_rotation').y_after_rotation.plot(style='.', grid=True, label='after rotate to 0')
-        plt.plot([0, 5], [0, 5 * np.tan(np.deg2rad(sinogram_dict['angle_by_std']))])
+        plt.plot([0, 20*np.cos(np.deg2rad(sinogram_dict['angle_by_std']))], [0, 20 * np.sin(np.deg2rad(sinogram_dict['angle_by_std']))])
         plt.plot([-mod_size / 2, -mod_size / 2, mod_size / 2, mod_size / 2, -mod_size / 2], [-mod_size / 2, mod_size / 2, mod_size / 2, -mod_size / 2, -mod_size / 2])  # plotting the modulo frame
         fig.legend()
 
@@ -134,13 +137,14 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
         if 1:
             fig = plt.figure()
             fig.suptitle('angle %g, MSE %g' % (sinogram_dict['angle_by_std'], mse))
-            data.recovered.set_index('X').Y.plot(style='.', alpha=0.1, label='recovered')
-            data.before.set_index('X').Y.plot(style='.', alpha=0.1, label='original')
+            data.recovered.set_index('X').Y.plot(style='.', alpha=0.4, label='recovered')
+            data.after.set_index('X').Y.plot(style='.', alpha=0.4, label='after')
+            data.before.set_index('X').Y.plot(style='.', alpha=0.4, label='original')
             fig.legend()
-            if mse > 1e-7 or 1:
-                plt.show()
-            else:
-                plt.close('all')
+            # if mse > 1e-7 or 1:
+            #     plt.show()
+            # else:
+            #     plt.close('all')
         else:
             import plotly as py
             import cufflinks
@@ -157,7 +161,7 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
     return res
 
 
-def calc_sinogram(x, y, hist_bins=300, quant_size=0, plot=False):
+def calc_sinogram(x, y, hist_bins=300, quant_size=0, drop_90=True, plot=False):
     import numpy as np
     import pandas as pd
     import warnings
@@ -185,20 +189,23 @@ def calc_sinogram(x, y, hist_bins=300, quant_size=0, plot=False):
         out, angles, d = hough_line(H, theta=theta)
         sinogram = pd.DataFrame(out, columns=angles, index=d).rename_axis('angle', axis=1).rename_axis('offset', axis=0)  # angle is from the horizon, you will get from -90 to 90
 
-    # this will tell us the angle. we can also use idxmax on the sinogram,
-    # but the best is to find the angle that has the highest std,
-    # becaues max is by single line and std is by all lines
-    # we cannot take the angle sum, because they all summed to big numbers
-    radon_estimated_angle = sinogram.std().idxmax()
-
-    # max_peaking = signal.find_peaks(sinogram.std(), distance=sinogram.shape[1]//100)[0]
-    max_peaking = signal.find_peaks(sinogram.std(), distance=4)[0].tolist()  # we want to find peaks so all values next to the peak will dropped
-    max_peaking+=[0,sinogram.shape[0]-1]  # adding also the edges because they are not count as peaks
-    max_peaking=np.array(max_peaking)
-    # print(max_peaking)
-    max_peaking=sinogram.std().iloc[max_peaking]
-    # max_peaking=max_peaking[~max_peaking.index.isin([-90, 0, -45, 90, 45])]  # we multiply the pattern to the left right up and down so obviously we tend to get those angles
-    radon_estimated_angle=max_peaking.idxmax()
+    if drop_90:
+        sinogram[-90] = 0
+    if 0:
+        # this will tell us the angle. we can also use idxmax on the sinogram,
+        # but the best is to find the angle that has the highest std,
+        # becaues max is by single line and std is by all lines
+        # we cannot take the angle sum, because they all summed to big numbers
+        radon_estimated_angle = sinogram.std().idxmax()
+    else:
+        # max_peaking = signal.find_peaks(sinogram.std(), distance=sinogram.shape[1]//100)[0]
+        max_peaking = signal.find_peaks(sinogram.std(), distance=4)[0].tolist()  # we want to find peaks so all values next to the peak will dropped
+        max_peaking+=[0,sinogram.shape[0]-1]  # adding also the edges because they are not count as peaks
+        max_peaking=np.array(max_peaking)
+        # print(max_peaking)
+        max_peaking=sinogram.std().iloc[max_peaking]
+        # max_peaking=max_peaking[~max_peaking.index.isin([-90, 0, -45, 90, 45])]  # we multiply the pattern to the left right up and down so obviously we tend to get those angles
+        radon_estimated_angle=max_peaking.idxmax()
 
     slop=np.tan(np.deg2rad(radon_estimated_angle))
     sinogram_dict=dict(image=H,
@@ -238,13 +245,15 @@ def calc_sinogram(x, y, hist_bins=300, quant_size=0, plot=False):
 
 
 def plot_sinogram(image, sinogram, angle_by_std, slop):
+    import numpy as np
     import pylab as plt
     hist_bins=(image.shape[0]+1)  # image should be square
     fig, ax = plt.subplots(1, 4, figsize=(12 * 2.1, 4.5 * 2.1))  # , subplot_kw ={'aspect': 1.5})#, sharex=False)
+
     ax[0].set_title("data")
     ax[0].imshow(image, cmap=plt.cm.Greys_r)
     image_middle=hist_bins // 2
-    ax[0].plot([image_middle, image_middle+hist_bins/5], [image_middle, image_middle-slop * hist_bins/5])
+    ax[0].plot([image_middle, image_middle+20 * np.cos(np.deg2rad(angle_by_std))], [image_middle, image_middle+20 * np.sin(np.deg2rad(angle_by_std))])
 
     ax[1].set_title("sinogram")
     ax[1].imshow(sinogram, cmap=plt.cm.Greys_r, extent=(-90, 90, 0, hist_bins))
@@ -264,13 +273,13 @@ def _debug_sinogram_method():
     import pandas as pd
 
     samples, number_of_bins, quant_size=300, 19, 1.971141
-    samples, number_of_bins, quant_size=100, 100, 0.1
+    samples, number_of_bins, quant_size=100, 20, 0.5
     cov=np.mat([[1, 0.9], [0.9, 1]])
     cov=None
 
     snr=100000
     results=pd.DataFrame()
-    for i in range(100):
+    for i in range(1000):
         res=sinogram_method(samples, number_of_bins, quant_size, snr, cov=cov, debug=True)
         results=results.append(pd.Series(res), ignore_index=True)
         # print('rmse %g, angle %g' % (res['rmse'], res['angle']))

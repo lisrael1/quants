@@ -92,12 +92,7 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
             idx = group.major_distance.idxmin()
         else:  # if we have only 1 with small major_distance, we will get it here
             idx = smallest.minor_distance.idxmin()
-        try:
-            return group.loc[idx]
-        except:
-            print('error')
-            print(group)
-            return group.iloc[0]
+        return group.loc[idx]
     tmp = df.groupby(['x_at_mod', 'y_at_mod']).apply(group_min).reset_index(drop=True)
 
     tmp_first_level_column = tmp.columns.to_series().replace(['x_at_mod', 'y_at_mod', 'x_center', 'y_center'], 'remove').replace(list('XY'), 'recovered').replace(['y_per_x_ratio', 'distance', 'axis_root_distance', 'closest_to_slop'], 'stat').values
@@ -163,7 +158,7 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
     return res
 
 
-def calc_sinogram(x, y, hist_bins=300, quant_size=0, drop_90=True, plot=False):
+def calc_sinogram(x, y, hist_bins=300, quant_size=0, drop_90=False, plot=False):
     import numpy as np
     import pandas as pd
     import warnings
@@ -208,8 +203,9 @@ def calc_sinogram(x, y, hist_bins=300, quant_size=0, drop_90=True, plot=False):
         max_peaking=sinogram.std().iloc[max_peaking]
         # max_peaking=max_peaking[~max_peaking.index.isin([-90, 0, -45, 90, 45])]  # we multiply the pattern to the left right up and down so obviously we tend to get those angles
         radon_estimated_angle=max_peaking.idxmax()
-
     slop=np.tan(np.deg2rad(radon_estimated_angle))
+    if np.isnan(radon_estimated_angle):  # you will get this if all quantized values are the same
+        radon_estimated_angle=0
     sinogram_dict=dict(image=H,
                        sinogram=sinogram,
                        angle_by_std=radon_estimated_angle,
@@ -255,7 +251,7 @@ def plot_sinogram(image, sinogram, angle_by_std, slop):
     ax[0].set_title("data")
     ax[0].imshow(image, cmap=plt.cm.Greys_r)
     image_middle=hist_bins // 2
-    ax[0].plot([image_middle, image_middle+20 * np.cos(np.deg2rad(angle_by_std))], [image_middle, image_middle+20 * np.sin(np.deg2rad(angle_by_std))])
+    ax[0].plot([image_middle, image_middle+20 * np.cos(np.deg2rad(angle_by_std))], [image_middle, image_middle-20 * np.sin(np.deg2rad(angle_by_std))])
 
     ax[1].set_title("sinogram")
     ax[1].imshow(sinogram, cmap=plt.cm.Greys_r, extent=(-90, 90, 0, hist_bins))
@@ -275,14 +271,14 @@ def _debug_sinogram_method():
     import pandas as pd
 
     samples, number_of_bins, quant_size=300, 19, 1.971141
-    samples, number_of_bins, quant_size=100, 21, 0.001
+    samples, number_of_bins, quant_size=100, 101, 0.10
     cov=np.mat([[1, 0.9], [0.9, 1]])
     cov=None
 
     snr=100000
     results=pd.DataFrame()
     for i in range(1000):
-        res=sinogram_method(samples, number_of_bins, quant_size, snr, cov=cov, debug=True)
+        res=sinogram_method(samples, number_of_bins, quant_size, snr, cov=cov, debug=False)
         results=results.append(pd.Series(res), ignore_index=True)
         # print('rmse %g, angle %g' % (res['rmse'], res['angle']))
         print('rmse %g' % (res['rmse']))

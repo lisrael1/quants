@@ -4,6 +4,19 @@ import int_force
 
 
 def ml_map_method(samples, quant_size, number_of_bins, A=None, snr=1000, dont_look_for_A=True, plot=False):
+    '''
+        if number of bins is high, we will just run pdf on center of bin
+        if medium, we will add quantization noise to cov and run pdf
+        if low, will run cdf on each pixel
+    :param samples:
+    :param quant_size:
+    :param number_of_bins:
+    :param A:
+    :param snr:
+    :param dont_look_for_A:
+    :param plot:
+    :return:
+    '''
     if number_of_bins>200:
         return ml_modulo_method_without_quantization_on_pdf(samples=samples, quant_size=quant_size, number_of_bins=number_of_bins, snr=snr)
     import numpy as np

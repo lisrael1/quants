@@ -4,6 +4,8 @@ import int_force
 
 
 def ml_map_method(samples, quant_size, number_of_bins, A=None, snr=1000, dont_look_for_A=True, plot=False):
+    if number_of_bins>200:
+        return ml_modulo_method_without_quantization_on_pdf(samples=samples, quant_size=quant_size, number_of_bins=number_of_bins, snr=snr)
     import numpy as np
     import pandas as pd
     number_of_modulos=3
@@ -17,10 +19,16 @@ def ml_map_method(samples, quant_size, number_of_bins, A=None, snr=1000, dont_lo
     tmp = int_force.methods.methods.sign_mod(data, mod_size)
     recovered = int_force.methods.methods.to_codebook(tmp, mod_size / number_of_bins)
     recovered = int_force.methods.methods.from_codebook(recovered, mod_size / number_of_bins)
-    shifts = int_force.methods.ml_modulo.ml_map(cov, number_of_bins, mod_size, number_of_modulos=number_of_modulos, plots=plot)
+    if number_of_bins<20:
+        shifts = int_force.methods.ml_modulo.ml_map_by_cdf(cov, number_of_bins, mod_size, number_of_modulos=number_of_modulos, plots=plot)
+    else:
+        shifts = ml_map_by_pdf_with_adding_quant_to_cov(cov, number_of_bins, mod_size, number_of_modulos=number_of_modulos, plots=plot)
+
     shifts.index.names = ['X', 'Y']
     shifts = shifts.reset_index(drop=False)
     recovered = pd.merge(recovered.round(8), shifts.round(8), on=['X', 'Y'], how='left')
+    if recovered.isnull().values.sum():
+        print(' ERROR - merged of shifts and recovered has nan. probably because you used even number of bins')
     recovered['new_x'] = recovered.X + recovered.x_shift * mod_size
     recovered['new_y'] = recovered.Y + recovered.y_shift * mod_size
     recovered = recovered[['new_x', 'new_y']]
@@ -34,15 +42,17 @@ def ml_map_method(samples, quant_size, number_of_bins, A=None, snr=1000, dont_lo
     tmp=data.before-data.recovered
     tmp.columns = [['error'] * 2, ['X', 'Y']]
     data = data.join(tmp)
+    rmse=(data.recovered - data.before).pow(2).values.mean() ** 0.5
 
     if plot:
+        print('rmse %g'%rmse)
         import plotly as py
         import cufflinks
         data_plot = data.stack(0).reset_index(drop=False)
         fig = data_plot.figure(kind='scatter', x='X', y='Y', categories='level_1', size=4)
         py.offline.plot(fig, auto_open=True, filename='data.html')
 
-    res=dict(rmse=(data.recovered - data.before).pow(2).values.mean() ** 0.5,
+    res=dict(rmse=rmse,
              error_per=((data.recovered - data.before).abs().values.flatten()>quant_size).astype(int).mean(),
              pearson=pearson,
              A=A,
@@ -50,7 +60,64 @@ def ml_map_method(samples, quant_size, number_of_bins, A=None, snr=1000, dont_lo
     return res
 
 
-def ml_map(cov, number_of_bins, mod_size, number_of_modulos=7, plots=False, debug=False):
+def ml_map_by_pdf_with_adding_quant_to_cov(cov, number_of_bins, mod_size, number_of_modulos=7, plots=False, debug=False):
+    import numpy as np
+    import pandas as pd
+    from scipy.stats import multivariate_normal
+
+    pd.set_option("display.max_columns", 1000)  # don’t put … instead of multi columns
+    pd.set_option('expand_frame_repr', False)  # for not wrapping columns if you have many
+    pd.set_option("display.max_rows", 30)
+    pd.set_option('display.max_colwidth', 1000)
+
+    bin_size=mod_size/number_of_bins
+    cov[0,0]+=bin_size**2/12
+    cov[1,1]+=bin_size**2/12
+    df=bins_edges_with_duplication_of_modulo(rounding=10, mod_size=mod_size, number_of_bins=number_of_bins, number_of_modulos=5)
+    df['pdf'] = multivariate_normal.pdf(df[['x_center', 'y_center']].values, mean=[0, 0], cov=cov)
+
+    probability_shifts = df.pivot_table(index=['x_modulo_shifts', 'y_modulo_shifts'], columns=['x_mod', 'y_mod'], values='pdf').idxmax().unstack()
+    x_shift = probability_shifts.applymap(lambda x: x[0])
+    y_shift = probability_shifts.applymap(lambda x: x[1])
+    ml=x_shift.stack().to_frame('x_shift').join(y_shift.stack().to_frame('y_shift'))
+    return ml
+
+
+def bins_edges_with_duplication_of_modulo(rounding=10, mod_size=10, number_of_bins=100, number_of_modulos=5):
+    import itertools
+    import numpy as np
+    import pandas as pd
+
+    '''first generating the map with all the pixels, then each pixel will get it's cdf'''
+    bin_size=mod_size/number_of_bins
+    bin_edges=np.linspace(-(number_of_modulos+0.5)*mod_size, (number_of_modulos+0.5)*mod_size, (2*number_of_modulos+1)*number_of_bins+1, endpoint=True)
+    # bin_edges=np.round(bin_edges, rounding)
+    bin_centers=(bin_edges[1:]+bin_edges[:-1])/2
+    if 0:
+        df=pd.DataFrame(list(itertools.product(*[bin_centers] * 2)), columns='x_center,y_center'.split(','))
+    else:
+        a = pd.DataFrame(columns=bin_centers, index=bin_centers)
+        b = a.fillna(0).stack().reset_index(drop=False).drop(0, axis=1)
+        b.columns='x_center,y_center'.split(',')
+        df=b
+    df=df.join(int_force.methods.methods.sign_mod(df, mod_size).rename(columns=dict(x_center='x_mod', y_center='y_mod')))
+    df['x_modulo_shifts']=round((df.x_center-df.x_mod)/mod_size)  # x_center is the original data, before modulo, and x_mod is after. we want to see how much modulo shifting we had
+    df['y_modulo_shifts']=round((df.y_center-df.y_mod)/mod_size)
+    df['x_low']=df.x_center-bin_size/2
+    df['y_low']=df.y_center-bin_size/2
+    df['x_high']=df.x_center+bin_size/2
+    df['y_high']=df.y_center+bin_size/2
+    if rounding:
+        df=df.round(rounding)
+    modulo_group=df.groupby(['x_modulo_shifts', 'y_modulo_shifts']).size().reset_index().reset_index().drop(0, axis=1).rename(columns=dict(index='modulo_group_number'))
+    df=pd.merge(df, modulo_group, on=['x_modulo_shifts', 'y_modulo_shifts'], how='left')
+    if df.modulo_group_number.value_counts().sort_values().std()!=0:
+        print('WARNING - each modulo group should have %d instances, and instead we have:'%(bin_size**2))
+        print(df.modulo_group_number.value_counts().sort_values().describe())
+    return df
+
+
+def ml_map_by_cdf(cov, number_of_bins, mod_size, number_of_modulos=7, plots=False, debug=False):
     '''
 
     :param cov:
@@ -64,6 +131,7 @@ def ml_map(cov, number_of_bins, mod_size, number_of_modulos=7, plots=False, debu
     import numpy as np
     import pandas as pd
     import itertools
+
     from scipy.stats import multivariate_normal
 
     pd.set_option("display.max_columns", 1000)  # don’t put … instead of multi columns
@@ -72,20 +140,7 @@ def ml_map(cov, number_of_bins, mod_size, number_of_modulos=7, plots=False, debu
     pd.set_option('display.max_colwidth', 1000)
 
     rounding=10
-    '''first generating the map with all the pixels, then each pixel will get it's cdf'''
-    bin_size=mod_size/number_of_bins
-    bin_edges=np.linspace(-(number_of_modulos+0.5)*mod_size, (number_of_modulos+0.5)*mod_size, (2*number_of_modulos+1)*number_of_bins+1, endpoint=True)
-    # bin_edges=np.round(bin_edges, rounding)
-    bin_centers=(bin_edges[1:]+bin_edges[:-1])/2
-    df=pd.DataFrame(list(itertools.product(*[bin_centers] * 2)), columns='x_center,y_center'.split(','))
-    df=df.join(int_force.methods.methods.sign_mod(df, mod_size).rename(columns=dict(x_center='x_mod', y_center='y_mod')))
-    df['x_modulo_shifts']=round((df.x_center-df.x_mod)/mod_size)  # x_center is the original data, before modulo, and x_mod is after. we want to see how much modulo shifting we had
-    df['y_modulo_shifts']=round((df.y_center-df.y_mod)/mod_size)
-    df['x_low']=df.x_center-bin_size/2
-    df['y_low']=df.y_center-bin_size/2
-    df['x_high']=df.x_center+bin_size/2
-    df['y_high']=df.y_center+bin_size/2
-    df=df.round(rounding)
+    df=bins_edges_with_duplication_of_modulo(rounding=rounding, mod_size=mod_size, number_of_bins=number_of_bins, number_of_modulos=number_of_modulos)
     '''now df has pixels with center and edges for each'''
     if plots:
         print('doing cdf')
@@ -96,7 +151,7 @@ def ml_map(cov, number_of_bins, mod_size, number_of_modulos=7, plots=False, debu
             cdf=pd.DataFrame(list(itertools.product(*[df[['x_high','x_low']].stack().unique().tolist()] * 2)), columns=list('xy')).round(rounding)  # we do all the unique stuff instead of taking bin_edges because we have floating point issue
             if plots: print('done product')
             '''now calcuating cdf per pixel. each pixel has shared edges with it's neighbors so we will do the cdf offline and then merge it back'''
-            if 0:  # cannot do this because at the rigth upper the cdf will be 1 and the pdf 0...
+            if 0:  # cannot do this because at the right upper the cdf will be 1 and the pdf 0...
                 cdf['cdf']=0  # for saving cdf calculation, that is slower... we will only calculate cdf on ones that their pdf is high
                 cdf['pdf']=multivariate_normal.pdf(cdf[['x', 'y']].values, mean=[0, 0], cov=cov)
                 cdf['pdf']=1
@@ -156,12 +211,6 @@ def ml_map(cov, number_of_bins, mod_size, number_of_modulos=7, plots=False, debu
         from scipy.stats import mvn
         df['bin_cdf']=df.apply(lambda row:mvn.mvnun(row[['x_low','y_low']].values,row[['x_high','y_high']].values,[0,0],cov.tolist())[0], axis=1)
     if plots: print('done cdf')
-    if plots: print('''giving each modulo shift, a unique group number''')
-    modulo_group=df.groupby(['x_modulo_shifts', 'y_modulo_shifts']).size().reset_index().reset_index().drop(0, axis=1).rename(columns=dict(index='modulo_group_number'))
-    df=pd.merge(df, modulo_group, on=['x_modulo_shifts', 'y_modulo_shifts'], how='left')
-    if df.modulo_group_number.value_counts().sort_values().std()!=0:
-        print('WARNING - each modulo group should have %d instances, and instead we have:'%(bin_size**2))
-        print(df.modulo_group_number.value_counts().sort_values().describe())
 
     if plots: print('''finding best group at the main modulo''')
     probability_shifts = df.pivot_table(index=['x_modulo_shifts', 'y_modulo_shifts', 'modulo_group_number'], columns=['x_mod', 'y_mod'], values='bin_cdf').idxmax().unstack()
@@ -354,10 +403,6 @@ if __name__ == '__main__':
     import numpy as np
     import pandas as pd
 
-    samples, number_of_bins, quant_size=300, 19, 1.971141
-    samples, number_of_bins, quant_size=1000, 1024, 0.003
-    cov=np.mat([[1, 0.9], [0.9, 1]])
-    cov=None
-    snr=1000001
-    results=pd.DataFrame()
+    for i in range(10):
+        print(ml_map_method(samples=1000, quant_size=0.1, number_of_bins=109, snr=1000, plot=False)['rmse'])
 

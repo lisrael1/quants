@@ -16,7 +16,7 @@ def folded_angles(number_of_shift_per_direction):
     inx = pd.MultiIndex.from_product([list(range(1, number_of_shift_per_direction + 1))] * 2, names=['x', 'y'])
     df = pd.DataFrame(index=inx).reset_index(drop=False)  # .astype(int)
     df['tan'] = df.apply(lambda row: np.rad2deg(np.arctan(row.y / row.x)), axis=1)
-    return df.tan.unique().tolist() + [0, 90]
+    return df.tan.unique().tolist() + [0, 90, -90]
 
 
 def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=None, cov=None, debug=False, plot=False):
@@ -51,7 +51,8 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
     while 0:
         cov = int_force.rand_data.rand_data.rand_cov(snr=snr)
         cov_angle = int_force.rand_data.find_slop.get_cov_ev(cov)[1]
-        if not sum(abs(np.array(folded_angles(3))-cov_angle)<2):
+        # if not sum(abs(np.array(folded_angles(3))-abs(cov_angle))<5):
+        if not sum(abs(np.array([0, 90, -90])-abs(cov_angle))<5):
             break
 
     data = int_force.rand_data.rand_data.random_data(cov, samples)
@@ -205,7 +206,7 @@ def calc_sinogram(x, y, hist_bins=300, quant_size=0, drop_90=False, plot=False):
         radon_estimated_angle=max_peaking.idxmax()
     slop=np.tan(np.deg2rad(radon_estimated_angle))
     if np.isnan(radon_estimated_angle):  # you will get this if all quantized values are the same
-        radon_estimated_angle=0
+        radon_estimated_angle=0  # ignore this - putting angle to rotate the data so it will take the original option and not all the other duplications
     sinogram_dict=dict(image=H,
                        sinogram=sinogram,
                        angle_by_std=radon_estimated_angle,

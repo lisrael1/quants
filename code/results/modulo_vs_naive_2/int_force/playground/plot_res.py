@@ -37,7 +37,14 @@ if __name__ == '__main__':
 	pivot.to_csv('pivot.csv')
 
 	print('plot rmse')
+	def remove_nans_from_plot(fig):
+		for trace in range(len(fig['data'])):
+			inx = np.where(fig['data'][trace]['y'] == '')
+			fig['data'][trace]['x'] = np.delete(fig['data'][trace]['x'], inx)
+			fig['data'][trace]['y'] = np.delete(fig['data'][trace]['y'], inx)
+		return fig
 	fig=pivot['mean'].figure(xTitle='quant_size', yTitle='mean', title='rmse per quant sizee, by snr, number of binds and methods')
+	fig=remove_nans_from_plot(fig)
 	py.offline.plot(fig, filename='plot rmse per quant size snr number of bins and method.html', auto_open=False)
 
 	print('plot std')
@@ -74,11 +81,11 @@ if __name__ == '__main__':
 
 	print('plot angle error')
 	if 'angle' in df.columns:
-		df['angle_error']=df.angle-df.cov_ev_anlge
-		fig=df.set_index('cov_ev_anlge').angle_error.dropna().sample(number_of_samples_at_scatter_plot).figure(kind='scatter', mode='markers', size=4, title='angle error per angle')
+		df['angle_error']=df.angle-df.cov_ev_angle
+		fig=df.set_index('cov_ev_angle').angle_error.dropna().sample(number_of_samples_at_scatter_plot).figure(kind='scatter', mode='markers', size=4, title='angle error per angle')
 		py.offline.plot(fig, filename='plot angle error per angle.html', auto_open=False)
 		
-		fig=df.dropna(subset=['angle']).set_index('cov_ev_anlge').rmse.sample(number_of_samples_at_scatter_plot).figure(kind='scatter', mode='markers', size=4, title='rmse per angle')
+		fig=df.dropna(subset=['angle']).set_index('cov_ev_angle').rmse.sample(number_of_samples_at_scatter_plot).figure(kind='scatter', mode='markers', size=4, title='rmse per angle')
 		py.offline.plot(fig, filename='plot rmse per angle.html', auto_open=False)
 		
 		fig=df.set_index('angle_error').rmse.dropna().sample(number_of_samples_at_scatter_plot).figure(kind='scatter', mode='markers', size=4, title='rmse per angle error')

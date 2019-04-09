@@ -11,6 +11,8 @@ def folded_angles(number_of_shift_per_direction):
     :param number_of_shift_per_direction:
     :return:
     '''
+    if number_of_shift_per_direction==0:
+        return []
     import numpy as np
     import pandas as pd
     inx = pd.MultiIndex.from_product([list(range(1, number_of_shift_per_direction + 1))] * 2, names=['x', 'y'])
@@ -52,7 +54,8 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
         cov = int_force.rand_data.rand_data.rand_cov(snr=snr)
         cov_angle = int_force.rand_data.find_slop.get_cov_ev(cov)[1]
         # if not sum(abs(np.array(folded_angles(3))-abs(cov_angle))<5):
-        if not sum(abs(np.array([0, 90, -90])-abs(cov_angle))<5):
+        # if not sum(abs(np.array([0, 90, -90])-abs(cov_angle))<5):
+        if abs(cov_angle)<5:
             break
 
     data = int_force.rand_data.rand_data.random_data(cov, samples)
@@ -67,10 +70,14 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
     del tmp
 
     'doing sinogram'
-    number_of_shift_per_direction = 3
-    hist_bins = 300
 
+    hist_bins = 300
     sinogram_dict = int_force.methods.sinogram.calc_sinogram(data.after.X.values, data.after.Y.values, hist_bins=hist_bins, plot=plot, quant_size=quant_size)
+    # if sum(abs(abs(sinogram_dict['angle_by_std'])-np.array([0, 90, -90])) < 5):
+    #     number_of_shift_per_direction = 1
+    # else:
+    #     number_of_shift_per_direction = 3
+    number_of_shift_per_direction = 3
     df = int_force.rand_data.rand_data.all_data_origin_options(data.after, mod_size, number_of_shift_per_direction=number_of_shift_per_direction, debug=debug)
 
     'finding closest'
@@ -84,15 +91,21 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
 
     df['major_distance'] = df.y_after_rotation.abs()  # after rotation, y is the distance from the main line
     df['minor_distance'] = df.x_after_rotation.abs()  # in case he
+    df['distances_angle'] = df.apply(lambda row:int_force.rand_data.find_slop.vector_to_angle(abs(row.minor_distance), abs(row.major_distance)), axis=1)
+    # df['distances_angle'] = int_force.rand_data.find_slop.vector_to_angle(df.minor_distance.abs().values, df.major_distance.abs().values)
+    df['distance']=df.minor_distance/50+df.major_distance
+    # df['distance']=df.minor_distance*df.major_distance
 
     def group_min(group):
         # y_max=group.Y.max()
         # duplicatons_per_side=(np.sqrt(group.shape[0])-1)/2
-        smallest = group[group.major_distance < 0.3]  # TODO how to set this number? for duplicaton of 3 times of the modulo, at folded angels we will get 7 times
+        # smallest = group[(group.major_distance < 0.3) & (group.distances_angle < 3)]  # TODO how to set this number? for duplication of 3 times of the modulo, at folded angels we will get 7 times
+        smallest = group[group.major_distance < 0.3]  # TODO how to set this number? for duplication of 3 times of the modulo, at folded angels we will get 7 times
         if smallest.empty:
             idx = group.major_distance.idxmin()
         else:  # if we have only 1 with small major_distance, we will get it here
-            idx = smallest.minor_distance.idxmin()
+            # idx = smallest.minor_distance.idxmin()
+            idx = smallest.distance.idxmin()
         return group.loc[idx]
     tmp = df.groupby(['x_at_mod', 'y_at_mod']).apply(group_min).reset_index(drop=True)
 
@@ -119,7 +132,10 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
         if sum(abs(np.array(angles_that_wraps_into_itself) - abs(cov_angle))<1):
             print('angle too close to folded angle')
         print('big errors:')
-        print(data[data.error.max(axis=1)>10*quant_size/np.sqrt(12)])
+        print(data[data.error.abs().max(axis=1)>10*quant_size/np.sqrt(12)])
+        # if data[data.error.max(axis=1)>10*quant_size/np.sqrt(12)].empty:
+        #     print('hi')
+        print(data.loc[data.error.abs().max(axis=1).sort_values(ascending=False).index.values[:5]])
 
         int_force.methods.sinogram.calc_sinogram(data.after.X.values, data.after.Y.values, hist_bins=hist_bins, plot=True, quant_size=quant_size)
         # checking if rotation worked
@@ -154,7 +170,7 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
              pearson=pearson,
              A=None,
              angle=sinogram_dict['angle_by_std'],
-             cov_ev_anlge=cov_angle,
+             cov_ev_angle=cov_angle,
              cov = str(cov.tolist()))
     return res
 
@@ -272,13 +288,13 @@ def _debug_sinogram_method():
     import pandas as pd
 
     samples, number_of_bins, quant_size=300, 19, 1.971141
-    samples, number_of_bins, quant_size=100, 101, 0.10
+    samples, number_of_bins, quant_size=100, 101, 0.06
     cov=np.mat([[1, 0.9], [0.9, 1]])
     cov=None
 
     snr=100000
     results=pd.DataFrame()
-    for i in range(1000):
+    for i in range(100):
         res=sinogram_method(samples, number_of_bins, quant_size, snr, cov=cov, debug=False)
         results=results.append(pd.Series(res), ignore_index=True)
         # print('rmse %g, angle %g' % (res['rmse'], res['angle']))

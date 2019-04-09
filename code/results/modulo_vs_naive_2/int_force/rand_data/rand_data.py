@@ -59,7 +59,6 @@ def all_data_origin_options(data_db, modulo_size, number_of_shift_per_direction,
     # modulo_edges=np.arange(-multiple_x, multiple_x)*modulo_size+mod_size/2  # max number should be multiple_x*modulo_size-modulo_size/2 because the middle modulo is half left to 0 and half right to 0
     modulo_shifts = np.arange(-number_of_shift_per_direction, number_of_shift_per_direction + 1) * modulo_size
     modulo_shifts = pd.DataFrame(list(itertools.product(*[modulo_shifts] * 2)), columns='x_center,y_center'.split(','))
-    modulo_shifts.head()
 
     a = modulo_shifts.stack()
     a.index = a.index.to_frame().iloc[:, 1].values

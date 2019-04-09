@@ -1,4 +1,4 @@
-def vector_to_angle(x,y):
+def vector_to_angle(x, y):
     import numpy as np
     return np.angle(complex(x, y), deg=True)
 

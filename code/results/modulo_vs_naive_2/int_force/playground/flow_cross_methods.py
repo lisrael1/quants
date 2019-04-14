@@ -13,7 +13,9 @@ import plotly as py
 import cufflinks
 
 import sys
+sys.path.append('../')
 sys.path.append('../../')
+sys.path.append('../../../')
 import int_force
 
 if __name__ == '__main__':

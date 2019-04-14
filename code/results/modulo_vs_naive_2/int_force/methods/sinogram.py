@@ -55,7 +55,9 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
         cov_angle = int_force.rand_data.find_slop.get_cov_ev(cov)[1]
         # if not sum(abs(np.array(folded_angles(3))-abs(cov_angle))<5):
         # if not sum(abs(np.array([0, 90, -90])-abs(cov_angle))<5):
-        if abs(cov_angle)<5:
+        # if abs(cov_angle)<5:
+        if abs(abs(cov_angle) - 90) < 5:
+
             break
 
     data = int_force.rand_data.rand_data.random_data(cov, samples)
@@ -93,7 +95,7 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
     df['minor_distance'] = df.x_after_rotation.abs()  # in case he
     df['distances_angle'] = df.apply(lambda row:int_force.rand_data.find_slop.vector_to_angle(abs(row.minor_distance), abs(row.major_distance)), axis=1)
     # df['distances_angle'] = int_force.rand_data.find_slop.vector_to_angle(df.minor_distance.abs().values, df.major_distance.abs().values)
-    df['distance']=df.minor_distance/50+df.major_distance
+    df['distance']=df.minor_distance/50+df.major_distance  # in case we have [9,0.1] and [1,0.11] we rather take the second and not the first, so we want to punish on big x distance
     # df['distance']=df.minor_distance*df.major_distance
 
     def group_min(group):

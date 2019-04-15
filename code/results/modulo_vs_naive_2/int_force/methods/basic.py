@@ -29,6 +29,7 @@ def basic_method(samples, quant_size, number_of_bins=False, A_rows=None, snr=100
              sampled_std_2=0,
              mse=mse,
              rmse=np.sqrt(mse),
+             samples=samples,
              error_per=((o-original).abs().values.flatten()>quant_size).astype(int).mean(),
              pearson=0,
              cov=str(cov.tolist()))

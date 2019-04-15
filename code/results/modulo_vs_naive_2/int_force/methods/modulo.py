@@ -62,6 +62,7 @@ def int_matrix_method(samples, quant_size, number_of_bins, A=None, snr=1000, don
              error_per=((o-input_data).abs().values.flatten()>quant_size).astype(int).mean(),
              pearson=pearson,
              A=A,
+             samples=samples,
              cov = str(cov.tolist()))
     return res
 

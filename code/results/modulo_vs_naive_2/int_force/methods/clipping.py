@@ -38,6 +38,7 @@ def clipping_method(samples, quant_size, number_of_bins, std_threshold=None, A=N
     res=dict(rmse=np.sqrt((o - original).values.flatten().var()),
              error_per=((o-original).abs().values.flatten()>quant_size).astype(int).mean(),
              pearson=pearson,
+             samples=samples,
              cov=str(cov.tolist()))
     return res
 

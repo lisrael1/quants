@@ -171,6 +171,7 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
              error_per=0,
              pearson=pearson,
              A=None,
+             samples=samples,
              angle=sinogram_dict['angle_by_std'],
              cov_ev_angle=cov_angle,
              cov = str(cov.tolist()))

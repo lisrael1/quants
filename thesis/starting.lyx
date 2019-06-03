@@ -1,0 +1,315 @@
+#LyX 2.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 544
+\begin_document
+\begin_header
+\save_transient_properties true
+\origin unavailable
+\textclass article
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman "default" "default"
+\font_sans "default" "default"
+\font_typewriter "default" "default"
+\font_math "auto" "auto"
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100 100
+\font_tt_scale 100 100
+\use_microtype false
+\use_dash_ligatures true
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\use_hyperref false
+\papersize default
+\use_geometry false
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine basic
+\cite_engine_type default
+\biblio_style plain
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\use_refstyle 1
+\use_minted 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\is_math_indent 0
+\math_numbering_side default
+\quotes_style english
+\dynamic_quotes 0
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+blind low complexity modulo latic distributed quantization
+\end_layout
+
+\begin_layout Author
+Lior Israeli, Yuval Kochman
+\end_layout
+
+\begin_layout Standard
+\begin_inset Newpage newpage
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset toc
+LatexCommand tableofcontents
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Newpage newpage
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+problem statement
+\end_layout
+
+\begin_layout Standard
+The problem scheme has 2 transmitters and 2 receivers.
+ the receivers deliver the data to central unit for further process.
+\end_layout
+
+\begin_layout Standard
+each transmitter gets non discrete data, then quantizing the data on finite
+ latic with fixed number of bit.
+ the quantizer size should be set from ahead.
+\end_layout
+
+\begin_layout Standard
+the transmitters transmit data with high correlation, by covariance matrix
+ that we explain later.
+ if we had a case that the transmitters can communicate between each other,
+ we could use simple scheme that one is transmits the data as is and the
+ second will transmit only the delta from the first, or other compression
+ methods, but in our case, the transmitters don't communicate, and we want
+ to find scheme that will take the advantage of the correlation between
+ the transmitters and compress the transmitted data.
+\end_layout
+
+\begin_layout Standard
+the covariance between the transmitters randomized as follows:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $h=\text{\left[\begin{array}{c}
+ a\\
+ b 
+\end{array}\right]},$
+\end_inset
+
+a,b ~N
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $cov=hh^{T}+I*\frac{1}{SNR}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+in the process of looking for solution, we also used some simpler cases,
+ of taking only 1 transmitter and 1 receiver, and also a case that we already
+ know the data covariance.
+ some of methods that we tried, can only be applied on those simpler cases
+ and not on the problem statement.
+\end_layout
+
+\begin_layout Section
+methods
+\end_layout
+
+\begin_layout Standard
+we will present few approaches that we applied on te problem statement.
+ some of them can be used only when the the covariance is already known.
+\end_layout
+
+\begin_layout Subsection
+clipping
+\end_layout
+
+\begin_layout Standard
+the most common approach is just to set fixed size of quantizer and clip
+ higher or lower values to the nearest value at the quantizer.
+ for example, if we take quantizer with values of -1, 0 and 1, we will quantize
+ the value of -2.5 to -1 and the value of 2.2 to 1.
+ this approace clearly does not take advatage of the correlation between
+ the transimitters but is very easy to implement and will be our naive method
+ that we will compare to.
+\end_layout
+
+\begin_layout Subsection
+integer fourcing
+\end_layout
+
+\begin_layout Standard
+this approach, taken from the article of Ori TODO, is approach for higher
+ order of data (about 8 transmitters), and is based on modulo property of:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $mod(i*mod(x))=mod(i*x),i\exists integers$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+where i is an integer number.
+\end_layout
+
+\begin_layout Standard
+this equation can also be at matrix form where x is the data matrix and
+ i is square matrix with only integers.
+ we will call the integer matrix A, and the data matrix D:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $mod(A*mod(D))=mod(A*D)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+mod operation on matrix is applying modulo seperatedly on each element at
+ the matrix.
+ now by this approach, the transmitter is doing modulo by a size that is
+ known from ahead, then the receiver firstly multiply the data by the A
+ matrix, then it's also applying modulo at the same size at the transmitter
+ used.
+ what we want is that that after 
+\begin_inset Formula $A*mod(D)$
+\end_inset
+
+ we will get the output inside the modulo range so when we apply the receiver
+ modulo, it will make no effect.
+ what we get from this situation is that mathematically we do 
+\begin_inset Formula $mod_{RX}(A*mod_{TX}(D))$
+\end_inset
+
+ which is equal to 
+\begin_inset Formula $mod_{RX}(A*D)$
+\end_inset
+
+, meaning the transmitter modulo has no effect and we get the same data
+ at the output of this transmitter and also at perfect transmitter with
+ endless quantizer.
+ we're looking for a case that after multipying by A we get all the data
+ inside the modulo, so at this case, the receiver modulo is also taking
+ no effect.
+ what we eventually get is that after the receiver, we get 
+\begin_inset Formula $A*D$
+\end_inset
+
+ and becasue we know A, we can multiply it in 
+\begin_inset Formula $A^{-1}$
+\end_inset
+
+and recover the original 
+\begin_inset Formula $D$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+maximum likelihood modulo
+\end_layout
+
+\begin_layout Standard
+this approach is assuming we know the covariance matrix of the original
+ data, and by that, the ML modulo will not match our problem statement.
+ at this approach, the transmitter is doing modulo by known size.
+ what we get after the modulo, is data that is folded into the modulo space.
+ when the data is highly correlated, the shape of it at 2 dimension is like
+ narrow elipse, and when folding this elipse by using modulo, we will get
+ the distribution as shown at picture TODO.
+ at most cases, one can easely see that this new distribution can be reconstruct
+ to the original distribution.
+ let say that the max value at original data is no more than 5 times of
+ the modulo size, it means that each x values has 5 optional original places
+ that can be folded into this folded place.
+ if we take 2 dimensions, each x,y coordinate, can be taken from 25 optional
+ place.
+ those 25 places are all combinations of 5 from x and 5 from y.
+ after knowning this rule, we can calculate the cdf of each of those 25
+ options and check which one of them is the most likely to be our folded
+ case.
+ we use cdf and not pdf because each value is presenting all the space next
+ to it as this value is quantized value.
+\end_layout
+
+\begin_layout Subsection
+sinogram modulo
+\end_layout
+
+\begin_layout Standard
+this method is the next step of the ML modulo method.
+ the sinogram modulo does not assume to know the covariance of the original
+ data, and using some manipulations to reconstruct the original data.
+ the main idea is that all the folded parts are originally laying on the
+ same folded line, which is the main eigenvector of the original covariance.
+ if we find this line, we can check each sample 
+\end_layout
+
+\begin_layout Section
+single dimension quantizer
+\end_layout
+
+\begin_layout Standard
+A more simple case that we can investigate more clearly, is when scheme
+ has only 1 transmiter and 1 receiver.
+ this 1 dimension case, can be our playground for different methods.
+ 
+\end_layout
+
+\end_body
+\end_document

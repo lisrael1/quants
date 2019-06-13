@@ -11,3 +11,5 @@ output.pdf
 debug.log
 *.xlsx
 .idea/
+.ipynb_checkpoints/
+*~

@@ -1,6 +1,8 @@
 import sys
 sys.path.append('../../')
 import int_force
+import pandas as pd
+import numpy as np
 
 
 def folded_angles(number_of_shift_per_direction):
@@ -19,6 +21,55 @@ def folded_angles(number_of_shift_per_direction):
     df = pd.DataFrame(index=inx).reset_index(drop=False)  # .astype(int)
     df['tan'] = df.apply(lambda row: np.rad2deg(np.arctan(row.y / row.x)), axis=1)
     return df.tan.unique().tolist() + [0, 90, -90]
+
+
+def find_closest(number_of_shift_per_direction, data_after, mod_size, angle_by_std, debug):
+    df = int_force.rand_data.rand_data.all_data_origin_options(data_after, mod_size, number_of_shift_per_direction=number_of_shift_per_direction, debug=debug)
+
+    'finding closest'
+    rad = np.deg2rad(-angle_by_std)
+    rotation_matrix = np.matrix([[np.cos(rad), -np.sin(rad)], [np.sin(rad), np.cos(rad)]])
+    tmp = pd.DataFrame((rotation_matrix * np.mat(df[['X', 'Y']].values).T).T)
+    # tmp -= tmp.mean()
+    tmp.columns = ['x_after_rotation', 'y_after_rotation']
+    df = df.join(tmp)
+    del tmp
+
+    df['major_distance'] = df.y_after_rotation.abs()  # after rotation, y is the distance from the main line
+    df['minor_distance'] = df.x_after_rotation.abs()  # in case he
+    df['distances_angle'] = df.apply(lambda row: int_force.rand_data.find_slop.vector_to_angle(abs(row.minor_distance), abs(row.major_distance)), axis=1)
+    # df['distances_angle'] = int_force.rand_data.find_slop.vector_to_angle(df.minor_distance.abs().values, df.major_distance.abs().values)
+    df['distance'] = df.minor_distance / 50 + df.major_distance  # in case we have [9,0.1] and [1,0.11] we rather take the second and not the first, so we want to punish on big x distance
+
+    # df['distance']=df.minor_distance*df.major_distance
+
+    def group_min(group):
+        # y_max=group.Y.max()
+        # duplicatons_per_side=(np.sqrt(group.shape[0])-1)/2
+        # smallest = group[(group.major_distance < 0.3) & (group.distances_angle < 3)]  # TODO how to set this number? for duplication of 3 times of the modulo, at folded angels we will get 7 times
+        smallest = group[group.major_distance < 0.3]  # TODO how to set this number? for duplication of 3 times of the modulo, at folded angels we will get 7 times
+        if smallest.empty:
+            idx = group.major_distance.idxmin()
+        else:  # if we have only 1 with small major_distance, we will get it here
+            # idx = smallest.minor_distance.idxmin()
+            idx = smallest.distance.idxmin()
+        return group.loc[idx]
+
+    tmp = df.groupby(['x_at_mod', 'y_at_mod']).apply(group_min).reset_index(drop=True)
+
+    tmp_first_level_column = tmp.columns.to_series().replace(['x_at_mod', 'y_at_mod', 'x_center', 'y_center'], 'remove').replace(list('XY'), 'recovered').replace(['y_per_x_ratio', 'distance', 'axis_root_distance', 'closest_to_slop'], 'stat').values
+    tmp.columns = [tmp_first_level_column, tmp.columns.values]
+    if debug:
+        import pylab as plt
+        # checking if rotation worked
+        fig = plt.figure()
+        fig.suptitle('rotating multi modulo for finding best match to angle %g' % angle_by_std)
+        df.set_index('X').Y.plot(style='.', grid=True, label='original')
+        df.set_index('x_after_rotation').y_after_rotation.plot(style='.', grid=True, label='after rotate to 0')
+        plt.plot([0, 20 * np.cos(np.deg2rad(angle_by_std))], [0, 20 * np.sin(np.deg2rad(angle_by_std))])
+        plt.plot([-mod_size / 2, -mod_size / 2, mod_size / 2, mod_size / 2, -mod_size / 2], [-mod_size / 2, mod_size / 2, mod_size / 2, -mod_size / 2, -mod_size / 2])  # plotting the modulo frame
+        fig.legend()
+    return tmp
 
 
 def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=None, cov=None, debug=False, plot=False):
@@ -72,47 +123,14 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
     del tmp
 
     'doing sinogram'
-
-    hist_bins = 300
-    sinogram_dict = int_force.methods.sinogram.calc_sinogram(data.after.X.values, data.after.Y.values, hist_bins=hist_bins, plot=plot, quant_size=quant_size)
+    hist_bins_max = 300
+    sinogram_dict = int_force.methods.sinogram.calc_sinogram(data.after.X.values, data.after.Y.values, hist_bins_max=hist_bins_max, plot=plot, quant_size=quant_size)
     # if sum(abs(abs(sinogram_dict['angle_by_std'])-np.array([0, 90, -90])) < 5):
     #     number_of_shift_per_direction = 1
     # else:
     #     number_of_shift_per_direction = 3
-    number_of_shift_per_direction = 3
-    df = int_force.rand_data.rand_data.all_data_origin_options(data.after, mod_size, number_of_shift_per_direction=number_of_shift_per_direction, debug=debug)
+    tmp = find_closest(number_of_shift_per_direction=3, data_after=data.after, mod_size=mod_size, angle_by_std=sinogram_dict['angle_by_std'],debug=debug)
 
-    'finding closest'
-    rad = np.deg2rad(-sinogram_dict['angle_by_std'])
-    rotation_matrix = np.matrix([[np.cos(rad), -np.sin(rad)], [np.sin(rad), np.cos(rad)]])
-    tmp = pd.DataFrame((rotation_matrix * np.mat(df[['X', 'Y']].values).T).T)
-    # tmp -= tmp.mean()
-    tmp.columns = ['x_after_rotation', 'y_after_rotation']
-    df = df.join(tmp)
-    del tmp
-
-    df['major_distance'] = df.y_after_rotation.abs()  # after rotation, y is the distance from the main line
-    df['minor_distance'] = df.x_after_rotation.abs()  # in case he
-    df['distances_angle'] = df.apply(lambda row:int_force.rand_data.find_slop.vector_to_angle(abs(row.minor_distance), abs(row.major_distance)), axis=1)
-    # df['distances_angle'] = int_force.rand_data.find_slop.vector_to_angle(df.minor_distance.abs().values, df.major_distance.abs().values)
-    df['distance']=df.minor_distance/50+df.major_distance  # in case we have [9,0.1] and [1,0.11] we rather take the second and not the first, so we want to punish on big x distance
-    # df['distance']=df.minor_distance*df.major_distance
-
-    def group_min(group):
-        # y_max=group.Y.max()
-        # duplicatons_per_side=(np.sqrt(group.shape[0])-1)/2
-        # smallest = group[(group.major_distance < 0.3) & (group.distances_angle < 3)]  # TODO how to set this number? for duplication of 3 times of the modulo, at folded angels we will get 7 times
-        smallest = group[group.major_distance < 0.3]  # TODO how to set this number? for duplication of 3 times of the modulo, at folded angels we will get 7 times
-        if smallest.empty:
-            idx = group.major_distance.idxmin()
-        else:  # if we have only 1 with small major_distance, we will get it here
-            # idx = smallest.minor_distance.idxmin()
-            idx = smallest.distance.idxmin()
-        return group.loc[idx]
-    tmp = df.groupby(['x_at_mod', 'y_at_mod']).apply(group_min).reset_index(drop=True)
-
-    tmp_first_level_column = tmp.columns.to_series().replace(['x_at_mod', 'y_at_mod', 'x_center', 'y_center'], 'remove').replace(list('XY'), 'recovered').replace(['y_per_x_ratio', 'distance', 'axis_root_distance', 'closest_to_slop'], 'stat').values
-    tmp.columns = [tmp_first_level_column, tmp.columns.values]
     data = pd.merge(tmp, data, left_on=[('remove', 'x_at_mod'), ('remove', 'y_at_mod')], right_on=[('after', 'X'), ('after', 'Y')], how='right').T.sort_index().T.drop('remove', axis=1)
     del tmp
     error=data.recovered - data.before
@@ -139,15 +157,7 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
         #     print('hi')
         print(data.loc[data.error.abs().max(axis=1).sort_values(ascending=False).index.values[:5]])
 
-        int_force.methods.sinogram.calc_sinogram(data.after.X.values, data.after.Y.values, hist_bins=hist_bins, plot=True, quant_size=quant_size)
-        # checking if rotation worked
-        fig = plt.figure()
-        fig.suptitle('rotating multi modulo for finding best match to angle %g' % sinogram_dict['angle_by_std'])
-        df.set_index('X').Y.plot(style='.', grid=True, label='original')
-        df.set_index('x_after_rotation').y_after_rotation.plot(style='.', grid=True, label='after rotate to 0')
-        plt.plot([0, 20*np.cos(np.deg2rad(sinogram_dict['angle_by_std']))], [0, 20 * np.sin(np.deg2rad(sinogram_dict['angle_by_std']))])
-        plt.plot([-mod_size / 2, -mod_size / 2, mod_size / 2, mod_size / 2, -mod_size / 2], [-mod_size / 2, mod_size / 2, mod_size / 2, -mod_size / 2, -mod_size / 2])  # plotting the modulo frame
-        fig.legend()
+        int_force.methods.sinogram.calc_sinogram(data.after.X.values, data.after.Y.values, hist_bins_max=hist_bins_max, plot=True, quant_size=quant_size)
 
         # original and recovered data
         if 1:
@@ -178,7 +188,17 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
     return res
 
 
-def calc_sinogram(x, y, hist_bins=300, quant_size=0, drop_90=False, plot=False):
+def calc_sinogram(x, y, hist_bins_max=300, quant_size=0, drop_90=False, plot=False):
+    '''
+
+    :param x: list or np list
+    :param y: list or np list
+    :param hist_bins_max: will try to set the minimum size for the sinogram so it will be faster, so hist_bins_max will be max value
+    :param quant_size:
+    :param drop_90: i had a lot of errors at this angle (and also 0) but keep this value at False
+    :param plot:
+    :return:
+    '''
     import numpy as np
     import pandas as pd
     import warnings
@@ -188,8 +208,8 @@ def calc_sinogram(x, y, hist_bins=300, quant_size=0, drop_90=False, plot=False):
     max_num=max(max(x),max(y))
     if quant_size:
         bins=np.arange(-(max_num/quant_size+1),(max_num/quant_size+1))*quant_size+quant_size*0.5
-    if not quant_size or len(bins)>hist_bins:
-        bins=np.linspace(-max_num, max_num, hist_bins, endpoint=True)
+    if not quant_size or len(bins)>hist_bins_max:
+        bins=np.linspace(-max_num, max_num, hist_bins_max, endpoint=True)
     H, xedges, yedges = np.histogram2d(x, y, bins=[bins]*2)  # in order to estimate the angle, we need the space to be square
     H = H[::-1].T
     if 0:  # maybe to get more resolution
@@ -265,16 +285,16 @@ def calc_sinogram(x, y, hist_bins=300, quant_size=0, drop_90=False, plot=False):
 def plot_sinogram(image, sinogram, angle_by_std, slop):
     import numpy as np
     import pylab as plt
-    hist_bins=(image.shape[0]+1)  # image should be square
+    hist_bins_max=(image.shape[0]+1)  # image should be square
     fig, ax = plt.subplots(1, 4, figsize=(12 * 2.1, 4.5 * 2.1))  # , subplot_kw ={'aspect': 1.5})#, sharex=False)
 
     ax[0].set_title("data")
     ax[0].imshow(image, cmap=plt.cm.Greys_r)
-    image_middle=hist_bins // 2
+    image_middle=hist_bins_max // 2
     ax[0].plot([image_middle, image_middle+20 * np.cos(np.deg2rad(angle_by_std))], [image_middle, image_middle-20 * np.sin(np.deg2rad(angle_by_std))])
 
     ax[1].set_title("sinogram")
-    ax[1].imshow(sinogram, cmap=plt.cm.Greys_r, extent=(-90, 90, 0, hist_bins))
+    ax[1].imshow(sinogram, cmap=plt.cm.Greys_r, extent=(-90, 90, 0, hist_bins_max))
 
     sinogram[angle_by_std].plot(ax=ax[2], title='sinogram values at angle')  # , figsize=[20, 20]
 
@@ -307,7 +327,7 @@ def _debug_sinogram_method():
     # rmse=sinogram_method(samples, number_of_bins, quant_size, snr, cov=cov, debug=True)
 
 
-def compare_sinogram_and_eigen_vector(quant_size=False, hist_bins=300, snr=10000, samples=1000):
+def compare_sinogram_and_eigen_vector(quant_size=False, hist_bins_max=300, snr=10000, samples=1000):
     import sys
     sys.path.append('../../')
     sys.path.append(r'C:\Users\lisrael1\Documents\myThings\lior_docs\HU\thesis\quants\code\results\modulo_vs_naive_2/')
@@ -330,7 +350,7 @@ def compare_sinogram_and_eigen_vector(quant_size=False, hist_bins=300, snr=10000
         data = int_force.methods.methods.to_codebook(data, quant_size, 0)
         data = int_force.methods.methods.from_codebook(data, quant_size, 0)
 
-    sinogram_dict = int_force.methods.sinogram.calc_sinogram(data.X.values, data.Y.values, hist_bins=hist_bins, plot=False, quant_size=quant_size)
+    sinogram_dict = int_force.methods.sinogram.calc_sinogram(data.X.values, data.Y.values, hist_bins_max=hist_bins_max, plot=False, quant_size=quant_size)
 
     res=pd.DataFrame(dict(sinogram=sinogram_dict['angle_by_std'], ev=int_force.rand_data.find_slop.get_cov_ev(cov, False)[1]), index=[1])
     res.loc[res.sinogram == -90] = 90  # ev likes positive and sinogram negative...
@@ -345,7 +365,7 @@ def compare_sinogram_and_eigen_vector(quant_size=False, hist_bins=300, snr=10000
             print("cov det is %g" % np.linalg.det(cov))
             print("image size is %d" % sinogram_dict['image'].size)  # sometimes i get image at the size of 3X3 so sinogram doesnt have resolution for this. so the real problem is that the cov happen to be small
             print(res)
-            int_force.methods.sinogram.calc_sinogram(data.X.values, data.Y.values, hist_bins=hist_bins, plot=True, quant_size=quant_size)
+            int_force.methods.sinogram.calc_sinogram(data.X.values, data.Y.values, hist_bins_max=hist_bins_max, plot=True, quant_size=quant_size)
             plt.show()
             print('hi')
         # print(res[res.error.abs()>5])
@@ -361,9 +381,9 @@ def __debug_angle_error_per_number_of_bins_snr_and_samples():
 
     # a = [[10, 100, 1000, 10000], [100, 300], [100, 1000, 10000], [None]]
     # a = [[100], [100], [10000], [0.1, 0.01]]
-    # inx = pd.MultiIndex.from_product(a, names=['samples', 'hist_bins', 'snr', 'quant_size'])
-    a = dict(samples=[10, 100, 1000, 10000], hist_bins=[100, 300], snr=[100, 1000, 10000], quant_size=[0])
-    a = dict(samples=[100], hist_bins=[100], snr=[10000], quant_size=[0.2, 0.1, 0.01, 0.0001])
+    # inx = pd.MultiIndex.from_product(a, names=['samples', 'hist_bins_max', 'snr', 'quant_size'])
+    a = dict(samples=[10, 100, 1000, 10000], hist_bins_max=[100, 300], snr=[100, 1000, 10000], quant_size=[0])
+    a = dict(samples=[100], hist_bins_max=[100], snr=[10000], quant_size=[0.2, 0.1, 0.01, 0.0001])
     inx = pd.MultiIndex.from_product(a.values(), names=a.keys())
 
     df = pd.DataFrame(index=inx).reset_index(drop=False).sample(frac=1)

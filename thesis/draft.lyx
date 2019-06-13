@@ -294,10 +294,55 @@ sinogram modulo
 \begin_layout Standard
 this method is the next step of the ML modulo method.
  the sinogram modulo does not assume to know the covariance of the original
- data, and using some manipulations to reconstruct the original data.
+ data, and it's using some manipulations to reconstruct the original data.
  the main idea is that all the folded parts are originally laying on the
  same folded line, which is the main eigenvector of the original covariance.
- if we find this line, we can check each sample 
+ if we find this line, and we know how its beening folded, we can check
+ for each sample where is the nearest folded part of the line and reconstruct
+ the data by this knowledge.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename C:/Users/lisrael1/Desktop/background/IMG_20190506_163038.jpg
+	lyxscale 5
+	width 5cm
+	height 5cm
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+my fig
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "green fig"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Section
@@ -305,10 +350,44 @@ single dimension quantizer
 \end_layout
 
 \begin_layout Standard
-A more simple case that we can investigate more clearly, is when scheme
- has only 1 transmiter and 1 receiver.
- this 1 dimension case, can be our playground for different methods.
+when scheme has only 1 transmitter and 1 receiver, we have no additional
+ data, and no additional correlation that we can take advantage on, so this
+ work has nothing to add on this case.
+ the only thing that we can take from 1D case, is to check optimum size
+ for clipping method.
+ we do this by calculating integral of MSE for each bin at the quantizer,
+ and summing all MSEs parts.
+ we have 1 variable that does change, which is the bin size, and we find
+ optimal size that will minimize our total MSE.
+\end_layout
+
+\begin_layout Standard
+TODO write all cdf and erf math
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\intop_{b+S}^{b+1+s}e^{-x^{2}}-b/2+s$
+\end_inset
+
  
+\end_layout
+
+\begin_layout Section
+figures sources
+\end_layout
+
+\begin_layout Standard
+here is fig 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "green fig"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+
 \end_layout
 
 \end_body

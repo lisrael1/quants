@@ -1,0 +1,3 @@
+start "" jupyter lab --NotebookApp.password=u'sha1:6561fc682e91:8cacad56b0a187510f65f2ae5b316d9cb3380796' --NotebookApp.base_url='/studies/' --port=10324 --notebook-dir=C:\Users\lisrael1\Documents\myThings\lior_docs\HU\thesis\quants\code\results\modulo_vs_naive_2\int_force\jupyter_reports
+//start "" jupyter notebook --NotebookApp.password=u'sha1:6561fc682e91:8cacad56b0a187510f65f2ae5b316d9cb3380796' --NotebookApp.allow_origin='https://colab.research.google.com' --NotebookApp.port_retries=0 --NotebookApp.base_url='/basic_notebook/' --port=10323
+// --certfile=mycert.pem --keyfile mykey.key

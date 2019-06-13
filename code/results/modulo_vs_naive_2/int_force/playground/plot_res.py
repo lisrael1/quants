@@ -22,7 +22,7 @@ if __name__ == '__main__':
 		if 1:
 			alls+=[tmp]
 	print('now doint concatenation')
-	df=pd.concat(alls, ignore_index=True)
+	df=pd.concat(alls, ignore_index=True, sort=True)
 	number_of_samples_at_scatter_plot = 50000
 
 	print('doing pivot')
@@ -75,7 +75,7 @@ if __name__ == '__main__':
 	if 'angle' in df.columns:
 		df['angle_error']=df.angle-df.cov_ev_angle
 		for x, y in [['cov_ev_angle', 'angle_error'], ['cov_ev_angle', 'rmse'], ['angle_error', 'rmse']]:
-			fig = df.dropna(subset=['angle']).pivot_table(index=x, columns='samples', values=y).sample(frac=1).head(number_of_samples_at_scatter_plot).stack().to_frame(y).reset_index(drop=False).astype(str).figure(
+			fig = df.dropna(subset=['angle']).pivot_table(index=x, columns='samples', values=y).stack().sample(frac=1).head(number_of_samples_at_scatter_plot).to_frame(y).reset_index(drop=False).astype(str).figure(
 				kind='scatter', x=x, y=y, categories='samples', size=7, opacity=0.9, title='%s per %s'%(y, x))
 			py.offline.plot(fig, filename='plot %s per %s.html'%(y, x), auto_open=False)
 

@@ -58,7 +58,7 @@ def all_data_origin_options(data_db, modulo_size, number_of_shift_per_direction,
     import itertools
     # modulo_edges=np.arange(-multiple_x, multiple_x)*modulo_size+mod_size/2  # max number should be multiple_x*modulo_size-modulo_size/2 because the middle modulo is half left to 0 and half right to 0
     modulo_shifts = np.arange(-number_of_shift_per_direction, number_of_shift_per_direction + 1) * modulo_size
-    modulo_shifts = pd.DataFrame(list(itertools.product(*[modulo_shifts] * 2)), columns='x_center,y_center'.split(','))
+    modulo_shifts = pd.DataFrame(list(itertools.product(*[modulo_shifts] * 2)), columns='modulo_center_x,modulo_center_y'.split(','))
 
     a = modulo_shifts.stack()
     a.index = a.index.to_frame().iloc[:, 1].values
@@ -68,8 +68,8 @@ def all_data_origin_options(data_db, modulo_size, number_of_shift_per_direction,
         data_db.set_index('X').Y.plot(style='.', title='bla')
     a = data_db.join(a.to_frame().T).ffill()
     a = stack_specific_columns(a, list('XY'))
-    a['out_x'] = a.X + a.x_center
-    a['out_y'] = a.Y + a.y_center
+    a['out_x'] = a.X + a.modulo_center_x
+    a['out_y'] = a.Y + a.modulo_center_y
     a=a.rename(columns=dict(X='x_at_mod', Y='y_at_mod', out_x='X', out_y='Y'))
 
     return a

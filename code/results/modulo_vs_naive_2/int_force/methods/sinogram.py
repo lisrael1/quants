@@ -23,8 +23,8 @@ def folded_angles(number_of_shift_per_direction):
     return df.tan.unique().tolist() + [0, 90, -90]
 
 
-def find_closest(number_of_shift_per_direction, data_after, mod_size, angle_by_std, debug):
-    df = int_force.rand_data.rand_data.all_data_origin_options(data_after, mod_size, number_of_shift_per_direction=number_of_shift_per_direction, debug=debug)
+def find_closest(number_of_shift_per_direction, data_after, mod_size, angle_by_std, plot):
+    df = int_force.rand_data.rand_data.all_data_origin_options(data_after, mod_size, number_of_shift_per_direction=number_of_shift_per_direction, debug=plot)
 
     'finding closest'
     rad = np.deg2rad(-angle_by_std)
@@ -59,17 +59,51 @@ def find_closest(number_of_shift_per_direction, data_after, mod_size, angle_by_s
 
     tmp_first_level_column = tmp.columns.to_series().replace(['x_at_mod', 'y_at_mod', 'x_center', 'y_center'], 'remove').replace(list('XY'), 'recovered').replace(['y_per_x_ratio', 'distance', 'axis_root_distance', 'closest_to_slop'], 'stat').values
     tmp.columns = [tmp_first_level_column, tmp.columns.values]
-    if debug:
-        import pylab as plt
-        # checking if rotation worked
-        fig = plt.figure()
-        fig.suptitle('rotating multi modulo for finding best match to angle %g' % angle_by_std)
-        df.set_index('X').Y.plot(style='.', grid=True, label='original')
-        df.set_index('x_after_rotation').y_after_rotation.plot(style='.', grid=True, label='after rotate to 0')
-        plt.plot([0, 20 * np.cos(np.deg2rad(angle_by_std))], [0, 20 * np.sin(np.deg2rad(angle_by_std))])
-        plt.plot([-mod_size / 2, -mod_size / 2, mod_size / 2, mod_size / 2, -mod_size / 2], [-mod_size / 2, mod_size / 2, mod_size / 2, -mod_size / 2, -mod_size / 2])  # plotting the modulo frame
-        fig.legend()
+
+    if plot:
+        red_index=pd.merge(df,df.loc[[df.distance.idxmax()],['x_at_mod','y_at_mod']], how='inner').index
+        plot_multi_modulo_before_after_rotation(angle_by_std,
+                                                mod_size,
+                                                df_before_rotation=df[['X', 'Y']],
+                                                df_after_rotation=df[['x_after_rotation', 'y_after_rotation']].rename(columns=dict(x_after_rotation='X', y_after_rotation='Y')),
+                                                red_index=red_index)
     return tmp
+
+
+def plot_multi_modulo_before_after_rotation(angle_by_std, mod_size, df_before_rotation, df_after_rotation, red_index=None):
+    '''
+
+    :param angle_by_std: so you will have line that shows the sinogram estimation
+    :param mod_size:
+    :param df_before_rotation: df with X and Y coloumns
+    :param df_after_rotation: df with X and Y coloumns
+    :param red_index: you get each point x times. you can give index to color those index in black color so you can see the multiplications of this sample
+    :return:
+    '''
+    import pylab as plt
+    # checking if rotation worked
+    # fig = plt.figure()
+    fig, [ax1, ax2] = plt.subplots(1, 2, figsize=(22, 11))
+    ax1.set_title('rotating multi modulo for finding best match to angle %g' % angle_by_std)
+    max_val1=df_before_rotation.abs().values.max()
+    ax1.axis([-max_val1,max_val1,-max_val1,max_val1])
+    df_before_rotation.set_index('X').Y.plot(style='.', grid=True, label='original', ax=ax1, alpha=0.1)
+    # df.set_index('x_after_rotation').y_after_rotation.plot(style='.', grid=True, label='after rotate to 0', ax=ax1)
+    ax1.plot([0, max_val1 * np.cos(np.deg2rad(angle_by_std))], [0, max_val1 * np.sin(np.deg2rad(angle_by_std))])
+    ax1.plot([-mod_size / 2, -mod_size / 2, mod_size / 2, mod_size / 2, -mod_size / 2],
+             [-mod_size / 2, mod_size / 2, mod_size / 2, -mod_size / 2, -mod_size / 2])  # plotting the modulo frame
+
+    ax2.set_title('zoom in on rotated data')
+    max_val2=df_after_rotation.abs().values.max()
+    ax2.axis([-max_val2, max_val2, -max_val2, max_val2])
+    df_after_rotation.set_index('X').query('abs(Y)<0.1').Y.plot(style='.', grid=True, label='after rotate to 0', ax=ax2, c='g', alpha=0.1)
+    df_after_rotation.set_index('X').query('abs(Y)>0.1').Y.plot(style='.', grid=True, label='after rotate to 0', ax=ax2, c='r', alpha=0.01)
+
+    if red_index is not None:
+        df_before_rotation.loc[red_index].set_index('X').Y.plot(style='x', grid=True, label='after rotate to 0', ax=ax1, c='k', alpha=1)
+        df_after_rotation.loc[red_index].set_index('X').Y.plot(style='x', grid=True, label='after rotate to 0', ax=ax2, c='k', alpha=1)
+
+    # fig.legend()
 
 
 def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=None, cov=None, debug=False, plot=False):
@@ -129,8 +163,7 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
     #     number_of_shift_per_direction = 1
     # else:
     #     number_of_shift_per_direction = 3
-    tmp = find_closest(number_of_shift_per_direction=3, data_after=data.after, mod_size=mod_size, angle_by_std=sinogram_dict['angle_by_std'],debug=debug)
-
+    tmp = int_force.methods.sinogram.find_closest(number_of_shift_per_direction=3, data_after=data.after, mod_size=mod_size, angle_by_std=sinogram_dict['angle_by_std'], plot=plot)
     data = pd.merge(tmp, data, left_on=[('remove', 'x_at_mod'), ('remove', 'y_at_mod')], right_on=[('after', 'X'), ('after', 'Y')], how='right').T.sort_index().T.drop('remove', axis=1)
     del tmp
     error=data.recovered - data.before
@@ -139,6 +172,8 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
     del error
     mse = data.error.pow(2).values.mean()
     rmse=mse ** 0.5
+    # if plot:
+    #     plot_multi_modulo_before_after_rotation(sinogram_dict['angle_by_std'], mod_size, df_before_rotation=data.after, df_after_rotation=data.droplevel(1, axis=1)[['x_after_rotation', 'y_after_rotation']].rename(columns=dict(x_after_rotation='X', y_after_rotation='Y')))
     if (debug and rmse>(10*quant_size/np.sqrt(12))) or plot:
         import pylab as plt
 
@@ -148,7 +183,7 @@ def sinogram_method(samples, number_of_bins, quant_size, snr, A_rows=None, A=Non
         print('angle by ev %g'%cov_angle)
         print('mse %g'%mse)
         print('rmse %g'%rmse)
-        angles_that_wraps_into_itself = folded_angles(number_of_shift_per_direction)  # [0, 45, 90, 26.565, 63.435] + [18.434, 33.69, 56.309, 71.565]
+        angles_that_wraps_into_itself = folded_angles(3)  # [0, 45, 90, 26.565, 63.435] + [18.434, 33.69, 56.309, 71.565]
         if sum(abs(np.array(angles_that_wraps_into_itself) - abs(cov_angle))<1):
             print('angle too close to folded angle')
         print('big errors:')
@@ -256,7 +291,7 @@ def calc_sinogram(x, y, hist_bins_max=300, quant_size=0, drop_90=False, plot=Fal
                        x_avg=x.mean(),
                        actual_bin_size=len(bins))
     if plot:
-        plot_sinogram(sinogram_dict['image'], sinogram_dict['sinogram'], sinogram_dict['angle_by_std'], slop=sinogram_dict['slop'])
+        plot_sinogram(sinogram_dict['image'], sinogram_dict['sinogram'], sinogram_dict['angle_by_std'])
 
     if 0:
         empty_sinogram = sinogram.copy().astype(int)*0
@@ -282,19 +317,25 @@ def calc_sinogram(x, y, hist_bins_max=300, quant_size=0, drop_90=False, plot=Fal
     return sinogram_dict
 
 
-def plot_sinogram(image, sinogram, angle_by_std, slop):
+def plot_sinogram(image, sinogram, angle_by_std):
     import numpy as np
     import pylab as plt
-    hist_bins_max=(image.shape[0]+1)  # image should be square
+    hist_bins_max=image.shape[0]-1  # image should be square
     fig, ax = plt.subplots(1, 4, figsize=(12 * 2.1, 4.5 * 2.1))  # , subplot_kw ={'aspect': 1.5})#, sharex=False)
 
     ax[0].set_title("data")
+    # image=image/-image.max()+1
+    # sinogram=sinogram/-sinogram.max()+1
+    ax[0].axis([0, hist_bins_max, 0, hist_bins_max])
     ax[0].imshow(image, cmap=plt.cm.Greys_r)
-    image_middle=hist_bins_max // 2
-    ax[0].plot([image_middle, image_middle+20 * np.cos(np.deg2rad(angle_by_std))], [image_middle, image_middle-20 * np.sin(np.deg2rad(angle_by_std))])
+    image_middle=(hist_bins_max) // 2
+    ax[0].plot([image_middle, image_middle+20 * np.cos(np.deg2rad(angle_by_std))],
+               [image_middle, image_middle-20 * np.sin(np.deg2rad(angle_by_std))], c='r', linewidth=4)
 
     ax[1].set_title("sinogram")
-    ax[1].imshow(sinogram, cmap=plt.cm.Greys_r, extent=(-90, 90, 0, hist_bins_max))
+    y_axis_values=hist_bins_max
+    y_axis_values=180  # just to square the image although real size is hist_bins_max
+    ax[1].imshow(sinogram, cmap=plt.cm.Greys_r, extent=(-90, 90, 0, y_axis_values))
 
     sinogram[angle_by_std].plot(ax=ax[2], title='sinogram values at angle')  # , figsize=[20, 20]
 
@@ -318,7 +359,7 @@ def _debug_sinogram_method():
     snr=100000
     results=pd.DataFrame()
     for i in range(100):
-        res=sinogram_method(samples, number_of_bins, quant_size, snr, cov=cov, debug=False)
+        res=sinogram_method(samples, number_of_bins, quant_size, snr, cov=cov, debug=False, plot=True)
         results=results.append(pd.Series(res), ignore_index=True)
         # print('rmse %g, angle %g' % (res['rmse'], res['angle']))
         print('rmse %g' % (res['rmse']))

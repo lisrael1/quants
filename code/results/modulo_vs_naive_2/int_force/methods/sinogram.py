@@ -61,7 +61,10 @@ def find_closest(number_of_shift_per_direction, data_after, mod_size, angle_by_s
     tmp.columns = [tmp_first_level_column, tmp.columns.values]
 
     if plot:
-        red_index=pd.merge(df,df.loc[[df.distance.idxmax()],['x_at_mod','y_at_mod']], how='inner').index
+        red_index=pd.merge(df, df.loc[[df.sample(frac=0.01).minor_distance.idxmax()], ['x_at_mod','y_at_mod']], how='inner').drop_duplicates().index
+        # red_index=pd.merge(df,df.loc[df.sample(1).index, ['x_at_mod','y_at_mod']], how='inner').index
+        # red_index=pd.merge(df,df.loc[[df.loc[df.major_distance.nsmallest(5).index].minor_distance.idxmax()], ['x_at_mod','y_at_mod']], how='inner').index
+        # red_index=pd.merge(df,df.loc[df[df.distance==df.distance[1:].median()].index.values, ['x_at_mod','y_at_mod']], how='inner').index
         plot_multi_modulo_before_after_rotation(angle_by_std,
                                                 mod_size,
                                                 df_before_rotation=df[['X', 'Y']],
@@ -86,18 +89,28 @@ def plot_multi_modulo_before_after_rotation(angle_by_std, mod_size, df_before_ro
     fig, [ax1, ax2] = plt.subplots(1, 2, figsize=(22, 11))
     ax1.set_title('rotating multi modulo for finding best match to angle %g' % angle_by_std)
     max_val1=df_before_rotation.abs().values.max()
-    ax1.axis([-max_val1,max_val1,-max_val1,max_val1])
-    df_before_rotation.set_index('X').Y.plot(style='.', grid=True, label='original', ax=ax1, alpha=0.1)
+    ax1.axis([-max_val1, max_val1, -max_val1, max_val1])
+    ax1.set_xlim(-max_val1, max_val1)
+    ax1.set_ylim(-max_val1, max_val1)
+    df_before_rotation.set_index('X').Y.plot(style='.', label='original', ax=ax1, alpha=0.1)
     # df.set_index('x_after_rotation').y_after_rotation.plot(style='.', grid=True, label='after rotate to 0', ax=ax1)
+    # plotting sinogram estimation angle
     ax1.plot([0, max_val1 * np.cos(np.deg2rad(angle_by_std))], [0, max_val1 * np.sin(np.deg2rad(angle_by_std))])
+    # plotting modulo borders
+    for i in range(-5, 5):
+        if abs(i+0.5)*mod_size<max_val1:
+            ax1.axvline((i+0.5)*mod_size, color='g', alpha=0.8)
+            ax1.axhline((i+0.5)*mod_size, color='g', alpha=0.8)
     ax1.plot([-mod_size / 2, -mod_size / 2, mod_size / 2, mod_size / 2, -mod_size / 2],
              [-mod_size / 2, mod_size / 2, mod_size / 2, -mod_size / 2, -mod_size / 2])  # plotting the modulo frame
+    ax1.grid(color='w')
 
     ax2.set_title('zoom in on rotated data')
     max_val2=df_after_rotation.abs().values.max()
     ax2.axis([-max_val2, max_val2, -max_val2, max_val2])
-    df_after_rotation.set_index('X').query('abs(Y)<0.1').Y.plot(style='.', grid=True, label='after rotate to 0', ax=ax2, c='g', alpha=0.1)
-    df_after_rotation.set_index('X').query('abs(Y)>0.1').Y.plot(style='.', grid=True, label='after rotate to 0', ax=ax2, c='r', alpha=0.01)
+    alpha=0.1 if df_after_rotation.shape[0] > 25*500 else 0.4
+    df_after_rotation.set_index('X').query('abs(Y)<0.1').Y.plot(style='.', grid=True, label='after rotate to 0', ax=ax2, c='g', alpha=alpha)
+    df_after_rotation.set_index('X').query('abs(Y)>0.1').Y.plot(style='.', grid=True, label='after rotate to 0', ax=ax2, c='r', alpha=alpha/10)
 
     if red_index is not None:
         df_before_rotation.loc[red_index].set_index('X').Y.plot(style='x', grid=True, label='after rotate to 0', ax=ax1, c='k', alpha=1)
@@ -327,10 +340,12 @@ def plot_sinogram(image, sinogram, angle_by_std):
     # image=image/-image.max()+1
     # sinogram=sinogram/-sinogram.max()+1
     ax[0].axis([0, hist_bins_max, 0, hist_bins_max])
-    ax[0].imshow(image, cmap=plt.cm.Greys_r)
-    image_middle=(hist_bins_max) // 2
-    ax[0].plot([image_middle, image_middle+20 * np.cos(np.deg2rad(angle_by_std))],
-               [image_middle, image_middle-20 * np.sin(np.deg2rad(angle_by_std))], c='r', linewidth=4)
+    ax[0].imshow(image[::-1], cmap=plt.cm.Greys_r)
+    image_middle = hist_bins_max // 2
+    ax[0].plot(
+        [image_middle, image_middle+20 * np.cos(np.deg2rad(angle_by_std))],
+        [image_middle, image_middle+20 * np.sin(np.deg2rad(angle_by_std))],
+        c='r', linewidth=4)
 
     ax[1].set_title("sinogram")
     y_axis_values=hist_bins_max

@@ -108,6 +108,291 @@ LatexCommand tableofcontents
 \end_layout
 
 \begin_layout Section
+background
+\end_layout
+
+\begin_layout Subsection
+2D modulo quantizer
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset label
+LatexCommand label
+name "modulo quantizer explain"
+
+\end_inset
+
+modulo operation return the reminder after division of two numbers.
+ here we will prefer signed modulo, which preserves the sign of the data.
+ at signed modulo we firstly add half modulo size to the data, then performing
+ to modulo operation, then subtracting the half modulo size.
+ at figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "flow_before_after_modulo"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ we can see the data before and after the modulo in 2D space.
+ green is the modulo edges, where the data folds.
+ blue is data before modulo and red is after modulo.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/flow_before_after_modulo.png
+	lyxscale 5
+	width 10cm
+	height 10cm
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+flow before after modulo
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "flow_before_after_modulo"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+sinogram transformation and angle estimation
+\end_layout
+
+\begin_layout Standard
+known also as radon transformation.
+ figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sinogram example"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ is an example for the transform.
+ figure (a) shows the original data, which is highly correlated, and has
+ been manipulated by modulo quantizer, as explained at section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "modulo quantizer explain"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ the red line in the figure shows the estimated angle of the data by the
+ sinogram.
+ figure (b) shows the sinogram transformation, which has the same dimenstions
+ as the original data.
+ the x axis of the sinogram present angle and y axis present distance from
+ the axis origins.
+ each pixel at the sinogram present angle and distance of a line at the
+ orignal data, and the value of this pixel presents the sum of values at
+ the original data that are under this given line.
+ 
+\end_layout
+
+\begin_layout Standard
+the angle estimation by the sinogram is by finding angle that contains the
+ max std value.
+ figure (c) is std on all sinogram y axis values per x axis value.
+ it's easy to see at figure (b) that the max value is at angle value of
+ -11, and also that the std of all y values at angle -11, is the highest
+ from all angles.
+ 
+\end_layout
+
+\begin_layout Standard
+figure (d) shows all y values at anlge -11.
+ it contains 3 local maximum that represent the folded line at the data
+ domain.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename figures/sinogram_example_data.png
+	lyxscale 10
+	width 5cm
+	height 5cm
+	keepAspectRatio
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+input data
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename figures/sinogram_example_sinogram.png
+	lyxscale 10
+	width 5cm
+	height 5cm
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+sinogram transform
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename figures/sinogram_example_sinogram_std.png
+	lyxscale 10
+	width 5cm
+	height 5cm
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+std per angle
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename figures/sinogram_example_values_at_angle.png
+	lyxscale 10
+	width 5cm
+	height 5cm
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+sinogram values at estimated angle
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+sinogram example
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "sinogram example"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
 problem statement
 \end_layout
 
@@ -167,7 +452,8 @@ methods
 \end_layout
 
 \begin_layout Standard
-we will present few approaches that we applied on te problem statement.
+this section will present few approaches that we applied on the problem
+ statement.
  some of them can be used only when the the covariance is already known.
 \end_layout
 
@@ -222,9 +508,20 @@ this equation can also be at matrix form where x is the data matrix and
 mod operation on matrix is applying modulo seperatedly on each element at
  the matrix.
  now by this approach, the transmitter is doing modulo by a size that is
- known from ahead, then the receiver firstly multiply the data by the A
- matrix, then it's also applying modulo at the same size at the transmitter
- used.
+ known from ahead.
+ an example of 2 transmitters is shown at figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "flow_before_after_modulo"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ the receiver firstly multiply the data by the A matrix, then it's also
+ applying modulo at the same size at the transmitter used.
  what we want is that that after 
 \begin_inset Formula $A*mod(D)$
 \end_inset
@@ -267,7 +564,18 @@ maximum likelihood modulo
 \begin_layout Standard
 this approach is assuming we know the covariance matrix of the original
  data, and by that, the ML modulo will not match our problem statement.
- at this approach, the transmitter is doing modulo by known size.
+ at this approach we have 2 transmitters and 2 receivers.
+ the transmitter is doing modulo by known size as shown at figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "flow_before_after_modulo"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
  what we get after the modulo, is data that is folded into the modulo space.
  when the data is highly correlated, the shape of it at 2 dimension is like
  narrow elipse, and when folding this elipse by using modulo, we will get
@@ -297,9 +605,109 @@ this method is the next step of the ML modulo method.
  data, and it's using some manipulations to reconstruct the original data.
  the main idea is that all the folded parts are originally laying on the
  same folded line, which is the main eigenvector of the original covariance.
- if we find this line, and we know how its beening folded, we can check
+ if we find this line, and we know how its beening folded, so we can check
  for each sample where is the nearest folded part of the line and reconstruct
  the data by this knowledge.
+ 
+\end_layout
+
+\begin_layout Standard
+to simplify it more, we will use more intuitive approach - the output of
+ the transmitter is shown at red color at figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "flow_before_after_modulo"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ we apply sinogram transform, as explained at section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sinogram example"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, and from the sinogram we will get a line that goes on the main axis of
+ the data.
+ next step is taking the square area of the transmitters output, duplicate
+ it horisontally and vertically as shown at the left figure at figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "flow_before_after_rotation"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ one can clearly see that now we have the original data, but in exchange
+ we need to filter out the all the non relevant duplications of the original
+ data.
+ each sample has multiple duplications, and the receiver need to pick the
+ one that is the closes to the main axis of the sinogram.
+\end_layout
+
+\begin_layout Standard
+let's sum the flow in short:
+\end_layout
+
+\begin_layout Enumerate
+transmitters applying modulo on data.
+\end_layout
+
+\begin_layout Enumerate
+receiver apply sinogram on pattern and extract angle of data main axis.
+\end_layout
+
+\begin_layout Enumerate
+receiver gets the transmitters 2D pattern and duplicates it horisontally
+ and vertically.
+\end_layout
+
+\begin_layout Enumerate
+for each duplicated sample, the receiver picks the one that is the closest
+ to the sinogram main axis.
+\end_layout
+
+\begin_layout Standard
+for finding closest sample to main line, it's easier to rotate the data
+ by the line angle and then to find the samples that has the lowest absulot
+ y values.
+ left figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "flow_before_after_rotation"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ present data before rotation, and right figure present after rotation.
+ x marker at both figures present all duplications of some specific sample.
+ green samples at the right figure are the chosent duplications that are
+ the closest to x axis from all the sample options.
+\end_layout
+
+\begin_layout Standard
+for picking number of duplications to use, we will recal that the data distribut
+ion is normal, and we can take as much duplications that we want to enshure
+ low probability of getting samples that has no duplication at the right
+ place.
+ here we took 2 modulo size at each direction, which gives use space of
+ modulo size multiply in 2.5.
+ by simulations, the best modulo size is TODO which results in TODO length
+ in all directions.
+ at normal distribuiton, this length equals TODO sigma, that has probability
+ of TODO to happen.
 \end_layout
 
 \begin_layout Standard
@@ -311,9 +719,9 @@ status open
 \begin_layout Plain Layout
 \align center
 \begin_inset Graphics
-	filename C:/Users/lisrael1/Desktop/background/IMG_20190506_163038.jpg
+	filename figures/flow_before_after_rotation.png
 	lyxscale 5
-	width 5cm
+	width 10cm
 	height 5cm
 
 \end_inset
@@ -325,7 +733,7 @@ status open
 \begin_inset Caption Standard
 
 \begin_layout Plain Layout
-my fig
+flow before after rotation
 \end_layout
 
 \end_inset
@@ -333,7 +741,7 @@ my fig
 
 \begin_inset CommandInset label
 LatexCommand label
-name "green fig"
+name "flow_before_after_rotation"
 
 \end_inset
 
@@ -346,13 +754,45 @@ name "green fig"
 \end_layout
 
 \begin_layout Section
+signed modulo vs.
+ unsigned
+\end_layout
+
+\begin_layout Standard
+we use signed modulo at two methods, at integer forcing and at sinogram.
+ at both cases we cannot use unsigned modulo, each by its own reasons.
+ 
+\end_layout
+
+\begin_layout Standard
+at integer forcing the condition for the equation 
+\begin_inset Formula $mod(A*mod(D))=mod(A*D)$
+\end_inset
+
+ to happen is that all element at 
+\begin_inset Formula $A*mod(D)$
+\end_inset
+
+ will be inside the modulo.
+ this criteria cannot be happen if we have signed data, and the we use unsigned
+ modulo.
+\end_layout
+
+\begin_layout Standard
+at sinogram method we might find advantages of using unsigned, for example
+ at figure TODO, we need the modulo size to be only half of the data spread,
+ but when data folded into itself, we will not be able to recover the original
+ place, and this will result in high MSE that will be to high and will shadow
+ the other cases success.
+\end_layout
+
+\begin_layout Section
 single dimension quantizer
 \end_layout
 
 \begin_layout Standard
 when scheme has only 1 transmitter and 1 receiver, we have no additional
- data, and no additional correlation that we can take advantage on, so this
- work has nothing to add on this case.
+ data, and no additional correlation that we can take advantage on.
  the only thing that we can take from 1D case, is to check optimum size
  for clipping method.
  we do this by calculating integral of MSE for each bin at the quantizer,
@@ -366,10 +806,22 @@ TODO write all cdf and erf math
 \end_layout
 
 \begin_layout Standard
-\begin_inset Formula $\intop_{b+S}^{b+1+s}e^{-x^{2}}-b/2+s$
+\begin_inset Formula $integral:b+1+s,b+S,e^{-x^{2}}-b/2+s$
 \end_inset
 
  
+\end_layout
+
+\begin_layout Section
+simulations results
+\end_layout
+
+\begin_layout Standard
+we simulated each method and checked for optimal quantizer size and mean
+ MSE.
+ at some methods the MSE had rare cases that had high MSE, that changed
+ the mean MSE, so we simulated a mass of cases per method so the mean MSE
+ will reflect also rare cases.
 \end_layout
 
 \begin_layout Section
@@ -377,17 +829,58 @@ figures sources
 \end_layout
 
 \begin_layout Standard
-here is fig 
+all figures are taken from code that is maintained on git at https://github.com/l
+israel1/quants
+\end_layout
+
+\begin_layout Standard
+figures 
 \begin_inset CommandInset ref
 LatexCommand ref
-reference "green fig"
+reference "flow_before_after_modulo"
 plural "false"
 caps "false"
 noprefix "false"
 
 \end_inset
 
+, 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sinogram example"
+plural "false"
+caps "false"
+noprefix "false"
 
+\end_inset
+
+ and 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "flow_before_after_rotation"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ are generated by 
+\end_layout
+
+\begin_layout Standard
+code
+\backslash
+results
+\backslash
+modulo_vs_naive_2
+\backslash
+int_force
+\backslash
+jupyter_reports
+\backslash
+sinogram
+\backslash
+flow_example.ipynb
 \end_layout
 
 \end_body

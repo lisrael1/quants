@@ -1,3 +1,5 @@
+print('the whole file moved to int_force packages and this file is old one legacy!!!')
+'''*********************************************************************************'''
 class simple_quantizer():
 	  """
 		when first_quantizer_bar_at_zero is True, you have quantizer bar at 0, when not, if bin_size is 0.1, you will have bar quantizer at ...,-0.15,-0.05,0.05,0.15,...

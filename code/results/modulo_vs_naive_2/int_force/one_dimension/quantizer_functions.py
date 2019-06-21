@@ -158,8 +158,8 @@ class quantizer():
         plt.plot([-self.modulo_edge_to_edge / 2, self.modulo_edge_to_edge / 2], np.zeros(2), "D", label="modulo edge")
         plt.legend(loc="best")
         # error=analytical_error(self.bin_size,self.number_of_quants,self.mu,self.sigma)
-        error = analytical_error(quantizer_i=self)
-        plt.title("#bins=" + str(self.number_of_quants) + ", bin size=" + str(self.bin_size) + "\nself.mu=" + str(self.mu) + ", self.sigma=" + str(self.sigma) + ", error=" + str(error))
+        mse = analytical_error(quantizer_i=self)
+        plt.title("#bins=" + str(self.number_of_quants) + ", bin size=" + str(self.bin_size) + "\nmu=" + str(self.mu) + ", sigma=" + str(self.sigma) + ", MSE=" + str(mse))
         plt.grid()
         if 1:
             plt.show()
@@ -219,11 +219,11 @@ def analytical_error(bin_size=None, quantizer_i=None):
             # dither=random.uniform(0,quantizer_i.bin_size)
             return norm(quantizer_i.mu, quantizer_i.sigma).pdf(x) * ((x - quantizise_single(sign_mod(np.array(x), quantizer_i.modulo_edge_to_edge), quantizer_i)) ** 2)
 
-    error = quad(mse_for_single_dot, -10 * q.sigma, 10 * q.sigma, args=(q))[0]
+    mse = quad(mse_for_single_dot, -10 * q.sigma, 10 * q.sigma, args=(q))[0]
     see_itterations = 0
     if see_itterations:
-        print(q.bin_size, error)
-    return error
+        print(q.bin_size, mse)
+    return mse
 
 
 def find_best_quantizer(number_of_quants, sigma, mu=0):
@@ -268,7 +268,7 @@ def find_best_quantizer_parallel_for_1_sigma(number_of_quants):
 
 
 def plot_quantizer_on_normal_bell_example():
-    quantizer(bin_size=1.35, number_of_quants=5, max_val=None, all_quants=None, mu=0, sigma=1, modulo_edge_to_edge=None).plot_pdf_quants()
+    quantizer(bin_size=2, number_of_quants=5, max_val=None, all_quants=None, mu=0, sigma=1, modulo_edge_to_edge=None).plot_pdf_quants()
 
 
 if __name__ == "__main__":

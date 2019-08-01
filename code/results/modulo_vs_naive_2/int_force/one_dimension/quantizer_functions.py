@@ -145,7 +145,7 @@ class quantizer():
         ##		q=mat(q).reshape(q.shape)
         return q
 
-    def plot_pdf_quants(self):
+    def plot_pdf_quants(self, plot_mod_edge=False):
         from scipy.stats import norm
         import pylab as plt
 
@@ -153,9 +153,11 @@ class quantizer():
         plt.plot(x, norm.pdf(x, self.mu, self.sigma), label="pdf")
         plt.plot(self.all_quants, np.zeros(self.number_of_quants), "D", label="bin middle")
         # plt.plot(np.append(self.all_quants-self.bin_size/2, self.all_quants[-1]+self.bin_size/2), np.zeros(self.number_of_quants+1), "D", label="bin edges")
-        for edge in np.append(self.all_quants-self.bin_size/2, self.all_quants[-1]+self.bin_size/2):
+        # for edge in np.append(self.all_quants-self.bin_size/2, self.all_quants[-1]+self.bin_size/2):
+        for edge in self.all_quants[1:]-self.bin_size/2:
             plt.axvline(edge, color='g', alpha=0.7, linestyle='--')
-        plt.plot([-self.modulo_edge_to_edge / 2, self.modulo_edge_to_edge / 2], np.zeros(2), "D", label="modulo edge")
+        if plot_mod_edge:
+            plt.plot([-self.modulo_edge_to_edge / 2, self.modulo_edge_to_edge / 2], np.zeros(2), "D", label="modulo edge")
         plt.legend(loc="best")
         # error=analytical_error(self.bin_size,self.number_of_quants,self.mu,self.sigma)
         mse = analytical_error(quantizer_i=self)

@@ -334,7 +334,9 @@ def plot_sinogram(image, sinogram, angle_by_std):
     import numpy as np
     import pylab as plt
     hist_bins_max=image.shape[0]-1  # image should be square
-    fig, ax = plt.subplots(1, 4, figsize=(12 * 2.1, 4.5 * 2.1))  # , subplot_kw ={'aspect': 1.5})#, sharex=False)
+    picture_size_factor=1
+    fig, ax = plt.subplots(2, 2, figsize=(20 * picture_size_factor, 20 * picture_size_factor))  # , subplot_kw ={'aspect': 1.5})#, sharex=False)
+    ax = ax.flatten()
 
     ax[0].set_title("data")
     # image=image/-image.max()+1

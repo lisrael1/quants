@@ -1,4 +1,5 @@
-# run with python3 -i
+# run with python3 -i ../all_gz_files_to_df.py
+# or by sbatch --mem=75000m --time=23:50:0 --wrap 'python3 ../all_gz_files_to_df.py;date|mutt -s done israelilior@gmail.com'
 # then do what you want with df
 import pandas as pd
 import numpy as np
@@ -9,32 +10,56 @@ from tqdm import tqdm
 from glob import glob
 import pickle
 import _pickle
-import timeit
+import os
+
+class timer:
+    def __init__(self):
+        import time
+        self.time=time
+        self.start = time.time()
+    def current(self):
+        return "{:} sec".format(self.time.time() - self.start)
+    def __del__(self):
+        print("closing timer with value {:}".format(self.current()))
+        return self.current()  
+    def __exit__(self, exception_type, exception_value, traceback): pass
+    def __enter__(self): pass
 
 
 alls=[]
 for f in tqdm(glob(r"*gz")):
-	try:
-		tmp=pd.read_csv(f,index_col=[0])#, nrows=200000)
-		alls+=[tmp]
-	except:
-		print('failed to read '+f)
-print('now doint concatenation')
-df=pd.concat(alls, ignore_index=True, sort=False)
-#df=pd.DataFrame(np.vstack([a.values for a in alls]))
+    try:
+        tmp=pd.read_csv(f,index_col=[0])#, nrows=200000)
+        alls+=[tmp]
+    except:
+        print('failed to read '+f)
+with timer():
+    print('now doint concatenation')
+    df=pd.concat(alls, ignore_index=True, sort=False)
+    #df=pd.DataFrame(np.vstack([a.values for a in alls]))
 
-if 0:
-        print('write csv time')
-        print(timeit.timeit("df.to_csv('del.csv')", number=1, setup="from __main__ import df"))
-if 0:
-        print('write pickle time')
-        f = open('del.pckl', 'wb')
-        print(timeit.timeit("pickle.dump(df, f)", number=1, setup="from __main__ import df,f,pickle"))
-        f.close()
+        
+        
+with timer():
+    pvt=df.groupby(['method','quant_size','snr','number_of_bins']).rmse.mean().reset_index()
+    pvt.to_csv('~/www/pivot_rmse_%s.csv'%pd.datetime.now().strftime('%d_%m_%Y_%H.%M.%S'))
+
+        
+        
+print('write pickle')
+with timer():
+    print('saving pkl file')
+    os.makedirs('/tmp/lisrael1_del/',exist_ok=True)
+    df.to_pickle('/tmp/lisrael1_del/del.pkl')
+with timer():
+    print('pigz on pkl file')
+    print(os.popen('pigz /tmp/lisrael1_del/del.pkl').read())
+print(os.popen('mv /tmp/lisrael1_del/del.pkl.gz ~/www/').read())
 
 
 # print('read pickle')
 # f = open('del.pckl','rb')
 # df = pickle.load(f)
 # f.close()
+
 

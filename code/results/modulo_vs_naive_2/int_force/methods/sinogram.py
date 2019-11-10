@@ -386,9 +386,11 @@ def _debug_sinogram_method():
 
 
 def compare_sinogram_and_eigen_vector(quant_size=False, hist_bins_max=300, snr=10000, samples=1000):
-    import sys
+    import sys, os
     sys.path.append('../../')
-    sys.path.append(r'C:\Users\lisrael1\Documents\myThings\lior_docs\HU\thesis\quants\code\results\modulo_vs_naive_2/')
+#     sys.path.append(r'C:\Users\lisrael1\Documents\myThings\lior_docs\HU\thesis\quants\code\results\modulo_vs_naive_2/')
+    root_folder = os.path.realpath(__file__).replace('\\', '/').rsplit('modulo_vs_naive_2', 1)[0]+'/modulo_vs_naive_2/'
+    sys.path.append(root_folder)
     import int_force
     from sys import platform
 

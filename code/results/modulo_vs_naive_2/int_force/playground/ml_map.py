@@ -15,9 +15,11 @@ pd.set_option('display.max_colwidth',1000)
 print('done imports')
 
 if __name__ == '__main__':
-    import sys
+    import sys, os
     sys.path.append('../../')
-    sys.path.append(r'C:\Users\lisrael1\Documents\myThings\lior_docs\HU\thesis\quants\code\results\modulo_vs_naive_2/')
+#     sys.path.append(r'C:\Users\lisrael1\Documents\myThings\lior_docs\HU\thesis\quants\code\results\modulo_vs_naive_2/')
+    root_folder = os.path.realpath(__file__).replace('\\', '/').rsplit('modulo_vs_naive_2', 1)[0]+'/modulo_vs_naive_2/'
+    sys.path.append(root_folder)
     # from int_force.rand_data import rand_data
     plot=True
 

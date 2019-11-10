@@ -2,9 +2,11 @@ import numpy as np
 import pandas as pd
 # import plotly as py
 # import cufflinks
-import sys
+import sys, os
 sys.path.append('../../')
-sys.path.append(r'C:\Users\lisrael1\Documents\myThings\lior_docs\HU\thesis\quants\code\results\modulo_vs_naive_2/')
+# sys.path.append(r'C:\Users\lisrael1\Documents\myThings\lior_docs\HU\thesis\quants\code\results\modulo_vs_naive_2/')
+root_folder = os.path.realpath(__file__).replace('\\', '/').rsplit('modulo_vs_naive_2', 1)[0]+'/modulo_vs_naive_2/'
+sys.path.append(root_folder)
 import int_force
 import pylab as plt
 import plotly as py

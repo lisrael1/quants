@@ -134,7 +134,7 @@ people are documenting more by pictures and videos.
 \end_layout
 
 \begin_layout Standard
-also the amount of smartphone users has raised, and keep going up by about
+the amount of smartphone users also has raised, and keep going up by about
  250 million new users per year.
 \end_layout
 
@@ -163,11 +163,12 @@ target motivation and usage
 \end_layout
 
 \begin_layout Standard
-as the demand for bandwidth is rising, it will be good idea to do exploit
- the multi antennas, and try to use all the antennas as multi receiver.
+as the demand for bandwidth is rising, it will be good idea to exploit the
+ multi antennas, that the cellular is already surrounded by, and try to
+ use all the antennas as multi receiver.
  in theory, this should increase the channel capacity, and gain more bandwidth.
  we should note that the signal that accepted at all antennas, has high
- correlation, as it all comes from single source.
+ correlation, as it all comes from the same source.
 \end_layout
 
 \begin_layout Standard
@@ -182,8 +183,8 @@ in communication terms we desire to achieve distributed quantization, in
  channel that we do know the covariance matrix.
  we cannot use mutual encoding as the sources are the split of the same
  source by the channel model.
- we do want to use communication between decoders or main processor after
- the decoders so we will exploit the correlation and gain less distortion.
+ we do want to use communication between decoders, or main processor after
+ the decoders, so we will exploit the correlation, and gain less distortion.
 \end_layout
 
 \begin_layout Subsection
@@ -191,15 +192,41 @@ assumptions
 \end_layout
 
 \begin_layout Standard
-there are few things that we should know from ahead in target to make the
- communication work.
- first we don't want communication from decoder to encoder so data distribution
- should be known from ahead so lattice will be set from beginning.
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:assumptions"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
-second, if we know the the correlation between channels, or covariance matrix,
- we can know the on what rate to focus in target to achieve desired distortion.
+there are few things that we should know from ahead in target to make the
+ communication work.
+ 
+\end_layout
+
+\begin_layout Standard
+first, we don't want communication from the decoder back to the encoder
+ so data distribution should be known from ahead, and lattice will be set
+ from beginning.
+\end_layout
+
+\begin_layout Standard
+second, if we know the correlation between channels, or covariance matrix,
+ we can know on what rate to focus, in target to achieve desired distortion.
+\end_layout
+
+\begin_layout Subsubsection
+entropy coding
+\end_layout
+
+\begin_layout Standard
+our scheme is about fixed rate quantization, not variable quantization.
+ we have limit on the rate per transmission and we want to send maximum
+ bits that we can achieve, so we will not show entropy coding although it
+ probably gains more efficiency.
 \end_layout
 
 \begin_layout Subsection
@@ -223,7 +250,7 @@ The problem scheme has 2 transmitters and 2 receivers.
 
 \begin_layout Standard
 each transmitter gets non discrete data, then quantizes the data on finite
- lattice with fixed number of bit.
+ lattice with fixed number of bits.
  the quantizer size should be set from ahead.
 \end_layout
 
@@ -261,14 +288,14 @@ a,b ~N
 
 \begin_layout Standard
 as mentioned above, the data is highly correlated, and as so, the SNR is
- an high number.
+ a high number.
 \end_layout
 
 \begin_layout Standard
-in the process of looking for solution, we also used some simpler cases,
+in the process of looking for solution, we also used some simple cases,
  of taking only 1 transmitter and 1 receiver, and also a case that we already
  know the data covariance.
- some of methods that we tried, can only be applied on those simpler cases
+ some of methods that we tried, can only be applied on those simple cases
  and not on the problem statement.
 \end_layout
 
@@ -277,9 +304,9 @@ alternative approaches
 \end_layout
 
 \begin_layout Standard
-we will descuss each approach on 2 cases - when covariance matrix of the
+we will discuss each approach on 2 aspects - when covariance matrix of the
  transmitted data is known, and when it's not known, and we only know the
- distribution of the covariance, and explained at section 
+ distribution of the covariance, as explained at section 
 \begin_inset CommandInset ref
 LatexCommand ref
 reference "subsec:problem-scheme"
@@ -293,17 +320,6 @@ noprefix "false"
 \end_layout
 
 \begin_layout Subsection
-entropy coding
-\end_layout
-
-\begin_layout Standard
-our scheme is about fixed rate quantization, not variable quantization.
- we have limit on the rate per transmission and we want to send maximum
- bits that we can achiev, so we will not show antropy coding although it
- probably gain more efficiency.
-\end_layout
-
-\begin_layout Subsection
 separate encoding and decoding approach
 \end_layout
 
@@ -312,13 +328,13 @@ when doing different encoding for each input, we get scalar quantizer per
  dimension and each will have it own rate distortion.
  we set the quantizer by optimal quantizer in a way that we will explain
  latter, and set each Tx and Rx to communicate without any cross communication
- for other channels.
+ with other channels.
  
 \end_layout
 
 \begin_layout Standard
-this method is the simplest but of course cannot achieve best mutual rate
- distortion in non zero correlation case.
+this method is the simplest approach, but of course cannot achieve best
+ mutual rate distortion in non zero correlation case.
 \end_layout
 
 \begin_layout Standard
@@ -346,7 +362,7 @@ TODO write all cdf and erf math
 \end_layout
 
 \begin_layout Standard
-b is the middle of the bin, and s is the size of the bin.
+b is the center of the bin, and s is the size of the bin.
  
 \end_layout
 
@@ -374,9 +390,9 @@ b is the middle of the bin, and s is the size of the bin.
 
 \begin_layout Standard
 in known covariance matrix case, we have fixed term for the error function,
- and in unknown covaraince matrix, we will wrap the integral with another
- integral with variance of the distribution multiply by odds to this distributio
-n.
+ and in unknown covariance matrix, we will wrap the integral with another
+ integral with variance of the distribution multiplied by the odds at this
+ distribution.
 \end_layout
 
 \begin_layout Standard
@@ -445,8 +461,18 @@ at this method we encode and decode first channel as it's a single source,
  and by that the lattice of second encoder can be much smaller as it has
  high correlation to first channel.
  the main disadvantage is that first encoder has to communicate also with
- second encoder.
+ second encoder, and it's not by our limitation goals as described at section
  
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "subsec:assumptions"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Subsection
@@ -456,7 +482,25 @@ optimal distributed lattice
 \begin_layout Standard
 if we can take all signal, and encode them in long blocks, we will achieve
  the optimal encoding, but it will change the scheme as we will no long
- will have 2 encoders, but 1 that transmits all the data.
+ will have 2 encoders, but one central unit that transmits all the data.
+\end_layout
+
+\begin_layout Subsection
+more approaches
+\end_layout
+
+\begin_layout Standard
+some more approaches will be discussed at section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:methods"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, after giving some background data for those methods.
 \end_layout
 
 \begin_layout Section
@@ -474,10 +518,10 @@ name "sec modulo quantizer explain"
 
 \end_inset
 
-modulo operation return the reminder after division of two numbers.
+the modulo operation returns the reminder after division of two numbers.
  here we will prefer signed modulo, which preserves the sign of the data.
  at signed modulo we firstly add half modulo size to the data, then performing
- to modulo operator, then subtracting back the half modulo size.
+ the modulo operator, then subtracting back the half modulo size.
  at figure 
 \begin_inset CommandInset ref
 LatexCommand ref
@@ -759,9 +803,19 @@ methods
 \end_layout
 
 \begin_layout Standard
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:methods"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
 this section will present few approaches that we applied on the problem
  statement.
- some of them can be used only when the the covariance is already known.
+ some of them can be used only when the covariance is already known.
 \end_layout
 
 \begin_layout Subsection
@@ -827,7 +881,8 @@ noprefix "false"
 \end_inset
 
 .
- the receiver firstly multiply the data by the A matrix, then applying modulo.
+ the receiver firstly multiplies the data by the A matrix, then applying
+ modulo.
  what we want is that after 
 \begin_inset Formula $A*mod(D)$
 \end_inset
@@ -1035,12 +1090,12 @@ our goal is to evaluate the STD of the data after second modulo, but with
  we have some other ways for estimating the data distribution after second
  modulo.
  we tried another 3 methods - getting max value, kurtosis and 90% range.
- best method is still the sampling of the STD, as it's a criteria that comes
- from the whole data.
+ best method is still the sampling of the STD, as it's a criterion that
+ comes from the whole data.
  criteria by single max value, or even 90% that takes only few samples,
  did not gave us better estimation on the distribution.
- the kurtosis criteria has a lot of variance at low number of samples, so
- it's very noisy to extract STD from this criteria.
+ the kurtosis criteria have a lot of variance at low number of samples,
+ so it's very noisy to extract STD from this criteria.
 \end_layout
 
 \begin_layout Subsubsection
@@ -1174,7 +1229,7 @@ using integer forcing at known and unknown covariance
 \begin_layout Standard
 we have 2 state - when we know the covariance matrix, and when we only know
  its distribution, but not specific values.
- as A matrix can be only specific combinations of integers , we have only
+ as A matrix can be only specific combinations of integers, we have only
  specific cases that this method can solve, and if we already know covariance,
  we better use maximum likelihood instead, that is not restricted to specific
  cases of covariance.
@@ -1766,16 +1821,16 @@ at integer forcing the condition for the equation
 \end_inset
 
  will be inside the modulo.
- this criteria cannot be happen if we have signed data, and the we use unsigned
- modulo.
+ this criterion cannot be happen if we have signed data, and the we use
+ unsigned modulo.
 \end_layout
 
 \begin_layout Standard
 at sinogram method we might find advantages of using unsigned, for example
  at figure TODO, we need the modulo size to be only half of the data spread,
  but when data folded into itself, we will not be able to recover the original
- place, and this will result in high MSE that will be to high and will shadow
- the other cases success.
+ place, and this will result in high MSE that will be too high and will
+ shadow the other cases success.
 \end_layout
 
 \begin_layout Section

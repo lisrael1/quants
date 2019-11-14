@@ -105,6 +105,405 @@ LatexCommand tableofcontents
 \end_layout
 
 \begin_layout Section
+problem statement
+\end_layout
+
+\begin_layout Subsection
+background
+\end_layout
+
+\begin_layout Standard
+in the last years, the demand for bandwidth of communication raised.
+ people uses phones on street for downloading big files and data.
+\end_layout
+
+\begin_layout Standard
+at the last years, the data traffic jumped exponentially.
+ internet traffic, that is the main data traffic jumped from 100GB per day
+ at the year 1992, to 46,000GB in a second at 2017
+\end_layout
+
+\begin_layout Standard
+https://www.cisco.com/c/en/us/solutions/collateral/service-provider/visual-network
+ing-index-vni/white-paper-c11-741490.html 
+\end_layout
+
+\begin_layout Standard
+people are documenting more by pictures and videos.
+ people send, share and backup their data.
+\end_layout
+
+\begin_layout Standard
+the amount of smartphone users also has raised, and keep going up by about
+ 250 million new users per year.
+\end_layout
+
+\begin_layout Standard
+https://www.statista.com/statistics/330695/number-of-smartphone-users-worldwide/
+\end_layout
+
+\begin_layout Standard
+at the past, data traffic was via PC that's connected by Ethernet cable,
+ but today, the usage of wireless, and cellular communication in particular
+ is huge.
+ cellular companies keep spreading more and more antennas in target to cover
+ more area and stick to the bandwidth demand.
+ 
+\end_layout
+
+\begin_layout Standard
+today, although that a smartphone is in reach of multiple antennas, still
+ the communication will be done using single antenna, while for the others,
+ the transmission will be as noise, and there will be no effort to exploit
+ the others.
+\end_layout
+
+\begin_layout Subsection
+target motivation and usage
+\end_layout
+
+\begin_layout Standard
+as the demand for bandwidth is rising, it will be good idea to exploit the
+ multi antennas, that the cellular is already surrounded by, and try to
+ use all the antennas as multi receiver.
+ in theory, this should increase the channel capacity, and gain more bandwidth.
+ we should note that the signal that accepted at all antennas, has high
+ correlation, as it all comes from the same source.
+\end_layout
+
+\begin_layout Standard
+our target is to find a way to use all antennas in range, but without communicat
+ion between the antennas themselves.
+ all antennas will decode the signal and send it to central unit, that will
+ process the data.
+\end_layout
+
+\begin_layout Standard
+in communication terms we desire to achieve distributed quantization, in
+ channel that we do know the covariance matrix.
+ we cannot use mutual encoding as the sources are the split of the same
+ source by the channel model.
+ we do want to use communication between decoders, or main processor after
+ the decoders, so we will exploit the correlation, and gain less distortion.
+\end_layout
+
+\begin_layout Subsection
+assumptions
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:assumptions"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+there are few things that we should know from ahead in target to make the
+ communication work.
+ 
+\end_layout
+
+\begin_layout Standard
+first, we don't want communication from the decoder back to the encoder
+ so data distribution should be known from ahead, and lattice will be set
+ from beginning.
+\end_layout
+
+\begin_layout Standard
+second, if we know the correlation between channels, or covariance matrix,
+ we can know on what rate to focus, in target to achieve desired distortion.
+\end_layout
+
+\begin_layout Subsubsection
+entropy coding
+\end_layout
+
+\begin_layout Standard
+our scheme is about fixed rate quantization, not variable quantization.
+ we have limit on the rate per transmission and we want to send maximum
+ bits that we can achieve, so we will not show entropy coding although it
+ probably gains more efficiency.
+\end_layout
+
+\begin_layout Subsection
+problem scheme
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:problem-scheme"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The problem scheme has 2 transmitters and 2 receivers.
+ the receivers deliver the data to central unit for further process.
+\end_layout
+
+\begin_layout Standard
+each transmitter gets non discrete data, then quantizes the data on finite
+ lattice with fixed number of bits.
+ the quantizer size should be set from ahead.
+\end_layout
+
+\begin_layout Standard
+the transmitters transmit data with high correlation, by covariance matrix
+ that we will explain later.
+ if we had a case that the transmitters can communicate between each other,
+ we could use simple scheme that one transmits the data as is and the other
+ will transmit only the delta from the first, or other compression methods,
+ but in our case, the transmitters don't communicate, and we want to find
+ scheme that will take the advantage of the correlation between the transmitters
+ and compress the transmitted data.
+\end_layout
+
+\begin_layout Standard
+the covariance between the transmitters randomized as follows:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $h=\text{\left[\begin{array}{c}
+ a\\
+ b 
+\end{array}\right]},$
+\end_inset
+
+a,b ~N
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $cov=hh^{T}+I*\frac{1}{SNR}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+as mentioned above, the data is highly correlated, and as so, the SNR is
+ a high number.
+\end_layout
+
+\begin_layout Standard
+in the process of looking for solution, we also used some simple cases,
+ of taking only 1 transmitter and 1 receiver, and also a case that we already
+ know the data covariance.
+ some of methods that we tried, can only be applied on those simple cases
+ and not on the problem statement.
+\end_layout
+
+\begin_layout Section
+alternative approaches
+\end_layout
+
+\begin_layout Standard
+we will discuss each approach on 2 aspects - when covariance matrix of the
+ transmitted data is known, and when it's not known, and we only know the
+ distribution of the covariance, as explained at section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "subsec:problem-scheme"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+separate encoding and decoding approach
+\end_layout
+
+\begin_layout Standard
+when doing different encoding for each input, we get scalar quantizer per
+ dimension and each will have it own rate distortion.
+ we set the quantizer by optimal quantizer in a way that we will explain
+ latter, and set each Tx and Rx to communicate without any cross communication
+ with other channels.
+ 
+\end_layout
+
+\begin_layout Standard
+this method is the simplest approach, but of course cannot achieve best
+ mutual rate distortion in non zero correlation case.
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:single dimension quantizer"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+the quantizer will set to fixed size, and data that will exceed the quantizer
+ bonds, will be clipped to the nearest bin.
+ the optimum size for the bins will be calculated by calculating integral
+ of MSE for each bin at the quantizer, and summing all MSEs parts.
+ we have 1 variable that does change, which is the bin size, and we find
+ optimal size to it, that will minimize our total MSE.
+ the integral will goes as follow:
+\end_layout
+
+\begin_layout Standard
+TODO write all cdf and erf math
+\end_layout
+
+\begin_layout Standard
+b is the center of the bin, and s is the size of the bin.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $sum-on-all-i\intop_{b_{i}-s/2}^{b_{i}+s/2}(e^{-x^{2}}-b_{i})dx$
+\end_inset
+
++
+\begin_inset Formula $\intop_{-\inf}^{b_{0}}(e^{-x^{2}}-b_{0})dx+\intop_{b_{max}}^{\inf}(e^{-x^{2}}-b_{max})dx$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\intop_{(i-\frac{1}{2})s}^{(i+\frac{1}{2})s}(e^{-x^{2}}-i*s)dx$
+\end_inset
+
++
+\begin_inset Formula $\intop_{-\inf}^{i_{min}}(e^{-x^{2}}-i_{min}*s)dx+\intop_{i_{max}}^{\inf}(e^{-x^{2}}-i_{max}*s)dx$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+in known covariance matrix case, we have fixed term for the error function,
+ and in unknown covariance matrix, we will wrap the integral with another
+ integral with variance of the distribution multiplied by the odds at this
+ distribution.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/1D_quantizer.png
+	lyxscale 10
+	width 10cm
+	height 5cm
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+1D quantizer
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "fig_1d_quantizer"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+the rate distortion for this approach will be 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $1/2*log(\sigma^{2}/d)$
+\end_inset
+
+ 
+\end_layout
+
+\begin_layout Standard
+where d is the bin size, and sigma is data distribution for specific input
+ at given state.
+\end_layout
+
+\begin_layout Subsection
+encoding delta approach
+\end_layout
+
+\begin_layout Standard
+at this method we encode and decode first channel as it's a single source,
+ and the second channel will encode only the delta from the first channel,
+ and by that the lattice of second encoder can be much smaller as it has
+ high correlation to first channel.
+ the main disadvantage is that first encoder has to communicate also with
+ second encoder, and it's not by our limitation goals as described at section
+ 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "subsec:assumptions"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+optimal distributed lattice
+\end_layout
+
+\begin_layout Standard
+if we can take all signal, and encode them in long blocks, we will achieve
+ the optimal encoding, but it will change the scheme as we will no long
+ will have 2 encoders, but one central unit that transmits all the data.
+\end_layout
+
+\begin_layout Subsection
+more approaches
+\end_layout
+
+\begin_layout Standard
+some more approaches will be discussed at section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:methods"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, after giving some background data for those methods.
+\end_layout
+
+\begin_layout Section
 background
 \end_layout
 
@@ -119,10 +518,10 @@ name "sec modulo quantizer explain"
 
 \end_inset
 
-modulo operation return the reminder after division of two numbers.
+the modulo operation returns the reminder after division of two numbers.
  here we will prefer signed modulo, which preserves the sign of the data.
  at signed modulo we firstly add half modulo size to the data, then performing
- to modulo operator, then subtracting back the half modulo size.
+ the modulo operator, then subtracting back the half modulo size.
  at figure 
 \begin_inset CommandInset ref
 LatexCommand ref
@@ -217,7 +616,7 @@ noprefix "false"
  as the original data.
  the x axis of the sinogram present angle and y axis present distance from
  the axis origins.
- a line can be presented by 2 numbers, of anlge and distance from axis origins.
+ a line can be presented by 2 numbers, of angle and distance from axis origins.
  each pixel at the sinogram present angle by x axis and the y axis present
  distance of the line from axis origin, at the original data.
  the value of this pixel presents the sum of values at the original data
@@ -232,7 +631,7 @@ the angle estimation by the sinogram is by finding angle that contains the
  it's easy to see at figure (b) that the max value is at angle value of
  -11, and also that the std of all y values at angle -11, is the highest
  from all angles.
- STD creteria is better than max value, as max value presents only the most
+ STD criteria is better than max value, as max value presents only the most
  clear line, but STD takes also minor lines and also major ones that are
  not with max value.
 \end_layout
@@ -400,73 +799,23 @@ name "fig sinogram example"
 \end_layout
 
 \begin_layout Section
-problem statement
-\end_layout
-
-\begin_layout Standard
-The problem scheme has 2 transmitters and 2 receivers.
- the receivers deliver the data to central unit for further process.
-\end_layout
-
-\begin_layout Standard
-each transmitter gets non discrete data, then quantizes the data on finite
- lattice with fixed number of bit.
- the quantizer size should be set from ahead.
-\end_layout
-
-\begin_layout Standard
-the transmitters transmit data with high correlation, by covariance matrix
- that we will explain later.
- if we had a case that the transmitters can communicate between each other,
- we could use simple scheme that one transmits the data as is and the other
- will transmit only the delta from the first, or other compression methods,
- but in our case, the transmitters don't communicate, and we want to find
- scheme that will take the advantage of the correlation between the transmitters
- and compress the transmitted data.
-\end_layout
-
-\begin_layout Standard
-the covariance between the transmitters randomized as follows:
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula $h=\text{\left[\begin{array}{c}
- a\\
- b 
-\end{array}\right]},$
-\end_inset
-
-a,b ~N
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula $cov=hh^{T}+I*\frac{1}{SNR}$
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-as mentioned above, the data is highly correlated, and as so, the SNR is
- an high number.
-\end_layout
-
-\begin_layout Standard
-in the process of looking for solution, we also used some simpler cases,
- of taking only 1 transmitter and 1 receiver, and also a case that we already
- know the data covariance.
- some of methods that we tried, can only be applied on those simpler cases
- and not on the problem statement.
-\end_layout
-
-\begin_layout Section
 methods
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:methods"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
 this section will present few approaches that we applied on the problem
  statement.
- some of them can be used only when the the covariance is already known.
+ some of them can be used only when the covariance is already known.
 \end_layout
 
 \begin_layout Subsection
@@ -532,7 +881,8 @@ noprefix "false"
 \end_inset
 
 .
- the receiver firstly multiply the data by the A matrix, then applying modulo.
+ the receiver firstly multiplies the data by the A matrix, then applying
+ modulo.
  what we want is that after 
 \begin_inset Formula $A*mod(D)$
 \end_inset
@@ -668,7 +1018,7 @@ name "a_matrix_before_after_a"
 \end_layout
 
 \begin_layout Standard
-at 2 dimentions case, that we have, we find this approach less efficient.
+at 2 dimensions case, that we have, we find this approach less efficient.
  to understand this, first we will explain that the A matrix is combination
  of 3 operations - sheering, rotating and inflating.
  lets focus a bit on the inflating.
@@ -678,7 +1028,7 @@ at 2 dimentions case, that we have, we find this approach less efficient.
  this area in power of 2, which some factor that need to be added.
  the determinant of A*D is equal to det(A)*det(D) and det(A)>1 because A
  is integer matrix.
- so multiply in A cannot squeeze the data area, and unfortunly can inflate
+ so multiply in A cannot squeeze the data area, and unfortunately can inflate
  this area which is bad for us because we want to stay in the modulo area.
  the only way that we can gain from multiplying in A is sheeting and rotating
  as shown at figure 
@@ -692,7 +1042,7 @@ noprefix "false"
 \end_inset
 
 , under that constrain that det(A)=1 or at least not so big.
- this restriction leavea us no much of combinations at A values, resulting
+ this restriction leaves us no much of combinations at A values, resulting
  in only few specific operations of sheering and rotating, that leaves us
  only few optional shapes for the input data.
 \end_layout
@@ -706,7 +1056,7 @@ at our case, we don't know the data covariance, so we need a way to find
  the A matrix that will give us minimum MSE after the decoder.
  the data that we do have is the raw data from the encoder output.
  if we multiply this data in a given A matrix, and do modulo on it, the
- creteria that we will not have more MSE than the quantization, is that
+ criteria that we will not have more MSE than the quantization, is that
  the whole data will be inside the modulo space, as mentioned before.
  input data is normalized distributed, so after second modulo we expect
  the distribution to be normal too.
@@ -723,13 +1073,13 @@ noprefix "false"
 (b)5.
  but also along normal distribution we will pick the one that has the minimal
  STD.
- each row at the A matrix, gives distribution at specific dimention, so
+ each row at the A matrix, gives distribution at specific dimension, so
  a way to find good rows combination for A matrix will be to take the rows
  that give us the minimum STD, but with single constrain that those rows
  are not linear combination of former ones.
  if rows are linearly dependent, the rank of the matrix will be less than
- the data dimentions, the A matrix will be ireversible and some of the data
- will be lost.
+ the data dimensions, the A matrix will be irreversible and some of the
+ data will be lost.
  at 2D case we pick best row, and the second one will be the second best
  STD among rows that are not factor of first row.
 \end_layout
@@ -740,12 +1090,12 @@ our goal is to evaluate the STD of the data after second modulo, but with
  we have some other ways for estimating the data distribution after second
  modulo.
  we tried another 3 methods - getting max value, kurtosis and 90% range.
- best method is still the sampling of the STD, as it's a criteria that comes
- from the whole data.
+ best method is still the sampling of the STD, as it's a criterion that
+ comes from the whole data.
  criteria by single max value, or even 90% that takes only few samples,
  did not gave us better estimation on the distribution.
- the kurtosis criteria has a lot of variance at low number of samples, so
- it's very noisy to extract STD from this criteria.
+ the kurtosis criteria have a lot of variance at low number of samples,
+ so it's very noisy to extract STD from this criteria.
 \end_layout
 
 \begin_layout Subsubsection
@@ -767,7 +1117,7 @@ noprefix "false"
  at each sub plot, we can see sub sub plot 5 that shows the output after
  multiplying in A matrix.
  we can see that at sub plot (a) we did not exceed the modulo area, and
- the recovered data after the whole flow is exelent, as shown at (a)6.
+ the recovered data after the whole flow is excellent, as shown at (a)6.
  at sub plot (b), the data did exceed the modulo edges, and we get folding
  of the area.
  the results are bad, as you can see the output at (b)6.
@@ -872,6 +1222,22 @@ name "a_matrix_flow_good_and_bad"
 
 \end_layout
 
+\begin_layout Subsubsection
+using integer forcing at known and unknown covariance 
+\end_layout
+
+\begin_layout Standard
+we have 2 state - when we know the covariance matrix, and when we only know
+ its distribution, but not specific values.
+ as A matrix can be only specific combinations of integers, we have only
+ specific cases that this method can solve, and if we already know covariance,
+ we better use maximum likelihood instead, that is not restricted to specific
+ cases of covariance.
+ when we only know covariance distribution, we have cases that we cannot
+ be sure what was the original covariance, and that cause low results at
+ 2D case.
+\end_layout
+
 \begin_layout Subsection
 maximum likelihood modulo
 \end_layout
@@ -879,6 +1245,7 @@ maximum likelihood modulo
 \begin_layout Standard
 this approach is assuming we already know the covariance matrix of the original
  data, and by that, the ML modulo will not match our problem statement.
+ it cannot be applied on unknown covariance.
  at this approach we have 2 transmitters and 2 receivers.
  the transmitter is doing modulo by known size as shown at figure 
 \begin_inset CommandInset ref
@@ -915,7 +1282,7 @@ noprefix "false"
  those 25 places are all combinations of 5 from x and 5 from y.
  after knowing this rule, we can calculate the cdf of each of those 25 options
  and check which one of them is the most likely to be our folded case.
- we use cdf and not pdf because each value is presenting all the space next
+ we use cdf and not PDF because each value is presenting all the space next
  to it as this value is quantized value.
 \end_layout
 
@@ -929,7 +1296,7 @@ this method is the next step of the ML modulo method.
  data, and it's using some manipulations to reconstruct the original data.
  the main idea is that all the folded parts are originally laying on the
  same folded line, which is the main eigenvector of the original covariance.
- if we find this line, and we know how its beeing folded, so we can check
+ if we find this line, and we know how its being folded, so we can check
  for each sample where is the nearest folded part of the line and reconstruct
  the data by this knowledge.
  
@@ -1005,7 +1372,7 @@ for each duplicated sample, the receiver picks the one that is the closest
 \begin_layout Standard
 for finding closest sample to main line, it's easier to rotate the data
  by the main axis angle and then to find the samples that has the lowest
- absolut y values.
+ absolute y values.
  left figure 
 \begin_inset CommandInset ref
 LatexCommand ref
@@ -1454,101 +1821,16 @@ at integer forcing the condition for the equation
 \end_inset
 
  will be inside the modulo.
- this criteria cannot be happen if we have signed data, and the we use unsigned
- modulo.
+ this criterion cannot be happen if we have signed data, and the we use
+ unsigned modulo.
 \end_layout
 
 \begin_layout Standard
 at sinogram method we might find advantages of using unsigned, for example
  at figure TODO, we need the modulo size to be only half of the data spread,
  but when data folded into itself, we will not be able to recover the original
- place, and this will result in high MSE that will be to high and will shadow
- the other cases success.
-\end_layout
-
-\begin_layout Section
-single dimension quantizer
-\end_layout
-
-\begin_layout Standard
-when scheme has only 1 transmitter and 1 receiver, we have no additional
- data, and no additional correlation that we can take advantage on.
- the only thing that we can take from 1D case, is to check quantizer optimum
- size for clipping method.
- we do this by calculating integral of MSE for each bin at the quantizer,
- and summing all MSEs parts.
- we have 1 variable that does change, which is the bin size, and we find
- optimal size to it, that will minimize our total MSE.
-\end_layout
-
-\begin_layout Standard
-TODO write all cdf and erf math
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula $\intop_{b_{i}-s/2}^{b_{i}+s/2}(e^{-x^{2}}-b_{i})dx$
-\end_inset
-
-+
-\begin_inset Formula $\intop_{-\inf}^{b_{0}}(e^{-x^{2}}-b_{0})dx+\intop_{b_{max}}^{\inf}(e^{-x^{2}}-b_{max})dx$
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula $\intop_{(i-\frac{1}{2})s}^{(i+\frac{1}{2})s}(e^{-x^{2}}-i*s)dx$
-\end_inset
-
-+
-\begin_inset Formula $\intop_{-\inf}^{i_{min}}(e^{-x^{2}}-i_{min}*s)dx+\intop_{i_{max}}^{\inf}(e^{-x^{2}}-i_{max}*s)dx$
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Float figure
-wide false
-sideways false
-status open
-
-\begin_layout Plain Layout
-\align center
-\begin_inset Graphics
-	filename figures/1D_quantizer.png
-	lyxscale 10
-	width 10cm
-	height 5cm
-
-\end_inset
-
-
-\begin_inset Caption Standard
-
-\begin_layout Plain Layout
-1D quantizer
-\end_layout
-
-\end_inset
-
-
-\begin_inset CommandInset label
-LatexCommand label
-name "fig_1d_quantizer"
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Plain Layout
-
-\end_layout
-
-\end_inset
-
-
+ place, and this will result in high MSE that will be too high and will
+ shadow the other cases success.
 \end_layout
 
 \begin_layout Section
@@ -1561,6 +1843,18 @@ we simulated each method and checked for optimal quantizer size and mean
  at some methods, the MSE had rare cases that had high MSE, that changed
  the mean MSE, so we simulated a mass of cases per method so the mean MSE
  will reflect also rare cases.
+\end_layout
+
+\begin_layout Standard
+(TODO - inputs are number of bins, bin size and noise.
+ at the output you get MSE, but you only want MSE per std noise.
+ so we better take high number of bins so quantizer size will be about fix
+ size, but maybe it's not true, and i should put bin size at the size of
+ the noise.
+ don't know.
+ any way i should run multi simulations to find also best quantizer size,
+ so maybe i can run only few and interpolate the best MSE by some filter
+ on the noisy MSE results)
 \end_layout
 
 \begin_layout Standard

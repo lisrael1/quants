@@ -7,19 +7,17 @@ from optparse import OptionParser
 from tqdm import tqdm
 tqdm.pandas()
 from sys import platform
+import os, sys
+root_folder = os.path.realpath(__file__).replace('\\', '/').rsplit('int_force', 1)[0]
+sys.path.append(root_folder)
 
-
-import plotly as py
-import cufflinks
-
-import sys
-sys.path.append('../')
-sys.path.append('../../')
-sys.path.append('../../../')
+# sys.path.append('../')
+# sys.path.append('../../')
+# sys.path.append('../../../')
 import int_force
 
 if __name__ == '__main__':
-    timer=int_force.global_imports.timer()
+    timer=int_force.global_imports.timer()  # when this object is closed, it will print running time
     help_text='''
     examples:
         seq 0 40 |xargs -I ^ echo python3 "%prog" -s ^ \&
@@ -82,6 +80,8 @@ if __name__ == '__main__':
     print(df.describe())
     df.to_csv('results_del_%s.csv.gz'%u.split_id,compression='gzip')
     if 0:
+        import plotly as py
+        import cufflinks
         print('%d uniques A that the script found'%df.A.dropna().astype(str).nunique())
         print(df.A.dropna().astype(str).value_counts())
 

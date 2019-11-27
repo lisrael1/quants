@@ -42,8 +42,9 @@ with timer():
         
 with timer():
     pvt=df.groupby(['method','quant_size','snr','number_of_bins']).rmse.mean().reset_index()
-    pvt.to_csv('~/www/pivot_rmse_%s.csv'%pd.datetime.now().strftime('%d_%m_%Y_%H.%M.%S'))
-
+    pvt.to_csv('~/www/pivot_rmse_hist_%s.csv'%pd.datetime.now().strftime('%d_%m_%Y_%H.%M.%S'))
+    pvt.to_csv('~/www/pivot_rmse_last_one.csv')
+exit()
         
         
 print('write pickle')

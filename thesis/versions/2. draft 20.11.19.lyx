@@ -1,0 +1,1992 @@
+#LyX 2.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 544
+\begin_document
+\begin_header
+\save_transient_properties true
+\origin unavailable
+\textclass article
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman "default" "default"
+\font_sans "default" "default"
+\font_typewriter "default" "default"
+\font_math "auto" "auto"
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100 100
+\font_tt_scale 100 100
+\use_microtype false
+\use_dash_ligatures true
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry false
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 0
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine basic
+\cite_engine_type default
+\biblio_style plain
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\use_refstyle 1
+\use_minted 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\is_math_indent 0
+\math_numbering_side default
+\quotes_style english
+\dynamic_quotes 0
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Blind low complexity modulo lattice distributed quantization
+\end_layout
+
+\begin_layout Standard
+\begin_inset Newpage newpage
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset toc
+LatexCommand tableofcontents
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Newpage newpage
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Problem statement
+\end_layout
+
+\begin_layout Subsection
+Background
+\end_layout
+
+\begin_layout Standard
+In the last years, the demand for bandwidth of communication raised.
+ People uses phones on street for downloading big files and data.
+\end_layout
+
+\begin_layout Standard
+At the last years, the data traffic jumped exponentially.
+ Internet traffic, that is the main data traffic jumped from 100GB per day
+ at the year 1992, to 46,000GB in a second at 2017.
+ [TODO source 1]
+\end_layout
+
+\begin_layout Standard
+People are documenting more by pictures and videos.
+ People send, share and backup their data.
+\end_layout
+
+\begin_layout Standard
+The amount of smartphone users also has raised, and keep going up by about
+ 250 million new users per year.
+ [TODO source 2]
+\end_layout
+
+\begin_layout Standard
+At the past, data traffic was via PC that's connected by Ethernet cable,
+ but today, the usage of wireless, and cellular communication in particular
+ is huge.
+ Cellular companies keep spreading more and more antennas in target to cover
+ more area and stick to the bandwidth demand.
+ 
+\end_layout
+
+\begin_layout Standard
+Today, although that a smartphone is in reach of multiple antennas, still
+ the communication will be done using single antenna, while for the others,
+ the transmission will be as noise, and there will be no effort to exploit
+ the others.
+\end_layout
+
+\begin_layout Standard
+source 1: https://www.cisco.com/c/en/us/solutions/collateral/service-provider/visu
+al-networking-index-vni/white-paper-c11-741490.html 
+\end_layout
+
+\begin_layout Standard
+source 2: https://www.statista.com/statistics/330695/number-of-smartphone-users-wo
+rldwide/
+\end_layout
+
+\begin_layout Subsection
+Target motivation and usage
+\end_layout
+
+\begin_layout Standard
+As the demand for bandwidth is rising, it will be good idea to exploit the
+ multi antennas, that the cellular is already surrounded by, and try to
+ use all the antennas as multi receiver.
+ In theory, this should increase the channel capacity, and gain more bandwidth.
+ We should note that the signal that accepted at all antennas, has high
+ correlation, as it all comes from the same source.
+\end_layout
+
+\begin_layout Standard
+Our target is to find a way to use all antennas in range, but without communicat
+ion between the antennas themselves.
+ All antennas will decode the signal and send it to central unit, that will
+ process the data.
+\end_layout
+
+\begin_layout Standard
+In communication terms we desire to achieve distributed quantization, in
+ channel that we do know the covariance matrix.
+ We cannot use mutual encoding as the sources are the split of the same
+ source by the channel model.
+ We do want to use communication between decoders, or main processor after
+ the decoders, so we will exploit the correlation, and gain less distortion.
+\end_layout
+
+\begin_layout Subsection
+Assumptions
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:assumptions"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+There are few things that we should know from ahead in target to make the
+ communication work.
+ 
+\end_layout
+
+\begin_layout Standard
+First, we don't want communication from the decoder back to the encoder
+ so data distribution should be known from ahead, and lattice will be set
+ from beginning.
+\end_layout
+
+\begin_layout Standard
+Second, if we know the correlation between channels, or covariance matrix,
+ we can know on what rate to focus, in target to achieve desired distortion.
+\end_layout
+
+\begin_layout Subsubsection
+Entropy coding
+\end_layout
+
+\begin_layout Standard
+Our scheme is about fixed rate quantization, not variable quantization.
+ We have limit on the rate per transmission and we want to send maximum
+ bits that we can achieve, so we will not show entropy coding although it
+ probably gains more efficiency.
+\end_layout
+
+\begin_layout Subsection
+Problem scheme
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:problem-scheme"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The problem scheme has 2 transmitters and 2 receivers.
+ The receivers deliver the data to central unit for further process.
+\end_layout
+
+\begin_layout Standard
+Each transmitter gets non discrete data, then quantizes the data on finite
+ lattice with fixed number of bits.
+ The quantizer size should be set from ahead.
+\end_layout
+
+\begin_layout Standard
+The transmitters transmit data with high correlation, by covariance matrix
+ that we will explain later.
+ If we had a case that the transmitters can communicate between each other,
+ we could use simple scheme that one transmits the data as is and the other
+ will transmit only the delta from the first, or other compression methods,
+ but in our case, the transmitters don't communicate, and we want to find
+ scheme that will take the advantage of the correlation between the transmitters
+ and compress the transmitted data.
+\end_layout
+
+\begin_layout Standard
+The covariance between the transmitters randomized as follows:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $h=\text{\left[\begin{array}{c}
+ a\\
+ b 
+\end{array}\right]},$
+\end_inset
+
+a,b ~N
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $cov=hh^{T}+I*\frac{1}{SNR}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+As mentioned above, the data is highly correlated, and as so, the SNR is
+ a high number.
+\end_layout
+
+\begin_layout Standard
+In the process of looking for solution, we also used some simple cases,
+ of taking only 1 transmitter and 1 receiver, and also a case that we already
+ know the data covariance.
+ Some of methods that we tried, can only be applied on those simple cases
+ and not on the problem statement.
+\end_layout
+
+\begin_layout Section
+Alternative approaches
+\end_layout
+
+\begin_layout Standard
+We will discuss each approach on 2 aspects - when covariance matrix of the
+ transmitted data is known, and when it's not known, and we only know the
+ distribution of the covariance, as explained at section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "subsec:problem-scheme"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Separate encoding and decoding approach
+\end_layout
+
+\begin_layout Standard
+When doing different encoding for each input, we get scalar quantizer per
+ dimension and each will have it own rate distortion.
+ We set the quantizer by optimal quantizer in a way that we will explain
+ latter, and set each Tx and Rx to communicate without any cross communication
+ with other channels.
+ 
+\end_layout
+
+\begin_layout Standard
+This method is the simplest approach, but of course cannot achieve best
+ mutual rate distortion in non zero correlation case.
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:single dimension quantizer"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The quantizer will set to fixed size, and data that will exceed the quantizer
+ bonds, will be clipped to the nearest bin.
+ The optimum size for the bins will be calculated by calculating integral
+ of MSE for each bin at the quantizer, and summing all MSEs parts.
+ We have 1 variable that does change, which is the bin size, and we find
+ optimal size to it, that will minimize our total MSE.
+ The integral will goes as follow:
+\end_layout
+
+\begin_layout Standard
+TODO write all cdf and erf math
+\end_layout
+
+\begin_layout Standard
+b is the center of the bin, and s is the size of the bin.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $sum-on-all-i\intop_{b_{i}-s/2}^{b_{i}+s/2}(e^{-x^{2}}-b_{i})dx$
+\end_inset
+
++
+\begin_inset Formula $\intop_{-\inf}^{b_{0}}(e^{-x^{2}}-b_{0})dx+\intop_{b_{max}}^{\inf}(e^{-x^{2}}-b_{max})dx$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\intop_{(i-\frac{1}{2})s}^{(i+\frac{1}{2})s}(e^{-x^{2}}-i*s)dx$
+\end_inset
+
++
+\begin_inset Formula $\intop_{-\inf}^{i_{min}}(e^{-x^{2}}-i_{min}*s)dx+\intop_{i_{max}}^{\inf}(e^{-x^{2}}-i_{max}*s)dx$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In known covariance matrix case, we have fixed term for the error function,
+ and in unknown covariance matrix, we will wrap the integral with another
+ integral with variance of the distribution multiplied by the odds at this
+ distribution.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/1D_quantizer.png
+	lyxscale 10
+	width 10cm
+	height 5cm
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+1D quantizer
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "fig_1d_quantizer"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The rate distortion for this approach will be 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $1/2*log(\sigma^{2}/d)$
+\end_inset
+
+ 
+\end_layout
+
+\begin_layout Standard
+Where d is the bin size, and sigma is data distribution for specific input
+ at given state.
+\end_layout
+
+\begin_layout Subsection
+Encoding delta approach
+\end_layout
+
+\begin_layout Standard
+At this method we encode and decode first channel as it's a single source,
+ and the second channel will encode only the delta from the first channel,
+ and by that the lattice of second encoder can be much smaller as it has
+ high correlation to first channel.
+ The main disadvantage is that first encoder has to communicate also with
+ second encoder, and it's not by our limitation goals as described at section
+ 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "subsec:assumptions"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Optimal distributed lattice
+\end_layout
+
+\begin_layout Standard
+If we can take all signal, and encode them in long blocks, we will achieve
+ the optimal encoding, but it will change the scheme as we will no long
+ will have 2 encoders, but one central unit that transmits all the data.
+\end_layout
+
+\begin_layout Subsection
+More approaches
+\end_layout
+
+\begin_layout Standard
+Some more approaches will be discussed at section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:methods"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, after giving some background data for those methods.
+\end_layout
+
+\begin_layout Section
+Background
+\end_layout
+
+\begin_layout Subsection
+2D modulo quantizer
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset label
+LatexCommand label
+name "sec modulo quantizer explain"
+
+\end_inset
+
+The modulo operation returns the reminder after division of two numbers.
+ Here we will prefer signed modulo, which preserves the sign of the data.
+ At signed modulo we firstly add half modulo size to the data, then performing
+ the modulo operator, then subtracting back the half modulo size.
+ At figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig_flow_before_after_modulo"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ we can see the data before and after the modulo in 2D space.
+ Green is the modulo edges, where the data folds.
+ Blue is data before modulo and red is after modulo.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/flow_before_after_modulo.png
+	lyxscale 5
+	width 10cm
+	height 10cm
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Flow before after modulo
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "fig_flow_before_after_modulo"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Sinogram transformation and angle estimation
+\end_layout
+
+\begin_layout Standard
+Known also as radon or hough transformation.
+ Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig sinogram example"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ is an example for this transform.
+ Figure (a) shows the original data, which is highly correlated, and has
+ been manipulated by modulo quantizer, as explained at section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec modulo quantizer explain"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ The red line in the figure shows the estimated angle of the data by the
+ sinogram.
+ Figure (b) shows the sinogram transformation, which has the same dimensions
+ as the original data.
+ The x axis of the sinogram present angle and y axis present distance from
+ the axis origins.
+ A line can be presented by 2 numbers, of angle and distance from axis origins.
+ Each pixel at the sinogram present angle by x axis and the y axis present
+ distance of the line from axis origin, at the original data.
+ The value of this pixel presents the sum of values at the original data
+ that are under this given line.
+ 
+\end_layout
+
+\begin_layout Standard
+The angle estimation by the sinogram is by finding angle that contains the
+ max std value.
+ Figure (c) is std on all sinogram y axis values per x axis value.
+ It's easy to see at figure (b) that the max value is at angle value of
+ -11, and also that the std of all y values at angle -11, is the highest
+ from all angles.
+ STD criteria is better than max value, as max value presents only the most
+ clear line, but STD takes also minor lines and also major ones that are
+ not with max value.
+\end_layout
+
+\begin_layout Standard
+Figure (d) shows all y values at angle -11.
+ It contains 3 local maximum that represent the folded line at the data
+ domain.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/sinogram_example_data.png
+	lyxscale 10
+	width 5cm
+	height 5cm
+	keepAspectRatio
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Input data
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/sinogram_example_sinogram.png
+	lyxscale 10
+	width 5cm
+	height 5cm
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Sinogram transform
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/sinogram_example_sinogram_std.png
+	lyxscale 10
+	width 5cm
+	height 5cm
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Std per angle
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/sinogram_example_values_at_angle.png
+	lyxscale 10
+	width 5cm
+	height 5cm
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Sinogram values at estimated angle
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Sinogram example
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "fig sinogram example"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Methods
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:methods"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This section will present few approaches that we applied on the problem
+ statement.
+ Some of them can be used only when the covariance is already known.
+\end_layout
+
+\begin_layout Subsection
+Clipping
+\end_layout
+
+\begin_layout Standard
+The most common approach is to just set fixed size of quantizer and clip
+ higher or lower values to the nearest value at the quantizer.
+ For example, if we take quantizer with values of -1, 0 and 1, we will quantize
+ the value of -2.5 to -1 and the value of 2.2 to 1.
+ This approach clearly does not take advantage of the correlation between
+ the transmitters but is very easy to implement and will be our naive method
+ that we will compare to.
+\end_layout
+
+\begin_layout Subsection
+Integer forcing
+\end_layout
+
+\begin_layout Standard
+This approach, taken from the article of Ori TODO, is approach for higher
+ order of data (about 8 transmitters), and is based on modulo property of:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $mod(i*mod(x))=mod(i*x),i\exists integers$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Where i is an integer number.
+\end_layout
+
+\begin_layout Standard
+This equation can also be at matrix form where x is the data matrix and
+ i is square matrix with only integers.
+ We will call the integer matrix A, and the data matrix D:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $mod(A*mod(D))=mod(A*D)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Mod operation on matrix is applying modulo separately on each element at
+ the matrix.
+ Now by this approach, the transmitter is doing modulo by a size that is
+ known from ahead.
+ An example of 2 transmitters is shown at figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig_flow_before_after_modulo"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ The receiver firstly multiplies the data by the A matrix, then applying
+ modulo.
+ What we want is that after 
+\begin_inset Formula $A*mod(D)$
+\end_inset
+
+ we will get the output inside the modulo range so when we apply the receiver
+ modulo, it will make no effect.
+ What we get from this situation is that mathematically we do 
+\begin_inset Formula $mod_{RX}(A*mod_{TX}(D))$
+\end_inset
+
+ which is equal to 
+\begin_inset Formula $mod_{RX}(A*D)$
+\end_inset
+
+, meaning the transmitter modulo has no effect and we get the same data
+ at the output of this transmitter and also at perfect transmitter with
+ endless quantizer.
+ We're looking for a case that after multiplying by A we get all the data
+ inside the modulo, so at this case, the receiver modulo is also taking
+ no effect.
+ What we eventually get is that after the receiver, we get 
+\begin_inset Formula $A*D$
+\end_inset
+
+ and because we know A, we can multiply it in 
+\begin_inset Formula $A^{-1}$
+\end_inset
+
+and recover the original 
+\begin_inset Formula $D$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/a_flow_before_a.png
+	lyxscale 10
+	width 5cm
+	height 3cm
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+before
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/a_flow_after_a.png
+	lyxscale 10
+	width 5cm
+	height 2.8cm
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+after
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+before and after multiplying in A integer matrix
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "a_matrix_before_after_a"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+2D case
+\end_layout
+
+\begin_layout Standard
+At 2 dimensions case, that we have, we find this approach less efficient.
+ To understand this, first we will explain that the A matrix is combination
+ of 3 operations - sheering, rotating and inflating.
+ Lets focus a bit on the inflating.
+ The target of the A matrix is to squeeze the data inside the modulo space.
+ The data is spread on area, that we need to squeeze.
+ We can say that the determinant of the data covariance matrix can represent
+ this area in power of 2, which some factor that need to be added.
+ The determinant of A*D is equal to det(A)*det(D) and det(A)>1 because A
+ is integer matrix.
+ So multiply in A cannot squeeze the data area, and unfortunately can inflate
+ this area which is bad for us because we want to stay in the modulo area.
+ The only way that we can gain from multiplying in A is sheeting and rotating
+ as shown at figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "a_matrix_before_after_a"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, under that constrain that det(A)=1 or at least not so big.
+ This restriction leaves us no much of combinations at A values, resulting
+ in only few specific operations of sheering and rotating, that leaves us
+ only few optional shapes for the input data.
+\end_layout
+
+\begin_layout Subsubsection
+Finding best rows combination A matrix 
+\end_layout
+
+\begin_layout Standard
+At our case, we don't know the data covariance, so we need a way to find
+ the A matrix that will give us minimum MSE after the decoder.
+ The data that we do have is the raw data from the encoder output.
+ If we multiply this data in a given A matrix, and do modulo on it, the
+ criteria that we will not have more MSE than the quantization, is that
+ the whole data will be inside the modulo space, as mentioned before.
+ Input data is normalized distributed, so after second modulo we expect
+ the distribution to be normal too.
+ Bad case will be uniform distribution at shown at figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "a_matrix_flow_good_and_bad"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+(b)5.
+ But also along normal distribution we will pick the one that has the minimal
+ STD.
+ Each row at the A matrix, gives distribution at specific dimension, so
+ a way to find good rows combination for A matrix will be to take the rows
+ that give us the minimum STD, but with single constrain that those rows
+ are not linear combination of former ones.
+ If rows are linearly dependent, the rank of the matrix will be less than
+ the data dimensions, the A matrix will be irreversible and some of the
+ data will be lost.
+ At 2D case we pick best row, and the second one will be the second best
+ STD among rows that are not factor of first row.
+\end_layout
+
+\begin_layout Standard
+Our goal is to evaluate the STD of the data after second modulo, but with
+ only few samples, as the covariance might change during transmission.
+ We have some other ways for estimating the data distribution after second
+ modulo.
+ We tried another 3 methods - getting max value, kurtosis and 90% range.
+ Best method is still the sampling of the STD, as it's a criterion that
+ comes from the whole data.
+ Criteria by single max value, or even 90% that takes only few samples,
+ did not gave us better estimation on the distribution.
+ The kurtosis criteria have a lot of variance at low number of samples,
+ so it's very noisy to extract STD from this criteria.
+\end_layout
+
+\begin_layout Subsubsection
+Visualizing flow
+\end_layout
+
+\begin_layout Standard
+at figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "a_matrix_flow_good_and_bad"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ we can see the whole flow of integer forcing.
+ At each sub plot, we can see sub sub plot 5 that shows the output after
+ multiplying in A matrix.
+ We can see that at sub plot (a) we did not exceed the modulo area, and
+ the recovered data after the whole flow is excellent, as shown at (a)6.
+ At sub plot (b), the data did exceed the modulo edges, and we get folding
+ of the area.
+ The results are bad, as you can see the output at (b)6.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/a_flow_good_one.png
+	lyxscale 10
+	width 8cm
+	height 10cm
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+good flow
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/a_flow_bad_one.png
+	lyxscale 10
+	width 8cm
+	height 10cm
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+bad flow
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+A integer forcing matrix at good and bad flow
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "a_matrix_flow_good_and_bad"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+using integer forcing at known and unknown covariance 
+\end_layout
+
+\begin_layout Standard
+We have 2 state - when we know the covariance matrix, and when we only know
+ its distribution, but not specific values.
+ As A matrix can be only specific combinations of integers, we have only
+ specific cases that this method can solve, and if we already know covariance,
+ we better use maximum likelihood instead, that is not restricted to specific
+ cases of covariance.
+ When we only know covariance distribution, we have cases that we cannot
+ be sure what was the original covariance, and that cause low results at
+ 2D case.
+\end_layout
+
+\begin_layout Subsection
+maximum likelihood modulo
+\end_layout
+
+\begin_layout Standard
+This approach is assuming we already know the covariance matrix of the original
+ data, and by that, the ML modulo will not match our problem statement.
+ It cannot be applied on unknown covariance.
+ At this approach we have 2 transmitters and 2 receivers.
+ The transmitter is doing modulo by known size as shown at figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig_flow_before_after_modulo"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ What we get after the modulo, is data that is folded into the modulo space.
+ When the data is highly correlated, the shape of it at 2 dimension is like
+ narrow ellipse, and when folding this ellipse by using modulo, we will
+ get the distribution as shown in red at figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig_flow_before_after_modulo"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ At most cases, one can easily see that this new distribution can be reconstruct
+ to the original distribution.
+ Let say that the max value at original data is no more than 5 times of
+ the modulo size, this means that each x values has 5 optional original
+ places that can be folded into this folded place.
+ If we take 2 dimensions, each x,y coordinate, can be taken from 25 optional
+ places.
+ Those 25 places are all combinations of 5 from x and 5 from y.
+ After knowing this rule, we can calculate the cdf of each of those 25 options
+ and check which one of them is the most likely to be our folded case.
+ We use cdf and not PDF because each value is presenting all the space next
+ to it as this value is quantized value.
+\end_layout
+
+\begin_layout Subsection
+sinogram modulo
+\end_layout
+
+\begin_layout Standard
+This method is the next step of the ML modulo method.
+ The sinogram modulo does not assume to know the covariance of the original
+ data, and it's using some manipulations to reconstruct the original data.
+ The main idea is that all the folded parts are originally laying on the
+ same folded line, which is the main eigenvector of the original covariance.
+ If we find this line, and we know how its being folded, so we can check
+ for each sample where is the nearest folded part of the line and reconstruct
+ the data by this knowledge.
+ 
+\end_layout
+
+\begin_layout Standard
+To simplify it more, we will use more intuitive approach - the output of
+ the transmitter is shown at red color at figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig_flow_before_after_modulo"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ We apply sinogram transform, as explained at section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig sinogram example"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, and from the sinogram we will get a line that goes on the main axis of
+ the data.
+ Next step is taking the square area of the transmitters output, duplicate
+ it horizontally and vertically as shown at the left figure at figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig_flow_before_after_rotation"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ One can clearly see that now we have the original data, but in exchange
+ we need to filter out the all the non relevant duplications of the original
+ data.
+ Each sample has multiple duplications, and the receiver need to pick the
+ one that is the closes to the main axis of the sinogram.
+\end_layout
+
+\begin_layout Standard
+Let's sum the flow in short:
+\end_layout
+
+\begin_layout Enumerate
+transmitters applying modulo on data.
+\end_layout
+
+\begin_layout Enumerate
+receiver apply sinogram on pattern and extract the main axis angle of the
+ data.
+\end_layout
+
+\begin_layout Enumerate
+receiver gets the transmitters 2D pattern and duplicates it horizontally
+ and vertically.
+\end_layout
+
+\begin_layout Enumerate
+for each duplicated sample, the receiver picks the one that is the closest
+ to the sinogram main axis.
+\end_layout
+
+\begin_layout Standard
+For finding closest sample to main line, it's easier to rotate the data
+ by the main axis angle and then to find the samples that has the lowest
+ absolute y values.
+ Left figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig_flow_before_after_rotation"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ present data before rotation, and right figure present after rotation.
+ X marker at both figures present all duplications of some specific sample.
+ Green samples at the right figure are the chosen duplications that are
+ the closest to x axis from all the sample options.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/flow_before_after_rotation.png
+	lyxscale 5
+	width 10cm
+	height 5cm
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+flow before after rotation
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "fig_flow_before_after_rotation"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+number of duplications
+\end_layout
+
+\begin_layout Standard
+For picking number of duplications to use, we will recall that the data
+ distribution is normal, and we can take as much duplications that we want
+ to ensure low probability of getting samples that has no duplication at
+ the right place.
+ Here we took 2 modulo size at each direction, which gives use space of
+ modulo size multiply in 2.5.
+ By simulations, the best modulo size is TODO which results in TODO length
+ in all directions.
+ At normal distribution, this length equals TODO sigma, that has probability
+ of TODO to happen.
+\end_layout
+
+\begin_layout Subsubsection
+angle resolution
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/rmse per angle error.png
+	lyxscale 10
+	width 10cm
+	height 5cm
+	keepAspectRatio
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+zoom out
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/rmse per angle error zoom in.png
+	lyxscale 10
+	width 10cm
+	height 5cm
+	keepAspectRatio
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+zoom in
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+RMSE per angle error at the sinogram
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "rmse_per_angle_error"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The sinogram gets the data from the receiver, when it's already quantized,
+ and by that, the sinogram output is also quantized, and angle has some
+ resolution error.
+ By simulations, this resolution does not raise the MSE, as we can see from
+ simulations results at figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "rmse_per_angle_error"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ The angle errors that are up to 25 with low RMSE are estimated angles on
+ data that has low variance at both axis.
+ Because the data distribution is small, and data spreads only on few quantizati
+on level, it's hard to tell what's the original angle, and it's also meaningless
+ as it cause no extra MSE.
+ The angles that does cause high RMSE are adjacent to 0 and 180, but 180
+ is equal to 0 as data angle has no direction.
+ If we look at figure (b) we can see zoom in on the area of angle 0, and
+ we can see that there are some mistakes that are up to 2 angle error.
+ 
+\end_layout
+
+\begin_layout Subsubsection
+folded case
+\end_layout
+
+\begin_layout Standard
+There are few angles that the data at 2D is folding into itself.
+ At figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "rmse_per_angle"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ we have square root of the MSE per data angle.
+ We can see that the RMSE has high errors at some specific angles.
+ Those angles are the ones that the modulo is folding the data into itself.
+ For example, at angle 45, the data spreads into the right upper corner,
+ and folds into the left lower corner.
+ At this case, the estimation for all samples, will be that those samples
+ are not folded, because not folded is more probable than is folded, and
+ all originally folded data will raise the RMSE.
+ 
+\end_layout
+
+\begin_layout Standard
+Figure TODO shows the modulo space and all its duplications with 2 duplications
+ at each direction.
+ When the angle of the data is 0, the 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/rmse per angle.png
+	lyxscale 10
+	width 10cm
+	height 5cm
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+RMSE per angle
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "rmse_per_angle"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+quantization pitfall
+\end_layout
+
+\begin_layout Standard
+The data at the sinogram is quantized, and the sinogram also gets quantized
+ input.
+ If the quantization of the sinogram is bigger than the data, the sinogram
+ will catch lines of the quantization, for example angles 0, 90 and 45,
+ and those might appear as stronger lines that the data itself.
+ At figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sinogram_resolution_matched_and_over"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+(a) we can see sinogram with low resolution, but matched to the input quantizati
+on.
+ We can see that the sinogram got the right angle estimation although having
+ low resolution.
+ At figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sinogram_resolution_matched_and_over"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+(b) we can see sinogram with high resolution, and that the sinogram deceived
+ by the quantization, and detecting lines at angles of 0, 45, 90 and other
+ combinations of the quantized data.
+ The simple solution for this issue is to be aware of the quantization size
+ of the data, and to apply the same quantization size at the sinogram input.
+ In case the input resolution is high, the sinogram can have lower resolution,
+ like 300X300 to preserve computation time, and still achieve low error
+ at angle estimation.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/sinogram resulotion match.png
+	lyxscale 10
+	width 10cm
+	height 10cm
+	keepAspectRatio
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+matched resolution
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/sinogram resulotion over.png
+	lyxscale 10
+	width 10cm
+	height 10cm
+	keepAspectRatio
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+over resolution
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+over and matched resolution at sinogram flow
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "sinogram_resolution_matched_and_over"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+signed modulo vs.
+ Unsigned
+\end_layout
+
+\begin_layout Standard
+We use signed modulo at two methods, at integer forcing and at sinogram.
+ At both cases we cannot use unsigned modulo, each by its own reasons.
+ 
+\end_layout
+
+\begin_layout Standard
+At integer forcing the condition for the equation 
+\begin_inset Formula $mod(A*mod(D))=mod(A*D)$
+\end_inset
+
+ to happen is that all element at 
+\begin_inset Formula $A*mod(D)$
+\end_inset
+
+ will be inside the modulo.
+ This criterion cannot be happen if we have signed data, and the we use
+ unsigned modulo.
+\end_layout
+
+\begin_layout Standard
+At sinogram method we might find advantages of using unsigned, for example
+ at figure TODO, we need the modulo size to be only half of the data spread,
+ but when data folded into itself, we will not be able to recover the original
+ place, and this will result in high MSE that will be too high and will
+ shadow the other cases success.
+\end_layout
+
+\begin_layout Section
+simulations results
+\end_layout
+
+\begin_layout Standard
+We simulated each method and checked for optimal quantizer size and mean
+ of MSE from all simulations.
+ At some methods, the MSE had rare cases that had high MSE, that changed
+ the mean MSE, so we simulated a mass of cases per method so the mean MSE
+ will reflect also rare cases.
+\end_layout
+
+\begin_layout Standard
+(TODO - inputs are number of bins, bin size and noise.
+ At the output you get MSE, but you only want MSE per std noise.
+ So we better take high number of bins so quantizer size will be about fix
+ size, but maybe it's not true, and i should put bin size at the size of
+ the noise.
+ Don't know.
+ Any way i should run multi simulations to find also best quantizer size,
+ so maybe i can run only few and interpolate the best MSE by some filter
+ on the noisy MSE results)
+\end_layout
+
+\begin_layout Standard
+\begin_inset Newpage newpage
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+figures sources
+\end_layout
+
+\begin_layout Standard
+All figures are taken from code that is maintained on git at https://github.com/l
+israel1/quants
+\end_layout
+
+\begin_layout Standard
+figures 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig_flow_before_after_modulo"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig sinogram example"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ and 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig_flow_before_after_rotation"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ are generated by 
+\end_layout
+
+\begin_layout Standard
+code
+\backslash
+results
+\backslash
+modulo_vs_naive_2
+\backslash
+int_force
+\backslash
+jupyter_reports
+\backslash
+sinogram
+\backslash
+flow_example.ipynb
+\end_layout
+
+\begin_layout Standard
+figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig_1d_quantizer"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ by plot_quantizer_on_normal_bell_example() at 
+\end_layout
+
+\begin_layout Standard
+code
+\backslash
+results
+\backslash
+modulo_vs_naive_2
+\backslash
+int_force
+\backslash
+one_dimension
+\backslash
+quantizer_functions.py
+\end_layout
+
+\begin_layout Standard
+figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sinogram_resolution_matched_and_over"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ by code
+\backslash
+results
+\backslash
+modulo_vs_naive_2
+\backslash
+int_force
+\backslash
+jupyter_reports
+\backslash
+sinogram
+\backslash
+high resolution vs matched one.ipynb
+\end_layout
+
+\begin_layout Section
+TODO
+\end_layout
+
+\begin_layout Subsection
+more things that i can write on:
+\end_layout
+
+\end_body
+\end_document
